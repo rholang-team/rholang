@@ -4,9 +4,7 @@
 #include <vector>
 
 #include "frontend/ast/decl.hpp"
-#include "frontend/ast/declstmt.hpp"
 #include "frontend/ast/expr.hpp"
-#include "frontend/ast/retstmt.hpp"
 #include "frontend/ast/stmt.hpp"
 #include "frontend/lex/lexeme.hpp"
 #include "frontend/lex/span.hpp"
