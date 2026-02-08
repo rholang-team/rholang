@@ -3,6 +3,8 @@ project('language', 'cpp', default_options : [
   'warning_level=3',
 ])
 
+gtest_dep = dependency('gtest_main')
+
 runtime_src = [
   # put your paths here
 ]
@@ -17,10 +19,14 @@ frontend_src = [
    'frontend/parse/error.cpp',
    'frontend/pretty.cpp',
 ]
+frontend = static_library('frontend', frontend_src)
+test('frontend tests', executable(
+  'frontendtests',
+  [],
+  dependencies: [gtest_dep],
+))
 
 driver_src = [
   'driver/main.cpp',
 ]
-
-frontend = static_library('frontend', frontend_src)
 executable('compiler', driver_src, link_with: [frontend])
