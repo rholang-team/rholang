@@ -1,10 +1,13 @@
 builddir := "./build"
 
-run: build
-    {{builddir}}/compiler examples/foo
+run FILE: build
+    {{builddir}}/compiler {{FILE}}
 
 test:
     meson test -C {{builddir}}
+
+format:
+    clang-format -i $(find . -name "**.hpp") $(find . -name "**.cpp")
     
 build:
     meson compile -C {{builddir}}
