@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <memory>
+#include <print>
 #include <stack>
 
 #include "frontend/parse/error.hpp"
@@ -206,7 +207,71 @@ std::unique_ptr<ast::Stmt> Parser::parseStmt() {
 }
 
 std::unique_ptr<ast::Expr> Parser::parseExpr() {
-    return parseInfixOps(parseTerm());
+    // https://www.nsl.com/k/parse/OperatorPrecedenceParsing.pdf
+
+    std::stack<std::unique_ptr<ast::Expr>> terms;
+    std::stack<ast::BinaryExpr::Op> ops;
+
+    bool reduced = false;
+
+    auto reduce = [&terms, &ops, &reduced]() {
+        auto rhs = std::move(terms.top());
+        terms.pop();
+        auto lhs = std::move(terms.top());
+        terms.pop();
+
+        terms.emplace(std::make_unique<ast::BinaryExpr>(ops.top(), std::move(lhs), std::move(rhs)));
+        ops.pop();
+
+        reduced = true;
+    };
+
+    for (;;) {
+        if (!reduced) {
+            terms.emplace(parseTerm());
+        }
+        reduced = false;
+
+        auto op = binaryOpFromToken(lexemes.peek().token);
+        if (!op.has_value()) {
+            while (!ops.empty()) {
+                reduce();
+            }
+
+            assert(terms.size() == 1);
+            return std::move(terms.top());
+        }
+
+        if (ops.empty()) {
+            lexemes.next();
+            ops.push(*op);
+            continue;
+        }
+
+        auto [topOpPrec, topOpLeftAssoc] = binaryOpInfo(ops.top());
+        auto [curOpPrec, curOpLeftAssoc] = binaryOpInfo(*op);
+
+        if (topOpPrec < curOpPrec) {
+            lexemes.next();
+            ops.push(*op);
+        } else if (topOpPrec > curOpPrec)
+            reduce();
+        else {
+            assert(topOpPrec == curOpPrec);
+            if (topOpLeftAssoc && curOpLeftAssoc)
+                reduce();
+            else if (!topOpLeftAssoc && !curOpLeftAssoc) {
+                lexemes.next();
+                ops.push(*op);
+            } else {
+                auto l = lexemes.next();
+                throw ParseError::customMessage(
+                    lexemes.getInput(),
+                    l.span,
+                    "cannot mix operators of different associativity and equal precedence");
+            }
+        }
+    }
 }
 
 std::unique_ptr<ast::Expr> Parser::parseTerm() {
@@ -275,18 +340,5 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
         term = std::make_unique<ast::UnaryExpr>(ast::UnaryExpr::Op::Minus, std::move(term));
     }
     return term;
-}
-
-std::unique_ptr<ast::Expr> Parser::parseInfixOps(std::unique_ptr<ast::Expr> lhs) {
-    std::stack<std::unique_ptr<ast::Expr>> terms;
-    terms.emplace(std::move(lhs));
-
-    for (;;) {
-        auto op = binaryOpFromToken(lexemes.peek().token);
-        if (!op.has_value()) {
-            assert(terms.size() == 1);
-            return std::move(terms.top());
-        }
-    }
 }
 }  // namespace frontend::parse

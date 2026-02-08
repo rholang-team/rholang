@@ -84,7 +84,6 @@ class Parser {
     std::unique_ptr<ast::Stmt> parseStmt();
 
     std::unique_ptr<ast::Expr> parseTerm();
-    std::unique_ptr<ast::Expr> parseInfixOps(std::unique_ptr<ast::Expr> lhs);
     std::unique_ptr<ast::Expr> parseExpr();
 
 public:

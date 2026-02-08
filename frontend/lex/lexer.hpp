@@ -42,7 +42,8 @@ class Lexer {
     }
 
 public:
-    template <std::constructible_from<std::string> S>
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
     explicit Lexer(S&& s) : input{std::forward<S>(s)} {}
 
     Lexemes lex();

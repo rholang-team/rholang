@@ -56,7 +56,8 @@ struct NumLitExpr final : public Expr {
 struct VarRefExpr final : public Expr {
     std::string name;
 
-    template <std::constructible_from<std::string> S>
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
     explicit VarRefExpr(S&& name) : name{std::forward<S>(name)} {}
 
     void pretty(std::ostream& os, unsigned depth = 0) const override;
@@ -66,7 +67,8 @@ struct MemberRefExpr final : public Expr {
     std::unique_ptr<Expr> target;
     std::string member;
 
-    template <std::constructible_from<std::string> S>
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
     MemberRefExpr(std::unique_ptr<Expr> target, S&& member)
         : target{std::move(target)}, member{std::forward<S>(member)} {}
 

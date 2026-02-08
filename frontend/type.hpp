@@ -38,7 +38,8 @@ struct FunctionType final : public Type {
 struct TypeRef final : public Type {
     std::string name;
 
-    template <std::constructible_from<std::string> S>
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
     explicit TypeRef(S&& s) : name{std::forward<S>(s)} {}
 };
 }  // namespace frontend

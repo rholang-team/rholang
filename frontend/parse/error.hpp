@@ -27,10 +27,20 @@ class ParseError final : public std::exception {
     lex::Span span;
     std::string msg;
 
+    ParseError(std::string_view input, lex::Span span, std::string msg)
+        : input{input}, span{span}, msg{std::move(msg)} {}
+
 public:
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+    static ParseError customMessage(std::string_view input, lex::Span span, S&& msg) {
+        return ParseError(input, span, std::string{std::forward<S>(msg)});
+    }
+
     template <typename... Exp, typename Act>
     ParseError(std::string_view input, lex::Span span, const Act& actual, const Exp&... expected)
-        : input{input}, span{span},
+        : input{input},
+          span{span},
           msg{std::format("expected {}, but got {}", formatExpectedList(expected...), actual)} {}
 
     std::string pretty() const;

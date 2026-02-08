@@ -18,7 +18,8 @@ struct VarDecl final : public Decl {
     std::shared_ptr<Type> type;
     std::unique_ptr<Expr> value;
 
-    template <std::constructible_from<std::string> S>
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
     VarDecl(S&& s, std::shared_ptr<Type> ty, std::unique_ptr<Expr> v)
         : name{std::forward<S>(s)}, type{ty}, value{std::move(v)} {}
 
@@ -31,7 +32,10 @@ struct FunctionDecl final : public Decl {
     std::shared_ptr<FunctionType> type;
     CompoundStmt body;
 
-    template <std::constructible_from<std::string> S, std::constructible_from<std::string> S2>
+    template <typename S, typename S2>
+        requires(std::convertible_to<std::string, S> || std::constructible_from<std::string, S>) &&
+                    (std::convertible_to<std::string, S2> ||
+                     std::constructible_from<std::string, S2>)
     FunctionDecl(S&& name,
                  std::vector<std::pair<S2, std::shared_ptr<Type>>> params,
                  std::shared_ptr<Type> rettype,
@@ -49,7 +53,8 @@ struct FunctionDecl final : public Decl {
         type = std::make_shared<FunctionType>(std::move(types), rettype);
     }
 
-    template <std::constructible_from<std::string> S>
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
     FunctionDecl(S&& name,
                  std::vector<std::string> paramNames,
                  std::vector<std::shared_ptr<Type>> paramTypes,
