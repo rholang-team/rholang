@@ -21,6 +21,8 @@ frontend_src = [
     'frontend/lex/lexer.cpp',
     'frontend/parse/parser.cpp',
     'frontend/parse/error.cpp',
+    'frontend/ast/decl.cpp',
+    'frontend/ast/expr.cpp',
     'frontend/pretty.cpp',
 ]
 frontend = static_library('frontend', frontend_src)

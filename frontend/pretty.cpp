@@ -29,14 +29,13 @@ std::string PrettyPrintable::pretty() const {
 }  // namespace frontend::pretty
 
 std::ostream& operator<<(std::ostream& os, const frontend::Type& ty) {
-    if (const auto* primitive = dynamic_cast<const frontend::PrimitiveType*>(&ty);
-        primitive != nullptr) {
+    if (const auto* primitive = dynamic_cast<const frontend::PrimitiveType*>(&ty); primitive) {
         return operator<<(os, *primitive);
     }
-    if (const auto* typeref = dynamic_cast<const frontend::TypeRef*>(&ty); typeref != nullptr) {
+    if (const auto* typeref = dynamic_cast<const frontend::TypeRef*>(&ty); typeref) {
         return operator<<(os, *typeref);
     }
-    if (const auto* fntype = dynamic_cast<const frontend::FunctionType*>(&ty); fntype != nullptr) {
+    if (const auto* fntype = dynamic_cast<const frontend::FunctionType*>(&ty); fntype) {
         return operator<<(os, *fntype);
     }
 
@@ -85,7 +84,7 @@ void showTyPtr(std::ostream& os, frontend::Type* ty) {
 namespace frontend::ast {
 void VarDecl::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
-    os << "VarDecl " << name << " " << *type << '\n';
+    os << "VarDecl " << name.value << " " << *type.value << '\n';
     if (value) {
         value->pretty(os, depth + 1);
     }
@@ -93,16 +92,16 @@ void VarDecl::pretty(std::ostream& os, unsigned depth) const {
 
 void FunctionDecl::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
-    os << "FunctionDecl " << name << " (";
+    os << "FunctionDecl " << name.value << " (";
     bool first = true;
-    for (const auto& [n, t] : std::ranges::zip_view(paramNames, type->params)) {
+    for (const auto& [n, t] : params) {
         if (!first) {
             os << ", ";
         }
         first = false;
-        os << n << ": " << *t;
+        os << n.value << ": " << *t.value;
     }
-    os << ") -> " << *type->rettype << '\n';
+    os << ") -> " << rettype.value << '\n';
     body.pretty(os, depth + 1);
 }
 
@@ -131,7 +130,7 @@ void DeclStmt::pretty(std::ostream& os, unsigned depth) const {
 void UnaryExpr::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
     os << "UnaryExpr ";
-    switch (op) {
+    switch (op.value) {
         case Op::Minus:
             os << '-';
             break;
@@ -145,7 +144,7 @@ void UnaryExpr::pretty(std::ostream& os, unsigned depth) const {
 void BinaryExpr::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
     os << "UnaryExpr ";
-    switch (op) {
+    switch (op.value) {
         case Op::Assign:
             os << '=';
             break;
@@ -171,21 +170,21 @@ void BinaryExpr::pretty(std::ostream& os, unsigned depth) const {
 
 void NumLitExpr::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
-    os << "NumLitExpr " << value << ' ';
+    os << "NumLitExpr " << value.value << ' ';
     showTyPtr(os, type.get());
     os << '\n';
 }
 
 void VarRefExpr::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
-    os << "VarRefExpr " << name << ' ';
+    os << "VarRefExpr " << name.value << ' ';
     showTyPtr(os, type.get());
     os << '\n';
 }
 
 void MemberRefExpr::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
-    os << "MemberRefExpr " << member << ' ';
+    os << "MemberRefExpr " << member.value << ' ';
     showTyPtr(os, type.get());
     os << '\n';
     target->pretty(os, depth + 1);

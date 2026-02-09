@@ -76,6 +76,7 @@ class Parser {
         return res;
     }
 
+    ast::VarDecl parseVarDecl();
     std::unique_ptr<ast::Decl> parseDecl();
 
     ast::CompoundStmt parseCompoundStmt();
