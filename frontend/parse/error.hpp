@@ -1,9 +1,9 @@
 #pragma once
 
-#include <exception>
 #include <format>
 #include <string>
 
+#include "frontend/error.hpp"
 #include "frontend/lex/span.hpp"
 
 namespace frontend::parse {
@@ -22,27 +22,10 @@ std::string formatExpectedList(const T& e, const Ts&... es) {
     return std::format("{}, {}", e, formatExpectedList(es...));
 }
 
-class ParseError final : public std::exception {
-    std::string_view input;
-    lex::Span span;
-    std::string msg;
-
-    ParseError(std::string_view input, lex::Span span, std::string msg)
-        : input{input}, span{span}, msg{std::move(msg)} {}
-
-public:
-    template <typename S>
-        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
-    static ParseError customMessage(std::string_view input, lex::Span span, S&& msg) {
-        return ParseError(input, span, std::string{std::forward<S>(msg)});
-    }
-
-    template <typename... Exp, typename Act>
-    ParseError(std::string_view input, lex::Span span, const Act& actual, const Exp&... expected)
-        : input{input},
-          span{span},
-          msg{std::format("expected {}, but got {}", formatExpectedList(expected...), actual)} {}
-
-    std::string pretty() const;
-};
+template <typename... Exp, typename Act>
+Error error(std::string_view input, lex::Span span, const Act& actual, const Exp&... expected) {
+    return Error{input,
+                 span,
+                 std::format("expected {}, but got {}", formatExpectedList(expected...), actual)};
+}
 }  // namespace frontend::parse

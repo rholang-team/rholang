@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     std::vector<std::unique_ptr<frontend::ast::Decl>> decls;
     try {
         decls = parser.parse();
-    } catch (const frontend::parse::ParseError& e) {
+    } catch (const frontend::Error& e) {
         std::println(stderr, "syntax error: {}", e.pretty());
     }
 

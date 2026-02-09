@@ -70,7 +70,7 @@ class Parser {
                 break;
             }
 
-            throw ParseError(lexemes.getInput(), l.span, l.token, sep, end);
+            throw parse::error(lexemes.getInput(), l.span, l.token, sep, end);
         }
 
         return res;

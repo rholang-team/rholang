@@ -2,8 +2,8 @@
 
 #include <sstream>
 
-namespace frontend::parse {
-std::string ParseError::pretty() const {
+namespace frontend {
+std::string Error::pretty() const {
     auto [b, e] = span;
 
     size_t lineStart = 0;
@@ -32,4 +32,4 @@ std::string ParseError::pretty() const {
     }
     return ss.str();
 }
-}  // namespace frontend::parse
+}  // namespace frontend

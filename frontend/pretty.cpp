@@ -101,7 +101,7 @@ void FunctionDecl::pretty(std::ostream& os, unsigned depth) const {
         first = false;
         os << n.value << ": " << *t.value;
     }
-    os << ") -> " << rettype.value << '\n';
+    os << ") -> " << *rettype.value << '\n';
     body.pretty(os, depth + 1);
 }
 

@@ -17,10 +17,10 @@ runtime = static_library('runtime', runtime_src)
 
 frontend_src = [
     'frontend/type.cpp',
+    'frontend/error.cpp',
     'frontend/lex/lexeme.cpp',
     'frontend/lex/lexer.cpp',
     'frontend/parse/parser.cpp',
-    'frontend/parse/error.cpp',
     'frontend/ast/decl.cpp',
     'frontend/ast/expr.cpp',
     'frontend/pretty.cpp',

@@ -67,7 +67,7 @@ lex::Lexeme Parser::get(lex::Token tok) {
     auto l = lexemes.next();
     if (l.token == tok)
         return l;
-    throw ParseError(lexemes.getInput(), l.span, l.token, tok);
+    throw parse::error(lexemes.getInput(), l.span, l.token, tok);
 }
 
 std::vector<std::unique_ptr<ast::Decl>> Parser::parse() {
@@ -107,7 +107,7 @@ ast::VarDecl Parser::parseVarDecl() {
         };
     }
 
-    throw ParseError(
+    throw parse::error(
         lexemes.getInput(), next.span, next.token, lex::Token::Semicolon, lex::Token::Assign);
 }
 
@@ -149,7 +149,7 @@ std::unique_ptr<ast::Decl> Parser::parseDecl() {
         case lex::Token::Var:
             return std::make_unique<ast::VarDecl>(parseVarDecl());
         default:
-            throw ParseError(lexemes.getInput(), first.span, first.token, "declaration");
+            throw parse::error(lexemes.getInput(), first.span, first.token, "declaration");
     }
 
     std::unreachable();
@@ -262,10 +262,9 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
                 ops.emplace(*op, opLexeme.span);
             } else {
                 auto l = lexemes.next();
-                throw ParseError::customMessage(
-                    lexemes.getInput(),
-                    l.span,
-                    "cannot mix operators of different associativity and equal precedence");
+                throw Error(lexemes.getInput(),
+                            l.span,
+                            "cannot mix operators of different associativity and equal precedence");
             }
         }
     }
@@ -311,7 +310,7 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
             break;
         }
         default:
-            throw ParseError(lexemes.getInput(), l.span, l.token, "term");
+            throw parse::error(lexemes.getInput(), l.span, l.token, "term");
     }
 
     // parse postfix ops
