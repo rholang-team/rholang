@@ -71,7 +71,7 @@ struct std::formatter<frontend::PrimitiveType> {
         return ctx.begin();
     }
 
-    template<typename Ctx>
+    template <typename Ctx>
     Ctx::iterator format(const frontend::PrimitiveType& type, Ctx& ctx) const {
         switch (type.kind) {
             case frontend::PrimitiveType::Primitive::Void:
@@ -90,7 +90,7 @@ struct std::formatter<frontend::FunctionType> {
         return ctx.begin();
     }
 
-    template<typename Ctx>
+    template <typename Ctx>
     Ctx::iterator format(const frontend::FunctionType& type, Ctx& ctx) const {
         std::format_to(ctx.out(), "(");
 
@@ -113,7 +113,7 @@ struct std::formatter<frontend::TypeRef> {
         return ctx.begin();
     }
 
-    template<typename Ctx>
+    template <typename Ctx>
     Ctx::iterator format(const frontend::TypeRef& type, Ctx& ctx) const {
         std::ranges::copy(type.name, ctx.out());
         return ctx.out();
