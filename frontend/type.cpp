@@ -25,3 +25,23 @@ bool Type::operator==(const Type& that) const {
            polymorphicEq<TypeRef>(this, &that);
 }
 }  // namespace frontend
+
+std::ostream& operator<<(std::ostream& os, const frontend::Type& ty) {
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const frontend::PrimitiveType& ty) {
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const frontend::TypeRef& ty) {
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const frontend::FunctionType& ty) {
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
+    return os;
+}

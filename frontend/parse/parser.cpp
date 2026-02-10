@@ -5,7 +5,6 @@
 #include <stack>
 
 #include "frontend/ast/declstmt.hpp"
-#include "frontend/ast/retstmt.hpp"
 #include "frontend/lex/span.hpp"
 #include "frontend/parse/error.hpp"
 
@@ -197,7 +196,7 @@ std::unique_ptr<ast::Stmt> Parser::parseStmt() {
         default: {
             auto res = parseExpr();
             get(lex::Token::Semicolon);
-            return res;
+            return std::make_unique<ast::ExprStmt>(std::move(res));
         }
     }
 }

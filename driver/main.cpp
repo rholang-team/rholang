@@ -2,6 +2,7 @@
 #include <iostream>
 #include <print>
 
+#include "frontend/ast/prettyprint.hpp"
 #include "frontend/lex/lexer.hpp"
 #include "frontend/parse/parser.hpp"
 
@@ -34,6 +35,6 @@ int main(int argc, char** argv) {
             std::cout << '\n';
         }
         first = false;
-        decl->pretty(std::cout);
+        frontend::ast::PrettyPrinter{std::cout}.visit(decl.get());
     }
 }

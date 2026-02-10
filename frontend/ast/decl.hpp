@@ -10,7 +10,7 @@
 #include "frontend/type.hpp"
 
 namespace frontend::ast {
-struct Decl : public pretty::PrettyPrintable {
+struct Decl {
     lex::WithSpan<std::string> name;
 
     Decl(lex::WithSpan<std::string> name) : name{std::move(name)} {}
@@ -24,10 +24,8 @@ struct VarDecl final : public Decl {
 
     VarDecl(lex::WithSpan<std::string> name,
             lex::WithSpan<std::shared_ptr<Type>> type,
-            std::unique_ptr<Expr> value)
+            std::optional<std::unique_ptr<Expr>> value)
         : Decl{std::move(name)}, type{type}, value{std::move(value)} {}
-
-    void pretty(std::ostream& os, unsigned depth = 0) const override;
 };
 
 struct FunctionDecl final : public Decl {
@@ -47,7 +45,5 @@ struct FunctionDecl final : public Decl {
           body{std::move(body)} {}
 
     FunctionType type() const;
-
-    void pretty(std::ostream& os, unsigned depth = 0) const override;
 };
 }  // namespace frontend::ast

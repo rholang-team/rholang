@@ -13,6 +13,7 @@ namespace frontend {
 class Sema {
     std::string_view input;
     std::forward_list<std::unordered_map<std::string, std::shared_ptr<Type>>> scopes;
+    ast::FunctionDecl* curFunction = nullptr;
 
     void pushScope();
     void popScope();
@@ -26,6 +27,7 @@ class Sema {
     void run(ast::CompoundStmt& stmt);
     void run(ast::Stmt* stmt);
 
+    void run(ast::VarDecl& decl);
     void run(ast::Decl* decl);
 
 public:
