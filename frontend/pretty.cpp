@@ -1,5 +1,6 @@
 #include "frontend/pretty.hpp"
 
+#include <ostream>
 #include <ranges>
 #include <sstream>
 
@@ -29,45 +30,22 @@ std::string PrettyPrintable::pretty() const {
 }  // namespace frontend::pretty
 
 std::ostream& operator<<(std::ostream& os, const frontend::Type& ty) {
-    if (const auto* primitive = dynamic_cast<const frontend::PrimitiveType*>(&ty); primitive) {
-        return operator<<(os, *primitive);
-    }
-    if (const auto* typeref = dynamic_cast<const frontend::TypeRef*>(&ty); typeref) {
-        return operator<<(os, *typeref);
-    }
-    if (const auto* fntype = dynamic_cast<const frontend::FunctionType*>(&ty); fntype) {
-        return operator<<(os, *fntype);
-    }
-
-    throw std::runtime_error("unknown child of `Type`");
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
+    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const frontend::PrimitiveType& ty) {
-    switch (ty.kind) {
-        case frontend::PrimitiveType::Primitive::Void:
-            return os << "void";
-        case frontend::PrimitiveType::Primitive::Bool:
-            return os << "bool";
-        case frontend::PrimitiveType::Primitive::Int:
-            return os << "int";
-    }
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
+    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const frontend::TypeRef& ty) {
-    return os << ty.name;
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
+    return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const frontend::FunctionType& ty) {
-    os << '(';
-    bool first = true;
-    for (const auto& p : ty.params) {
-        if (!first) {
-            os << ", ";
-        }
-        first = false;
-        os << *p;
-    }
-    os << ") -> " << *ty.rettype;
+    std::format_to(std::ostreambuf_iterator{os}, "{}", ty);
     return os;
 }
 
@@ -85,8 +63,8 @@ namespace frontend::ast {
 void VarDecl::pretty(std::ostream& os, unsigned depth) const {
     pad(os, depth);
     os << "VarDecl " << name.value << " " << *type.value << '\n';
-    if (value) {
-        value->pretty(os, depth + 1);
+    if (value.has_value()) {
+        (*value)->pretty(os, depth + 1);
     }
 }
 

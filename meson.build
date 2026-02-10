@@ -23,6 +23,7 @@ frontend_src = [
     'frontend/parse/parser.cpp',
     'frontend/ast/decl.cpp',
     'frontend/ast/expr.cpp',
+    'frontend/sema.cpp',
     'frontend/pretty.cpp',
 ]
 frontend = static_library('frontend', frontend_src)

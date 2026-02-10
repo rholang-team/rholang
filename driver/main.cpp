@@ -21,15 +21,15 @@ int main(int argc, char** argv) {
     frontend::lex::Lexemes lexemes{lexer.lex()};
     frontend::parse::Parser parser{std::move(lexemes)};
 
-    std::vector<std::unique_ptr<frontend::ast::Decl>> decls;
+    frontend::TranslationUnit tu;
     try {
-        decls = parser.parse();
+        tu = parser.parse();
     } catch (const frontend::Error& e) {
         std::println(stderr, "syntax error: {}", e.pretty());
     }
 
     bool first = true;
-    for (const auto& decl : decls) {
+    for (const auto& [name, decl] : tu.decls) {
         if (!first) {
             std::cout << '\n';
         }

@@ -10,6 +10,7 @@
 #include "frontend/lex/span.hpp"
 #include "frontend/lex/token.hpp"
 #include "frontend/parse/error.hpp"
+#include "frontend/translationunit.hpp"
 
 namespace frontend::parse {
 class Parser {
@@ -34,7 +35,7 @@ class Parser {
         if (l.token == tok) {
             return l;
         }
-        throw ParseError(l.token, std::forward<Ts...>(expected...));
+        throw parse::error(l.token, std::forward<Ts...>(expected...));
     }
 
     template <typename P, typename... Ts>
@@ -44,7 +45,7 @@ class Parser {
         if (pred(l.token)) {
             return l;
         }
-        throw ParseError(l.token, std::forward<Ts...>(expected...));
+        throw parse::error(l.token, std::forward<Ts...>(expected...));
     }
 
     template <typename P>
@@ -86,7 +87,7 @@ class Parser {
     std::unique_ptr<ast::Expr> parseExpr();
 
 public:
-    std::vector<std::unique_ptr<ast::Decl>> parse();
+    TranslationUnit parse();
 
     Parser(lex::Lexemes lexemes) : lexemes{std::move(lexemes)} {}
 };

@@ -70,14 +70,14 @@ lex::Lexeme Parser::get(lex::Token tok) {
     throw parse::error(lexemes.getInput(), l.span, l.token, tok);
 }
 
-std::vector<std::unique_ptr<ast::Decl>> Parser::parse() {
-    std::vector<std::unique_ptr<ast::Decl>> res;
+TranslationUnit Parser::parse() {
+    TranslationUnit res;
 
     for (;;) {
         auto decl = parseDecl();
         if (!decl)
             break;
-        res.emplace_back(std::move(decl));
+        res.decls.emplace(decl->name.value, std::move(decl));
     }
 
     return res;
@@ -181,7 +181,7 @@ std::unique_ptr<ast::Stmt> Parser::parseStmt() {
         case lex::Token::LBrace:
             return std::make_unique<ast::CompoundStmt>(parseCompoundStmt());
         case lex::Token::If:
-            throw std::runtime_error("not yet implemented");
+            throw std::runtime_error("TODO");
         case lex::Token::Return: {
             lexemes.next();
             if (lexemes.peek().token == lex::Token::Semicolon) {
