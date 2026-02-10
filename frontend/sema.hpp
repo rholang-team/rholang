@@ -7,10 +7,15 @@
 #include "frontend/ast/decl.hpp"
 #include "frontend/ast/expr.hpp"
 #include "frontend/ast/stmt.hpp"
+#include "frontend/ast/visitor.hpp"
 #include "frontend/translationunit.hpp"
 
 namespace frontend {
-class Sema {
+class Sema : private ast::DeclVisitor<void>, ast::StmtVisitor<void>, ast::ExprVisitor<void> {
+    using DeclVisitor<void>::visit;
+    using StmtVisitor<void>::visit;
+    using ExprVisitor<void>::visit;
+
     std::string_view input;
     std::forward_list<std::unordered_map<std::string, std::shared_ptr<Type>>> scopes;
     ast::FunctionDecl* curFunction = nullptr;
@@ -22,13 +27,20 @@ class Sema {
 
     std::optional<std::shared_ptr<Type>> lookup(const std::string& name) const;
 
-    void run(ast::Expr* expr);
+    void visit(ast::FunctionDecl& decl) override;
+    void visit(ast::VarDecl& decl) override;
 
-    void run(ast::CompoundStmt& stmt);
-    void run(ast::Stmt* stmt);
+    void visit(ast::CompoundStmt& stmt) override;
+    void visit(ast::DeclStmt& stmt) override;
+    void visit(ast::RetStmt& stmt) override;
+    void visit(ast::ExprStmt& stmt) override;
 
-    void run(ast::VarDecl& decl);
-    void run(ast::Decl* decl);
+    void visit(ast::UnaryExpr& expr) override;
+    void visit(ast::NumLitExpr& expr) override;
+    void visit(ast::BinaryExpr& expr) override;
+    void visit(ast::VarRefExpr& expr) override;
+    void visit(ast::MemberRefExpr& expr) override;
+    void visit(ast::CallExpr& expr) override;
 
 public:
     Sema(std::string_view input) : input{input} {}

@@ -26,40 +26,35 @@ std::optional<std::shared_ptr<Type>> Sema::lookup(const std::string& name) const
     return std::nullopt;
 }
 
-void Sema::run(ast::Expr* expr) {}
-
-void Sema::run(ast::Stmt* stmt) {
-    if (auto* compoundStmt = dynamic_cast<ast::CompoundStmt*>(stmt)) {
-        run(*compoundStmt);
-    } else if (auto* retStmt = dynamic_cast<ast::RetStmt*>(stmt)) {
-        std::optional<std::shared_ptr<Type>> rettype;
-        if (retStmt->value.has_value()) {
-            run(retStmt->value->get());
-            rettype = (*retStmt->value)->type;
-        }
-
-        if (**rettype != *curFunction->rettype.value) {
-            throw Error(input, curFunction->rettype.span, "return type mismatch"); // TODO: complete message
-        }
-    } else if (auto* declStmt = dynamic_cast<ast::DeclStmt*>(stmt)) {
-        run(declStmt->decl);
+void Sema::visit(ast::RetStmt& stmt) {
+    std::optional<std::shared_ptr<Type>> rettype;
+    if (stmt.value.has_value()) {
+        visit(stmt.value->get());
+        rettype = (*stmt.value)->type;
     }
 
-    std::unreachable();
+    if (**rettype != *curFunction->rettype.value) {
+        throw Error(
+            input, curFunction->rettype.span, "return type mismatch");  // TODO: complete message
+    }
 }
 
-void Sema::run(ast::CompoundStmt& stmt) {
+void Sema::visit(ast::DeclStmt& stmt) {
+    visit(stmt.decl);
+}
+
+void Sema::visit(ast::CompoundStmt& stmt) {
     pushScope();
     for (const auto& s : stmt.stmts) {
-        run(s.get());
+        visit(s.get());
     }
     popScope();
 }
 
-void Sema::run(ast::VarDecl& decl) {
+void Sema::visit(ast::VarDecl& decl) {
     if (decl.value.has_value()) {
         ast::Expr* value = decl.value->get();
-        run(value);
+        visit(value);
         if (*value->type != *decl.type.value) {
             throw Error(
                 input,
@@ -73,23 +68,17 @@ void Sema::run(ast::VarDecl& decl) {
     addToScope(decl.name.value, decl.type.value);
 }
 
-void Sema::run(ast::Decl* decl) {
-    if (auto* vardecl = dynamic_cast<ast::VarDecl*>(decl)) {
-        run(*vardecl);
-    } else if (auto* fndecl = dynamic_cast<ast::FunctionDecl*>(decl)) {
-        curFunction = fndecl;
-        addToScope(fndecl->name.value, std::make_shared<FunctionType>(fndecl->type()));
+void Sema::visit(ast::FunctionDecl& decl) {
+    curFunction = &decl;
+    addToScope(decl.name.value, std::make_shared<FunctionType>(decl.type()));
 
-        pushScope();
-        for (const auto& param : fndecl->params) {
-            addToScope(param.first.value, param.second.value);
-        }
-        run(fndecl->body);
-        popScope();
-        curFunction = nullptr;
+    pushScope();
+    for (const auto& param : decl.params) {
+        addToScope(param.first.value, param.second.value);
     }
-
-    std::unreachable();
+    visit(decl.body);
+    popScope();
+    curFunction = nullptr;
 }
 
 void Sema::run(TranslationUnit& tu) {
