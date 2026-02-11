@@ -52,7 +52,7 @@ struct BinaryExpr final : public Expr {
 struct NumLitExpr final : public Expr {
     lex::WithSpan<size_t> value;
 
-    explicit NumLitExpr(lex::WithSpan<size_t> value) : Expr{PrimitiveType::intType}, value{value} {}
+    explicit NumLitExpr(lex::WithSpan<size_t> value) : value{value} {}
 
     lex::Span span() const override;
 };

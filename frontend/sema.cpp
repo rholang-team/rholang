@@ -26,6 +26,33 @@ std::optional<std::shared_ptr<Type>> Sema::lookup(const std::string& name) const
     return std::nullopt;
 }
 
+void Sema::visit(ast::UnaryExpr& expr) {
+    visit(expr.value.get());
+
+    switch (expr.op.value) {
+        case ast::UnaryExpr::Op::Minus:
+            if (!utils::isa<PrimitiveType>(expr.value->type.get()) ||
+                dynamic_cast<PrimitiveType*>(expr.value->type.get())->kind !=
+                    PrimitiveType::Primitive::Int) {
+                throw Error(input, expr.value->span(), "invalid expression type for negation");
+            }
+    }
+
+    expr.type = expr.value->type;
+}
+
+void Sema::visit(ast::NumLitExpr& expr) {
+    expr.type = PrimitiveType::intType;
+}
+
+void Sema::visit(ast::BinaryExpr& expr) {}
+
+void Sema::visit(ast::VarRefExpr& expr) {}
+
+void Sema::visit(ast::MemberRefExpr& expr) {}
+
+void Sema::visit(ast::CallExpr& expr) {}
+
 void Sema::visit(ast::RetStmt& stmt) {
     std::optional<std::shared_ptr<Type>> rettype;
     if (stmt.value.has_value()) {
@@ -34,8 +61,11 @@ void Sema::visit(ast::RetStmt& stmt) {
     }
 
     if (**rettype != *curFunction->rettype.value) {
-        throw Error(
-            input, curFunction->rettype.span, "return type mismatch");  // TODO: complete message
+        throw Error(input,
+                    curFunction->rettype.span,
+                    std::format("return type mismatch: expected {}, but got {}",
+                                *curFunction->rettype.value,
+                                **rettype));
     }
 }
 
@@ -89,6 +119,10 @@ void Sema::run(TranslationUnit& tu) {
         } else if (auto* vardecl = dynamic_cast<ast::VarDecl*>(decl.get())) {
             addToScope(name, vardecl->type.value);
         }
+    }
+
+    for (const auto& [name, decl] : tu.decls) {
+        visit(decl.get());
     }
 }
 }  // namespace frontend
