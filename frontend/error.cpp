@@ -1,10 +1,12 @@
 #include "frontend/parse/error.hpp"
 
+#include <cassert>
 #include <sstream>
 
 namespace frontend {
 std::string Error::pretty() const {
     auto [b, e] = span;
+    assert(e <= input.size());
 
     size_t lineStart = 0;
     for (size_t i = b; i > 0; --i) {

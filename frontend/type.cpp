@@ -12,6 +12,14 @@ const std::shared_ptr<Type> PrimitiveType::boolType =
 const std::shared_ptr<Type> PrimitiveType::intType =
     std::make_shared<PrimitiveType>(PrimitiveType::Primitive::Int);
 
+bool PrimitiveType::operator==(const PrimitiveType& that) const {
+    return kind == that.kind;
+}
+
+bool TypeRef::operator==(const TypeRef& that) const {
+    return name == that.name;
+}
+
 bool FunctionType::operator==(const FunctionType& that) const {
     return std::ranges::equal(
                params, that.params, [](const auto& x, const auto& y) { return *x == *y; }) &&

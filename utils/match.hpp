@@ -14,6 +14,6 @@ template <typename Derived, typename Base>
 bool polymorphicEq(const Base* a, const Base* b) {
     const Derived* pa = dynamic_cast<const Derived*>(a);
     const Derived* pb = dynamic_cast<const Derived*>(b);
-    return pa != nullptr && pb != nullptr && *pa == *pb;
+    return pa != nullptr && pb != nullptr && pa->Derived::operator==(*pb);
 }
 }  // namespace utils

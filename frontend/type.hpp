@@ -30,7 +30,7 @@ struct PrimitiveType final : public Type {
     static const std::shared_ptr<Type> boolType;
     static const std::shared_ptr<Type> intType;
 
-    bool operator==(const PrimitiveType& that) const = default;
+    bool operator==(const PrimitiveType& that) const;
 };
 
 struct FunctionType final : public Type {
@@ -51,7 +51,7 @@ struct TypeRef final : public Type {
         requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
     explicit TypeRef(S&& s) : name{std::forward<S>(s)} {}
 
-    bool operator==(const TypeRef& that) const = default;
+    bool operator==(const TypeRef& that) const;
 };
 
 struct StructType final : public Type {
@@ -152,9 +152,14 @@ struct std::formatter<frontend::StructType> {
     template <typename Ctx>
     Ctx::iterator format(const frontend::StructType& type, Ctx& ctx) const {
         std::format_to(ctx.out(), "struct {} {{", type.name);
+        bool first = true;
         for (auto& field : type.fields) {
+            if (!first)
+                std::ranges::copy(", ", ctx.out());
+            first = false;
             std::format_to(ctx.out(), "{} {}", field.name, *field.type);
         }
+        std::format_to(ctx.out(), "}}");
         return ctx.out();
     }
 };
@@ -169,6 +174,9 @@ Ctx::iterator std::formatter<frontend::Type>::format(const frontend::Type& type,
     }
     if (utils::isa<frontend::TypeRef>(&type)) {
         return std::format_to(ctx.out(), "{}", dynamic_cast<const frontend::TypeRef&>(type));
+    }
+    if (utils::isa<frontend::StructType>(&type)) {
+        return std::format_to(ctx.out(), "{}", dynamic_cast<const frontend::StructType&>(type));
     }
 
     std::unreachable();

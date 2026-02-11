@@ -76,6 +76,7 @@ lex::Span Parser::get(lex::Token tok) {
 
 ast::File Parser::parse() {
     ast::File res;
+    res.input = lexemes.getInput();
 
     auto checkName = [this, &res](const lex::WithSpan<std::string>& name) {
         if (res.globals.contains(name.value) || res.functions.contains(name.value) ||
@@ -126,7 +127,7 @@ ast::VarDecl Parser::parseVarDecl() {
         return ast::VarDecl{
             lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
             lex::WithSpan{type, typeSpan},
-            nullptr,
+            std::nullopt,
         };
     } else if (next.token == lex::Token::Assign) {
         std::unique_ptr<ast::Expr> value = parseExpr();

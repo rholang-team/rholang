@@ -128,22 +128,24 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
             }
         };
 
+        std::shared_ptr<Type> lhsType = expr.lhs->type;
+        std::shared_ptr<Type> rhsType = expr.rhs->type;
+
         switch (expr.op.value) {
             case ast::BinaryExpr::Op::Assign:
-                checkValidity(isAssignable(expr.lhs.get()) && *expr.lhs->type == *expr.rhs->type);
+                checkValidity(isAssignable(expr.lhs.get()) && *lhsType == *rhsType);
                 expr.type = expr.rhs->type;
                 break;
             case ast::BinaryExpr::Op::Eq:
                 checkValidity(typeIsComparable(expr.lhs->type.get()) &&
-                              typeIsComparable(expr.rhs->type.get()) &&
-                              *expr.lhs->type == *expr.rhs->type);
+                              typeIsComparable(expr.rhs->type.get()) && *lhsType == *rhsType);
                 expr.type = PrimitiveType::boolType;
                 break;
             case ast::BinaryExpr::Op::Plus:
             case ast::BinaryExpr::Op::Minus:
             case ast::BinaryExpr::Op::Mul:
-                checkValidity(*expr.lhs->type == *PrimitiveType::intType &&
-                              *expr.rhs->type == *PrimitiveType::intType);
+                checkValidity(*lhsType == *PrimitiveType::intType &&
+                              *rhsType == *PrimitiveType::intType);
                 expr.type = PrimitiveType::intType;
                 break;
         }
@@ -160,7 +162,27 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         expr.type = *type;
     }
 
-    void visit(ast::MemberRefExpr& expr) {}
+    void visit(ast::MemberRefExpr& expr) {
+        visit(expr.target.get());
+
+        if (!utils::isa<StructType>(expr.target->type.get())) {
+            throw Error(file.input, expr.target->span(), "value is not a struct");
+        }
+
+        StructType& targetStruct = dynamic_cast<StructType&>(*expr.target->type);
+
+        auto it = std::ranges::find_if(
+            targetStruct.fields,
+            [&expr](const StructType::Field& field) { return field.name == expr.member.value; });
+
+        if (it == targetStruct.fields.end()) {
+            throw Error(file.input,
+                        expr.member.span,
+                        std::format("object has no member named {}", expr.member.value));
+        }
+
+        expr.type = it->type;
+    }
 
     void visit(ast::CallExpr& expr) {
         // TODO: replace Call(MemberRef(S, M), ...) with Call(mangled(S, M), S, ...)
@@ -232,7 +254,7 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
             std::vector<StructType::Field> fields;
             for (auto& field : structDecl.fields) {
                 if (auto* typeRef = dynamic_cast<TypeRef*>(field.type.value.get());
-                    !file.structs.contains(typeRef->name)) {
+                    typeRef && !file.structs.contains(typeRef->name)) {
                     throw Error(file.input,
                                 field.type.span,
                                 std::format("undefined type {}", typeRef->name));
