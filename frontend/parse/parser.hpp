@@ -27,7 +27,7 @@ class Parser {
         return res;
     }
 
-    lex::Lexeme get(lex::Token tok);
+    lex::Span get(lex::Token tok);
 
     template <typename... Ts>
     lex::Lexeme get(lex::Token tok, Ts&&... expected) {
@@ -50,7 +50,7 @@ class Parser {
 
     template <typename P>
         requires std::invocable<P>
-    std::vector<std::invoke_result_t<P>> parseMany(P parser, lex::Token sep, lex::Token end) {
+    std::vector<std::invoke_result_t<P>> parseManyUntil(P parser, lex::Token sep, lex::Token end) {
         std::vector<std::invoke_result_t<P>> res;
 
         for (;;) {

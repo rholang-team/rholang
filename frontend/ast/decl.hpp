@@ -54,11 +54,8 @@ struct StructDecl {
 
     lex::WithSpan<std::string> name;
     std::vector<Field> fields;
-    std::vector<FunctionDecl> methods;
 
-    StructDecl(lex::WithSpan<std::string> name,
-               std::vector<Field> fields,
-               std::vector<FunctionDecl> methods)
-        : name{std::move(name)}, fields{std::move(fields)}, methods{std::move(methods)} {}
+    StructDecl(lex::WithSpan<std::string> name, std::vector<Field> fields)
+        : name{std::move(name)}, fields{std::move(fields)} {}
 };
 }  // namespace frontend::ast

@@ -6,7 +6,7 @@
 #include "frontend/ast/expr.hpp"
 
 namespace frontend::ast {
-struct Stmt  {
+struct Stmt {
     virtual ~Stmt() = default;
 };
 

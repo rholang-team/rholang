@@ -16,10 +16,6 @@
 
 namespace frontend {
 namespace {
-std::string mangleMethodName(std::string_view structName, std::string_view methodName) {
-    return std::format("_R{}{}{}{}", structName.size(), structName, methodName.size(), methodName);
-}
-
 bool typeIsComparable(const Type* ty) {
     if (const PrimitiveType* primitive = dynamic_cast<const PrimitiveType*>(ty)) {
         return primitive->kind == PrimitiveType::Primitive::Bool ||
@@ -167,7 +163,7 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
     void visit(ast::MemberRefExpr& expr) {}
 
     void visit(ast::CallExpr& expr) {
-        // TODO: replace Call(MemberRef(S, M), ...) to Call(mangled(S, M), S, ...)
+        // TODO: replace Call(MemberRef(S, M), ...) with Call(mangled(S, M), S, ...)
     }
 
     void visit(ast::RetStmt& stmt) {
@@ -258,15 +254,6 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         }
     }
 
-    void methodsToFunctions() {
-        for (auto& [name, structDecl] : file.structs) {
-            for (auto& method : structDecl.methods) {
-                file.functions.emplace(mangleMethodName(name, method.name.value),
-                                       std::move(method));
-            }
-        }
-    }
-
     void derefGlobalTypes() {
         for (auto& [name, decl] : file.globals) {
             decl.type.value = derefType(decl.type);
@@ -297,7 +284,6 @@ public:
     TranslationUnit run() {
         checkAndFillStructs();
         derefStructFields();
-        methodsToFunctions();
         derefGlobalTypes();
         fillTopLevelScope();
 
@@ -318,6 +304,6 @@ public:
 }  // namespace
 
 TranslationUnit runSema(ast::File file) {
-    return Sema{file}.run();
+    return Sema{std::move(file)}.run();
 }
 }  // namespace frontend

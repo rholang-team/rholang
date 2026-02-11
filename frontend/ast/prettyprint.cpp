@@ -27,12 +27,6 @@ void PrettyPrinter::pad() {
     }
 }
 
-void PrettyPrinter::visit(Decl* decl) {
-    depth += 1;
-    DeclVisitor<void>::visit(decl);
-    depth -= 1;
-}
-
 void PrettyPrinter::visit(Stmt* stmt) {
     depth += 1;
     StmtVisitor<void>::visit(stmt);
@@ -46,14 +40,17 @@ void PrettyPrinter::visit(Expr* expr) {
 }
 
 void PrettyPrinter::visit(VarDecl& decl) {
+    depth += 1;
     pad();
     os << "VarDecl " << decl.name.value << " " << *decl.type.value << '\n';
     if (decl.value.has_value()) {
         visit(decl.value->get());
     }
+    depth -= 1;
 }
 
 void PrettyPrinter::visit(FunctionDecl& decl) {
+    depth += 1;
     pad();
     os << "FunctionDecl " << decl.name.value << " (";
     bool first = true;
@@ -66,6 +63,21 @@ void PrettyPrinter::visit(FunctionDecl& decl) {
     }
     os << ") -> " << *decl.rettype.value << '\n';
     visit(decl.body);
+    depth -= 1;
+}
+
+void PrettyPrinter::visit(StructDecl& decl) {
+    depth += 1;
+    pad();
+
+    os << "StructDecl " << decl.name.value << '\n';
+    depth += 1;
+    for (const auto& [name, type] : decl.fields) {
+        pad();
+        os << name << ' ' << *type.value << '\n';
+    }
+
+    depth -= 2;
 }
 
 void PrettyPrinter::visit(CompoundStmt& stmt) {

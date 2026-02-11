@@ -8,6 +8,7 @@ struct Span {
     size_t begin;
     size_t end;
 
+    Span() : Span(0, 0) {}
     Span(size_t begin, size_t end) : begin{begin}, end{end} {}
     explicit Span(size_t offset) : begin{offset}, end{offset} {}
 
