@@ -25,6 +25,7 @@ frontend_src = [
     'frontend/ast/decl.cpp',
     'frontend/ast/expr.cpp',
     'frontend/sema.cpp',
+    'frontend/mangling.cpp',
 ]
 frontend = static_library('frontend', frontend_src)
 test(

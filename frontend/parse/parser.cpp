@@ -7,14 +7,11 @@
 #include "frontend/ast/declstmt.hpp"
 #include "frontend/ast/file.hpp"
 #include "frontend/lex/span.hpp"
+#include "frontend/mangling.hpp"
 #include "frontend/parse/error.hpp"
 
 namespace frontend::parse {
 namespace {
-std::string mangleMethodName(std::string_view structName, std::string_view methodName) {
-    return std::format("_R{}{}{}{}", structName.size(), structName, methodName.size(), methodName);
-}
-
 std::shared_ptr<Type> typeFromString(std::string_view s) {
     if (s == "void")
         return PrimitiveType::voidType;
