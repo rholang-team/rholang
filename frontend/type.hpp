@@ -41,7 +41,7 @@ struct FunctionType final : public Type {
     FunctionType(std::vector<std::shared_ptr<Type>> params, std::shared_ptr<Type> rettype)
         : params{std::move(params)}, rettype{rettype} {}
 
-    bool operator==(const FunctionType& that) const = default;
+    bool operator==(const FunctionType& that) const;
 };
 
 struct TypeRef final : public Type {
@@ -52,6 +52,29 @@ struct TypeRef final : public Type {
     explicit TypeRef(S&& s) : name{std::forward<S>(s)} {}
 
     bool operator==(const TypeRef& that) const = default;
+};
+
+struct StructType final : public Type {
+    struct Field {
+        std::string name;
+        std::shared_ptr<Type> type;
+
+        template <typename S>
+            requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+        Field(S&& name, std::shared_ptr<Type> type) : name{std::forward<S>(name)}, type{type} {}
+
+        bool operator==(const Field& that) const;
+    };
+
+    std::string name;
+    std::vector<Field> fields;
+
+    template <typename S>
+        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+    StructType(S&& name, std::vector<Field> fields)
+        : name{std::forward<S>(name)}, fields{std::move(fields)} {}
+
+    bool operator==(const StructType& that) const;
 };
 }  // namespace frontend
 
@@ -116,6 +139,22 @@ struct std::formatter<frontend::TypeRef> {
     template <typename Ctx>
     Ctx::iterator format(const frontend::TypeRef& type, Ctx& ctx) const {
         std::ranges::copy(type.name, ctx.out());
+        return ctx.out();
+    }
+};
+
+template <>
+struct std::formatter<frontend::StructType> {
+    constexpr auto parse(std::format_parse_context& ctx) {
+        return ctx.begin();
+    }
+
+    template <typename Ctx>
+    Ctx::iterator format(const frontend::StructType& type, Ctx& ctx) const {
+        std::format_to(ctx.out(), "struct {} {{", type.name);
+        for (auto& field : type.fields) {
+            std::format_to(ctx.out(), "{} {}", field.name, *field.type);
+        }
         return ctx.out();
     }
 };

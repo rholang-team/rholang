@@ -1,128 +1,323 @@
 #include "frontend/sema.hpp"
 
+#include <forward_list>
+#include <memory>
+#include <string>
+#include <unordered_map>
+
+#include "frontend/ast/decl.hpp"
 #include "frontend/ast/declstmt.hpp"
+#include "frontend/ast/expr.hpp"
+#include "frontend/ast/stmt.hpp"
+#include "frontend/ast/visitor.hpp"
 #include "frontend/error.hpp"
+#include "frontend/translationunit.hpp"
+#include "frontend/type.hpp"
 
 namespace frontend {
-void Sema::pushScope() {
-    scopes.emplace_front();
+namespace {
+std::string mangleMethodName(std::string_view structName, std::string_view methodName) {
+    return std::format("_R{}{}{}{}", structName.size(), structName, methodName.size(), methodName);
 }
 
-void Sema::popScope() {
-    scopes.pop_front();
-}
-
-void Sema::addToScope(std::string name, std::shared_ptr<Type> type) {
-    scopes.front().insert_or_assign(std::move(name), type);
-}
-
-std::optional<std::shared_ptr<Type>> Sema::lookup(const std::string& name) const {
-    for (const auto& scope : scopes) {
-        auto it = scope.find(name);
-        if (it != scope.end())
-            return it->second;
+bool typeIsComparable(const Type* ty) {
+    if (const PrimitiveType* primitive = dynamic_cast<const PrimitiveType*>(ty)) {
+        return primitive->kind == PrimitiveType::Primitive::Bool ||
+               primitive->kind == PrimitiveType::Primitive::Int;
     }
 
-    return std::nullopt;
+    return false;
 }
 
-void Sema::visit(ast::UnaryExpr& expr) {
-    visit(expr.value.get());
+class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<void> {
+    using DeclVisitor::visit;
+    using StmtVisitor<void>::visit;
+    using ExprVisitor<void>::visit;
 
-    switch (expr.op.value) {
-        case ast::UnaryExpr::Op::Minus:
-            if (!utils::isa<PrimitiveType>(expr.value->type.get()) ||
-                dynamic_cast<PrimitiveType*>(expr.value->type.get())->kind !=
-                    PrimitiveType::Primitive::Int) {
-                throw Error(input, expr.value->span(), "invalid expression type for negation");
+    ast::File file;
+    std::unordered_map<std::string, std::shared_ptr<StructType>> structs;
+    std::forward_list<std::unordered_map<std::string, std::shared_ptr<Type>>> scopes;
+    ast::FunctionDecl* curFunction = nullptr;
+
+    void pushScope() {
+        scopes.emplace_front();
+    }
+
+    void popScope() {
+        scopes.pop_front();
+    }
+
+    void addToScope(std::string name, std::shared_ptr<Type> type) {
+        scopes.front().insert_or_assign(std::move(name), type);
+    }
+
+    std::optional<std::shared_ptr<Type>> lookup(const std::string& name) const {
+        for (const auto& scope : scopes) {
+            auto it = scope.find(name);
+            if (it != scope.end())
+                return it->second;
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<std::shared_ptr<StructType>> lookupType(const std::string& name) const {
+        auto it = structs.find(name);
+        if (it == structs.end()) {
+            return std::nullopt;
+        }
+
+        return it->second;
+    }
+
+    std::shared_ptr<Type> derefTypeUnchecked(std::shared_ptr<Type> type) const {
+        if (const auto* typeRef = dynamic_cast<const TypeRef*>(type.get())) {
+            return lookupType(typeRef->name).value();
+        }
+        return type;
+    }
+
+    std::shared_ptr<Type> derefType(const lex::WithSpan<std::shared_ptr<Type>>& type) const {
+        if (const auto* typeRef = dynamic_cast<TypeRef*>(type.value.get())) {
+            auto actualType = lookupType(typeRef->name);
+            if (!actualType.has_value()) {
+                throw Error(file.input, type.span, std::format("undefined type {}", typeRef->name));
             }
+
+            return *actualType;
+        }
+        return type.value;
     }
 
-    expr.type = expr.value->type;
-}
+    void visit(ast::UnaryExpr& expr) {
+        visit(expr.value.get());
 
-void Sema::visit(ast::NumLitExpr& expr) {
-    expr.type = PrimitiveType::intType;
-}
+        switch (expr.op.value) {
+            case ast::UnaryExpr::Op::Minus:
+                if (!utils::isa<PrimitiveType>(expr.value->type.get()) ||
+                    dynamic_cast<PrimitiveType*>(expr.value->type.get())->kind !=
+                        PrimitiveType::Primitive::Int) {
+                    throw Error(file.input, expr.value->span(), "invalid subexpression type");
+                }
+        }
 
-void Sema::visit(ast::BinaryExpr& expr) {}
-
-void Sema::visit(ast::VarRefExpr& expr) {}
-
-void Sema::visit(ast::MemberRefExpr& expr) {}
-
-void Sema::visit(ast::CallExpr& expr) {}
-
-void Sema::visit(ast::RetStmt& stmt) {
-    std::optional<std::shared_ptr<Type>> rettype;
-    if (stmt.value.has_value()) {
-        visit(stmt.value->get());
-        rettype = (*stmt.value)->type;
+        expr.type = expr.value->type;
     }
 
-    if (**rettype != *curFunction->rettype.value) {
-        throw Error(input,
-                    curFunction->rettype.span,
-                    std::format("return type mismatch: expected {}, but got {}",
-                                *curFunction->rettype.value,
-                                **rettype));
+    void visit(ast::NumLitExpr& expr) {
+        expr.type = PrimitiveType::intType;
     }
-}
 
-void Sema::visit(ast::DeclStmt& stmt) {
-    visit(stmt.decl);
-}
+    bool isAssignable(const ast::Expr* expr) {
+        bool assignableExpr =
+            utils::isa<ast::VarRefExpr>(expr) || utils::isa<ast::MemberRefExpr>(expr);
 
-void Sema::visit(ast::CompoundStmt& stmt) {
-    pushScope();
-    for (const auto& s : stmt.stmts) {
-        visit(s.get());
+        bool assignableType;
+        if (const auto* prim = dynamic_cast<const PrimitiveType*>(expr->type.get())) {
+            assignableType = prim->kind != PrimitiveType::Primitive::Void;
+        } else {
+            assignableType = !utils::isa<FunctionType>(expr->type.get());
+        }
+
+        return assignableExpr && assignableType;
     }
-    popScope();
-}
 
-void Sema::visit(ast::VarDecl& decl) {
-    if (decl.value.has_value()) {
-        ast::Expr* value = decl.value->get();
-        visit(value);
-        if (*value->type != *decl.type.value) {
-            throw Error(
-                input,
-                value->span(),
-                std::format("value type does not match declared variable type: expected {}, got {}",
-                            *decl.type.value,
-                            *value->type));
+    void visit(ast::BinaryExpr& expr) {
+        visit(expr.lhs.get());
+        visit(expr.rhs.get());
+
+        auto checkValidity = [this, &expr](bool cond) {
+            if (!cond) {
+                throw Error(file.input, expr.op.span, "invalid types for binary expression");
+            }
+        };
+
+        switch (expr.op.value) {
+            case ast::BinaryExpr::Op::Assign:
+                checkValidity(isAssignable(expr.lhs.get()) && *expr.lhs->type == *expr.rhs->type);
+                expr.type = expr.rhs->type;
+                break;
+            case ast::BinaryExpr::Op::Eq:
+                checkValidity(typeIsComparable(expr.lhs->type.get()) &&
+                              typeIsComparable(expr.rhs->type.get()) &&
+                              *expr.lhs->type == *expr.rhs->type);
+                expr.type = PrimitiveType::boolType;
+                break;
+            case ast::BinaryExpr::Op::Plus:
+            case ast::BinaryExpr::Op::Minus:
+            case ast::BinaryExpr::Op::Mul:
+                checkValidity(*expr.lhs->type == *PrimitiveType::intType &&
+                              *expr.rhs->type == *PrimitiveType::intType);
+                expr.type = PrimitiveType::intType;
+                break;
         }
     }
 
-    addToScope(decl.name.value, decl.type.value);
-}
+    void visit(ast::VarRefExpr& expr) {
+        auto type = lookup(expr.name.value);
+        if (!type.has_value()) {
+            throw Error(file.input,
+                        expr.name.span,
+                        std::format("reference to undefined name {}", expr.name.value));
+        }
 
-void Sema::visit(ast::FunctionDecl& decl) {
-    curFunction = &decl;
-    addToScope(decl.name.value, std::make_shared<FunctionType>(decl.type()));
-
-    pushScope();
-    for (const auto& param : decl.params) {
-        addToScope(param.first.value, param.second.value);
+        expr.type = *type;
     }
-    visit(decl.body);
-    popScope();
-    curFunction = nullptr;
-}
 
-void Sema::run(TranslationUnit& tu) {
-    pushScope();
-    for (const auto& [name, decl] : tu.decls) {
-        if (auto* fndecl = dynamic_cast<ast::FunctionDecl*>(decl.get())) {
-            addToScope(name, std::make_shared<FunctionType>(fndecl->type()));
-        } else if (auto* vardecl = dynamic_cast<ast::VarDecl*>(decl.get())) {
-            addToScope(name, vardecl->type.value);
+    void visit(ast::MemberRefExpr& expr) {}
+
+    void visit(ast::CallExpr& expr) {
+        // TODO: replace Call(MemberRef(S, M), ...) to Call(mangled(S, M), S, ...)
+    }
+
+    void visit(ast::RetStmt& stmt) {
+        std::optional<std::shared_ptr<Type>> rettype;
+        if (stmt.value.has_value()) {
+            visit(stmt.value->get());
+            rettype = (*stmt.value)->type;
+        }
+
+        if (**rettype != *curFunction->rettype.value) {
+            throw Error(file.input,
+                        curFunction->rettype.span,
+                        std::format("return type mismatch: expected {}, but got {}",
+                                    *curFunction->rettype.value,
+                                    **rettype));
         }
     }
 
-    for (const auto& [name, decl] : tu.decls) {
-        visit(decl.get());
+    void visit(ast::DeclStmt& stmt) {
+        visit(stmt.decl);
     }
+
+    void visit(ast::CompoundStmt& stmt) {
+        pushScope();
+        for (const auto& s : stmt.stmts) {
+            visit(s.get());
+        }
+        popScope();
+    }
+
+    void visit(ast::VarDecl& decl) {
+        auto actualType = derefType(decl.type);
+
+        if (decl.value.has_value()) {
+            ast::Expr* value = decl.value->get();
+            visit(value);
+            if (*value->type != *actualType) {
+                throw Error(
+                    file.input,
+                    value->span(),
+                    std::format(
+                        "value type does not match declared variable type: expected {}, got {}",
+                        *decl.type.value,
+                        *value->type));
+            }
+        }
+
+        addToScope(decl.name.value, actualType);
+    }
+
+    void visit(ast::FunctionDecl& decl) {
+        curFunction = &decl;
+        addToScope(decl.name.value, std::make_shared<FunctionType>(decl.type()));
+
+        pushScope();
+        for (auto& [name, type] : decl.params) {
+            addToScope(name.value, derefType(type));
+        }
+        visit(decl.body);
+        popScope();
+        curFunction = nullptr;
+    }
+
+    void checkAndFillStructs() {
+        for (auto& [name, structDecl] : file.structs) {
+            std::vector<StructType::Field> fields;
+            for (auto& field : structDecl.fields) {
+                if (auto* typeRef = dynamic_cast<TypeRef*>(field.type.value.get());
+                    !file.structs.contains(typeRef->name)) {
+                    throw Error(file.input,
+                                field.type.span,
+                                std::format("undefined type {}", typeRef->name));
+                }
+
+                fields.emplace_back(field.name, field.type.value);
+            }
+
+            structs.emplace(name, std::make_shared<StructType>(name, std::move(fields)));
+        }
+    }
+
+    void derefStructFields() {
+        for (auto& [name, s] : structs) {
+            for (auto& field : s->fields) {
+                // types should already be checked during `checkAndFillStructs`
+                field.type = derefTypeUnchecked(field.type);
+            }
+        }
+    }
+
+    void methodsToFunctions() {
+        for (auto& [name, structDecl] : file.structs) {
+            for (auto& method : structDecl.methods) {
+                file.functions.emplace(mangleMethodName(name, method.name.value),
+                                       std::move(method));
+            }
+        }
+    }
+
+    void derefGlobalTypes() {
+        for (auto& [name, decl] : file.globals) {
+            decl.type.value = derefType(decl.type);
+        }
+
+        for (auto& [name, decl] : file.functions) {
+            for (auto& [name, type] : decl.params) {
+                type.value = derefType(type);
+            }
+            decl.rettype.value = derefType(decl.rettype);
+        }
+    }
+
+    void fillTopLevelScope() {
+        pushScope();
+
+        for (const auto& [name, decl] : file.functions) {
+            addToScope(name, std::make_shared<FunctionType>(decl.type()));
+        }
+        for (const auto& [name, decl] : file.globals) {
+            addToScope(name, derefType(decl.type));
+        }
+    }
+
+public:
+    Sema(ast::File file) : file{std::move(file)} {}
+
+    TranslationUnit run() {
+        checkAndFillStructs();
+        derefStructFields();
+        methodsToFunctions();
+        derefGlobalTypes();
+        fillTopLevelScope();
+
+        for (auto& [name, decl] : file.globals) {
+            visit(decl);
+        }
+        for (auto& [name, decl] : file.functions) {
+            visit(decl);
+        }
+
+        return TranslationUnit{
+            .globals = std::move(file.globals),
+            .functions = std::move(file.functions),
+            .structs = std::move(structs),
+        };
+    };
+};
+}  // namespace
+
+TranslationUnit runSema(ast::File file) {
+    return Sema{file}.run();
 }
 }  // namespace frontend

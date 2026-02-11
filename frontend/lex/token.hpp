@@ -21,7 +21,8 @@ enum class Token {
     LBrace,     // {
     RBrace,     // }
     Var,        // `var`
-    Fn,         // `fn`
+    Fun,        // `fun`
+    Struct,     // `struct`
     If,         // `if`
     Else,       // `else`
     Return,     // `return`
@@ -69,8 +70,10 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`{{`");
             case frontend::lex::Token::RBrace:
                 return std::format_to(ctx.out(), "`}}`");
-            case frontend::lex::Token::Fn:
-                return std::format_to(ctx.out(), "`fn`");
+            case frontend::lex::Token::Fun:
+                return std::format_to(ctx.out(), "`fun`");
+            case frontend::lex::Token::Struct:
+                return std::format_to(ctx.out(), "`struct`");
             case frontend::lex::Token::Var:
                 return std::format_to(ctx.out(), "`var`");
             case frontend::lex::Token::If:

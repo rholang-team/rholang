@@ -6,22 +6,12 @@
 #include "frontend/ast/stmt.hpp"
 
 namespace frontend::ast {
-template <typename RetTy>
 struct DeclVisitor {
     virtual ~DeclVisitor() = default;
 
-    virtual RetTy visit(Decl* decl) {
-        if (auto* fndecl = dynamic_cast<FunctionDecl*>(decl)) {
-            return visit(*fndecl);
-        } else if (auto* vardecl = dynamic_cast<VarDecl*>(decl)) {
-            return visit(*vardecl);
-        }
-
-        std::unreachable();
-    }
-
-    virtual RetTy visit([[maybe_unused]] FunctionDecl& decl) {}
-    virtual RetTy visit([[maybe_unused]] VarDecl& decl) {}
+    virtual void visit([[maybe_unused]] FunctionDecl& decl) {}
+    virtual void visit([[maybe_unused]] VarDecl& decl) {}
+    virtual void visit([[maybe_unused]] StructDecl& decl) {}
 };
 
 template <typename RetTy>

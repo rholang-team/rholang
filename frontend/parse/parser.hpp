@@ -5,12 +5,12 @@
 
 #include "frontend/ast/decl.hpp"
 #include "frontend/ast/expr.hpp"
+#include "frontend/ast/file.hpp"
 #include "frontend/ast/stmt.hpp"
 #include "frontend/lex/lexeme.hpp"
 #include "frontend/lex/span.hpp"
 #include "frontend/lex/token.hpp"
 #include "frontend/parse/error.hpp"
-#include "frontend/translationunit.hpp"
 
 namespace frontend::parse {
 class Parser {
@@ -78,7 +78,7 @@ class Parser {
     }
 
     ast::VarDecl parseVarDecl();
-    std::unique_ptr<ast::Decl> parseDecl();
+    ast::FunctionDecl parseFunctionDecl();
 
     ast::CompoundStmt parseCompoundStmt();
     std::unique_ptr<ast::Stmt> parseStmt();
@@ -86,8 +86,10 @@ class Parser {
     std::unique_ptr<ast::Expr> parseTerm();
     std::unique_ptr<ast::Expr> parseExpr();
 
+    ast::StructDecl parseStructDecl();
+
 public:
-    TranslationUnit parse();
+    ast::File parse();
 
     Parser(lex::Lexemes lexemes) : lexemes{std::move(lexemes)} {}
 };

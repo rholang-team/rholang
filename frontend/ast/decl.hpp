@@ -10,25 +10,19 @@
 #include "frontend/type.hpp"
 
 namespace frontend::ast {
-struct Decl {
+struct VarDecl {
     lex::WithSpan<std::string> name;
-
-    Decl(lex::WithSpan<std::string> name) : name{std::move(name)} {}
-
-    virtual ~Decl() = default;
-};
-
-struct VarDecl final : public Decl {
     lex::WithSpan<std::shared_ptr<Type>> type;
     std::optional<std::unique_ptr<Expr>> value;
 
     VarDecl(lex::WithSpan<std::string> name,
             lex::WithSpan<std::shared_ptr<Type>> type,
             std::optional<std::unique_ptr<Expr>> value)
-        : Decl{std::move(name)}, type{type}, value{std::move(value)} {}
+        : name{std::move(name)}, type{type}, value{std::move(value)} {}
 };
 
-struct FunctionDecl final : public Decl {
+struct FunctionDecl {
+    lex::WithSpan<std::string> name;
     std::vector<std::pair<lex::WithSpan<std::string>, lex::WithSpan<std::shared_ptr<Type>>>> params;
     lex::WithSpan<std::shared_ptr<Type>> rettype;
     CompoundStmt body;
@@ -39,11 +33,32 @@ struct FunctionDecl final : public Decl {
             params,
         lex::WithSpan<std::shared_ptr<Type>> rettype,
         CompoundStmt body)
-        : Decl{std::move(name)},
+        : name{std::move(name)},
           params{std::move(params)},
           rettype{std::move(rettype)},
           body{std::move(body)} {}
 
     FunctionType type() const;
+};
+
+struct StructDecl {
+    struct Field {
+        std::string name;
+        lex::WithSpan<std::shared_ptr<Type>> type;
+
+        template <typename S>
+            requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+        Field(S&& name, lex::WithSpan<std::shared_ptr<Type>> type)
+            : name{std::forward<S>(name)}, type{type} {}
+    };
+
+    lex::WithSpan<std::string> name;
+    std::vector<Field> fields;
+    std::vector<FunctionDecl> methods;
+
+    StructDecl(lex::WithSpan<std::string> name,
+               std::vector<Field> fields,
+               std::vector<FunctionDecl> methods)
+        : name{std::move(name)}, fields{std::move(fields)}, methods{std::move(methods)} {}
 };
 }  // namespace frontend::ast

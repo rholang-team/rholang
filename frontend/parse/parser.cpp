@@ -5,6 +5,7 @@
 #include <stack>
 
 #include "frontend/ast/declstmt.hpp"
+#include "frontend/ast/file.hpp"
 #include "frontend/lex/span.hpp"
 #include "frontend/parse/error.hpp"
 
@@ -69,14 +70,41 @@ lex::Lexeme Parser::get(lex::Token tok) {
     throw parse::error(lexemes.getInput(), l.span, l.token, tok);
 }
 
-TranslationUnit Parser::parse() {
-    TranslationUnit res;
+ast::File Parser::parse() {
+    ast::File res;
+
+    auto checkName = [this, &res](const lex::WithSpan<std::string>& name) {
+        if (res.globals.contains(name.value) || res.functions.contains(name.value) ||
+            res.structs.contains(name.value)) {
+            throw Error(
+                lexemes.getInput(), name.span, std::format("redeclaration of {}", name.value));
+        }
+    };
 
     for (;;) {
-        auto decl = parseDecl();
-        if (!decl)
+        auto l = lexemes.peek();
+        if (l.token == lex::Token::Eof)
             break;
-        res.decls.emplace(decl->name.value, std::move(decl));
+        else if (l.token == lex::Token::Fun) {
+            auto decl = parseFunctionDecl();
+            checkName(decl.name);
+            res.functions.emplace(decl.name.value, std::move(decl));
+        } else if (l.token == lex::Token::Var) {
+            auto decl = parseVarDecl();
+            checkName(decl.name);
+            res.globals.emplace(decl.name.value, std::move(decl));
+        } else if (l.token == lex::Token::Struct) {
+            auto decl = parseStructDecl();
+            checkName(decl.name);
+            res.structs.emplace(decl.name.value, std::move(decl));
+        } else {
+            throw parse::error(lexemes.getInput(),
+                               l.span,
+                               l.token,
+                               lex::Token::Fun,
+                               lex::Token::Var,
+                               lex::Token::Struct);
+        }
     }
 
     return res;
@@ -110,48 +138,33 @@ ast::VarDecl Parser::parseVarDecl() {
         lexemes.getInput(), next.span, next.token, lex::Token::Semicolon, lex::Token::Assign);
 }
 
-std::unique_ptr<ast::Decl> Parser::parseDecl() {
-    auto first = lexemes.peek();
-    switch (first.token) {
-        case lex::Token::Eof:
-            return nullptr;
-        case lex::Token::Fn: {
-            lexemes.next();
+ast::FunctionDecl Parser::parseFunctionDecl() {
+    get(lex::Token::Fun);
+    auto nameSpan = get(lex::Token::Id).span;
+
+    get(lex::Token::LParen);
+    auto params = parseMany(
+        [this]() {
             auto nameSpan = get(lex::Token::Id).span;
-
-            get(lex::Token::LParen);
-            auto params = parseMany(
-                [this]() {
-                    auto nameSpan = get(lex::Token::Id).span;
-                    auto typeSpan = get(lex::Token::Id).span;
-                    return std::pair{
-                        lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
-                        lex::WithSpan{
-                            typeFromString(lexemes.getLiteral(typeSpan)),
-                            typeSpan,
-                        }};
-                },
-                lex::Token::Comma,
-                lex::Token::RParen);
-
             auto typeSpan = get(lex::Token::Id).span;
-            auto type = typeFromString(lexemes.getLiteral(typeSpan));
+            return std::pair{lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
+                             lex::WithSpan{
+                                 typeFromString(lexemes.getLiteral(typeSpan)),
+                                 typeSpan,
+                             }};
+        },
+        lex::Token::Comma,
+        lex::Token::RParen);
 
-            ast::CompoundStmt body = parseCompoundStmt();
+    auto typeSpan = get(lex::Token::Id).span;
+    auto type = typeFromString(lexemes.getLiteral(typeSpan));
 
-            return std::make_unique<ast::FunctionDecl>(
-                lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
-                std::move(params),
-                lex::WithSpan{type, typeSpan},
-                std::move(body));
-        }
-        case lex::Token::Var:
-            return std::make_unique<ast::VarDecl>(parseVarDecl());
-        default:
-            throw parse::error(lexemes.getInput(), first.span, first.token, "declaration");
-    }
+    ast::CompoundStmt body = parseCompoundStmt();
 
-    std::unreachable();
+    return ast::FunctionDecl{lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
+                             std::move(params),
+                             lex::WithSpan{type, typeSpan},
+                             std::move(body)};
 }
 
 ast::CompoundStmt Parser::parseCompoundStmt() {
