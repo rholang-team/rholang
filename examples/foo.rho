@@ -1,0 +1,16 @@
+struct A {
+    a int,
+    b int,
+}
+
+fun (a A) getSum() int {
+    return a.a + a.b;
+}
+
+fun foo(a int, b int) int {
+    var s = A{
+        .b = b,
+        .a = a,
+    };
+    return s.getSum();
+}

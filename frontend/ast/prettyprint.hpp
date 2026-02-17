@@ -36,5 +36,6 @@ public:
     void visit(VarRefExpr& expr) override;
     void visit(MemberRefExpr& expr) override;
     void visit(CallExpr& expr) override;
+    void visit(StructInitExpr& expr) override;
 };
 }  // namespace frontend::ast

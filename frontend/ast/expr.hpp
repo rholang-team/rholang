@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 
 #include "frontend/lex/span.hpp"
 #include "frontend/type.hpp"
@@ -81,6 +82,17 @@ struct CallExpr final : public Expr {
 
     CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args)
         : callee{std::move(callee)}, args{std::move(args)} {}
+
+    lex::Span span() const override;
+};
+
+struct StructInitExpr final : public Expr {
+    lex::Span tySpan;
+    std::unordered_map<std::string, std::unique_ptr<Expr>> fields;
+
+    StructInitExpr(lex::WithSpan<std::shared_ptr<Type>> ty,
+                   std::unordered_map<std::string, std::unique_ptr<Expr>> fields)
+        : Expr{ty.value}, tySpan{ty.span}, fields{std::move(fields)} {}
 
     lex::Span span() const override;
 };

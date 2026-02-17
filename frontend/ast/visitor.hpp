@@ -55,6 +55,8 @@ struct ExprVisitor {
             return visit(*memberRefExpr);
         } else if (auto* callExpr = dynamic_cast<CallExpr*>(expr)) {
             return visit(*callExpr);
+        } else if (auto* initExpr = dynamic_cast<StructInitExpr*>(expr)) {
+            return visit(*initExpr);
         }
 
         std::unreachable();
@@ -66,5 +68,6 @@ struct ExprVisitor {
     virtual RetTy visit([[maybe_unused]] VarRefExpr& expr) {}
     virtual RetTy visit([[maybe_unused]] MemberRefExpr& expr) {}
     virtual RetTy visit([[maybe_unused]] CallExpr& expr) {}
+    virtual RetTy visit([[maybe_unused]] StructInitExpr& expr) {}
 };
 }  // namespace frontend::ast

@@ -1,5 +1,7 @@
 #include "frontend/ast/expr.hpp"
 
+#include <algorithm>
+
 namespace frontend::ast {
 lex::Span UnaryExpr::span() const {
     auto b = op.span.begin;
@@ -37,5 +39,15 @@ lex::Span CallExpr::span() const {
     }
 
     return lex::Span{calleeSpan.begin, e};
+}
+
+lex::Span StructInitExpr::span() const {
+    size_t end = 0;
+
+    for (const auto& [_, field] : fields) {
+        end = std::max(end, field->span().end);
+    }
+
+    return lex::Span{tySpan.begin, end};
 }
 }  // namespace frontend::ast

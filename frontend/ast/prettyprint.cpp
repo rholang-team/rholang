@@ -183,4 +183,16 @@ void PrettyPrinter::visit(CallExpr& expr) {
         visit(a.get());
     }
 }
+
+void PrettyPrinter::visit(StructInitExpr& expr) {
+    pad();
+    os << "StructInitExpr ";
+    showTyPtr(expr.type.get());
+    os << '\n';
+    for (const auto& [n, f] : expr.fields) {
+        pad();
+        os << n << '\n';
+        visit(f.get());
+    }
+}
 }  // namespace frontend::ast
