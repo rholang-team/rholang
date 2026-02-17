@@ -6,10 +6,15 @@ project('language', 'cpp', default_options : [
 gtest_dep = dependency('gtest_main')
 
 runtime_src = [
-  # put your paths here
+  'runtime/alloc.cpp',
 ]
-
 runtime = static_library('runtime', runtime_src)
+test('runtime tests', executable(
+  'runtimetests',
+  'runtime/alloc_test.cpp',
+  dependencies: [gtest_dep],
+  link_with: runtime,
+))
 
 frontend_src = [
    'frontend/type.cpp',
