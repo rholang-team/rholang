@@ -22,19 +22,22 @@ struct VarDecl {
 };
 
 struct FunctionDecl {
+    using Param = std::pair<lex::WithSpan<std::string>, lex::WithSpan<std::shared_ptr<Type>>>;
+
     lex::WithSpan<std::string> name;
-    std::vector<std::pair<lex::WithSpan<std::string>, lex::WithSpan<std::shared_ptr<Type>>>> params;
+    std::vector<lex::WithSpan<std::string>> paramNames;
+    std::vector<lex::WithSpan<std::shared_ptr<Type>>> paramTypes;
     lex::WithSpan<std::shared_ptr<Type>> rettype;
     CompoundStmt body;
 
-    FunctionDecl(
-        lex::WithSpan<std::string> name,
-        std::vector<std::pair<lex::WithSpan<std::string>, lex::WithSpan<std::shared_ptr<Type>>>>
-            params,
-        lex::WithSpan<std::shared_ptr<Type>> rettype,
-        CompoundStmt body)
+    FunctionDecl(lex::WithSpan<std::string> name,
+                 std::vector<lex::WithSpan<std::string>> paramNames,
+                 std::vector<lex::WithSpan<std::shared_ptr<Type>>> paramTypes,
+                 lex::WithSpan<std::shared_ptr<Type>> rettype,
+                 CompoundStmt body)
         : name{std::move(name)},
-          params{std::move(params)},
+          paramNames{std::move(paramNames)},
+          paramTypes{std::move(paramTypes)},
           rettype{std::move(rettype)},
           body{std::move(body)} {}
 

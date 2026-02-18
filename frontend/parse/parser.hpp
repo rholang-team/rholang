@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 
 #include "frontend/ast/decl.hpp"
 #include "frontend/ast/expr.hpp"
@@ -49,10 +48,18 @@ class Parser {
     }
 
     template <typename P>
-        requires std::invocable<P>
-    std::vector<std::invoke_result_t<P>> parseManyUntil(P parser, lex::Token sep, lex::Token end) {
+        requires std::invocable<P> && (!std::same_as<std::invoke_result_t<P>, void>)
+    std::vector<std::invoke_result_t<P>> parseManyUntil(const P& parser,
+                                                        lex::Token sep,
+                                                        lex::Token end) {
         std::vector<std::invoke_result_t<P>> res;
+        parseManyUntil([&res, &parser]() { res.emplace_back(parser()); }, sep, end);
+        return res;
+    }
 
+    template <typename P>
+        requires std::invocable<P> && std::same_as<std::invoke_result_t<P>, void>
+    void parseManyUntil(const P& parser, lex::Token sep, lex::Token end) {
         for (;;) {
             lex::Lexeme l = lexemes.peek();
             if (l.token == end) {
@@ -60,7 +67,7 @@ class Parser {
                 break;
             }
 
-            res.emplace_back(parser());
+            parser();
             l = lexemes.peek();
             if (l.token == sep) {
                 lexemes.next();
@@ -73,14 +80,14 @@ class Parser {
 
             throw parse::error(lexemes.getInput(), l.span, l.token, sep, end);
         }
-
-        return res;
     }
 
     ast::VarDecl parseVarDecl();
     ast::FunctionDecl parseFunctionDecl();
 
     ast::CompoundStmt parseCompoundStmt();
+    ast::CondStmt parseCondStmt();
+    ast::WhileStmt parseWhileStmt();
     std::unique_ptr<ast::Stmt> parseStmt();
 
     std::unique_ptr<ast::Expr> parseTerm();
@@ -91,6 +98,6 @@ class Parser {
 public:
     ast::File parse();
 
-    Parser(lex::Lexemes lexemes) : lexemes{std::move(lexemes)} {}
+    explicit Parser(lex::Lexemes lexemes) : lexemes{std::move(lexemes)} {}
 };
 }  // namespace frontend::parse

@@ -4,7 +4,7 @@ namespace frontend::ast {
 FunctionType FunctionDecl::type() const {
     std::vector<std::shared_ptr<Type>> paramTypes;
 
-    for (const auto& [_, t] : params) {
+    for (const auto& t : this->paramTypes) {
         paramTypes.emplace_back(t.value);
     }
 

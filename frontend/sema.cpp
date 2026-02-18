@@ -1,7 +1,9 @@
 #include "frontend/sema.hpp"
 
+#include <cassert>
 #include <forward_list>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 
@@ -11,6 +13,7 @@
 #include "frontend/ast/stmt.hpp"
 #include "frontend/ast/visitor.hpp"
 #include "frontend/error.hpp"
+#include "frontend/mangling.hpp"
 #include "frontend/translationunit.hpp"
 #include "frontend/type.hpp"
 
@@ -185,11 +188,75 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
     }
 
     void visit(ast::CallExpr& expr) {
-        // TODO: replace Call(MemberRef(S, M), ...) with Call(mangled(S, M), S, ...)
+        visit(expr.callee.get());
+
+        if (ast::MemberRefExpr* memberRef = dynamic_cast<ast::MemberRefExpr*>(expr.callee.get())) {
+            std::string_view targetName = dynamic_cast<StructType&>(*memberRef->target.get()).name;
+
+            expr.args.insert(expr.args.begin(), std::move(memberRef->target));
+
+            auto newCallee = std::make_unique<ast::VarRefExpr>(lex::WithSpan{
+                mangleMethodName(targetName, memberRef->member.value), memberRef->span()});
+
+            visit(newCallee.get());
+
+            expr = ast::CallExpr{std::move(newCallee), std::move(expr.args)};
+        }
+
+        for (auto& arg : expr.args)
+            visit(arg.get());
+
+        // TODO: check that callee is an existing function
+        // TODO: check argument types
+        // TODO: set expr.type to function.rettype
+    }
+
+    void visit(ast::StructInitExpr& expr) {
+        expr.type = derefType(lex::WithSpan{expr.type, expr.tySpan});
+
+        StructType* structType;
+        if (!(structType = dynamic_cast<StructType*>(expr.type.get()))) {
+            throw Error(
+                file.input, expr.tySpan, std::format("{} is not a struct type", *expr.type));
+        }
+
+        for (const auto& [n, _] : expr.fields) {
+            bool nIsExtraField =
+                std::ranges::find_if(structType->fields, [&n](const StructType::Field& f) {
+                    return f.name == n;
+                }) == structType->fields.end();
+
+            if (nIsExtraField) {
+                throw Error(file.input,
+                            expr.span(),
+                            std::format("extra field `{}` in struct initializer", n));
+            }
+        }
+
+        for (const StructType::Field& f : structType->fields) {
+            if (!expr.fields.contains(f.name)) {
+                throw Error(file.input,
+                            expr.span(),
+                            std::format("struct field `{}` is not initialized", f.name));
+            }
+
+            std::unique_ptr<ast::Expr>& fieldInitializer = expr.fields.at(f.name);
+            visit(fieldInitializer.get());
+
+            if (*f.type != *fieldInitializer->type) {
+                throw Error(
+                    file.input,
+                    fieldInitializer->span(),
+                    std::format("field `{}` initializer type mismatch: expected {}, but got {}",
+                                f.name,
+                                *f.type,
+                                *fieldInitializer->type));
+            }
+        }
     }
 
     void visit(ast::RetStmt& stmt) {
-        std::optional<std::shared_ptr<Type>> rettype;
+        std::optional<std::shared_ptr<Type>> rettype = std::nullopt;
         if (stmt.value.has_value()) {
             visit(stmt.value->get());
             rettype = (*stmt.value)->type;
@@ -228,7 +295,7 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
                     value->span(),
                     std::format(
                         "value type does not match declared variable type: expected {}, got {}",
-                        *decl.type.value,
+                        *actualType,
                         *value->type));
             }
         }
@@ -241,7 +308,7 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         addToScope(decl.name.value, std::make_shared<FunctionType>(decl.type()));
 
         pushScope();
-        for (auto& [name, type] : decl.params) {
+        for (const auto& [name, type] : std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
             addToScope(name.value, derefType(type));
         }
         visit(decl.body);
@@ -282,7 +349,8 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         }
 
         for (auto& [name, decl] : file.functions) {
-            for (auto& [name, type] : decl.params) {
+            for (const auto& [name, type] :
+                 std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
                 type.value = derefType(type);
             }
             decl.rettype.value = derefType(decl.rettype);

@@ -1,4 +1,5 @@
-- struct init parsing
 - struct init in sema
 - method calls in sema
-- underscores in identifiers
+
+- ifs
+- loops

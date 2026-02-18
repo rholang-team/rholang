@@ -54,7 +54,7 @@ void PrettyPrinter::visit(FunctionDecl& decl) {
     pad();
     os << "FunctionDecl " << decl.name.value << " (";
     bool first = true;
-    for (const auto& [n, t] : decl.params) {
+    for (const auto& [n, t] : std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
         if (!first) {
             os << ", ";
         }

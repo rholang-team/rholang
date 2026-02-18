@@ -91,13 +91,14 @@ std::optional<Lexeme> Lexer::nextLexeme() {
         Span span = getWhile(isIdentifierChar);
         std::string_view ident = std::string_view{input}.substr(span.begin, span.length());
 
-        constexpr std::array<std::pair<std::string_view, Token>, 6> KEYWORDS{
+        constexpr std::array<std::pair<std::string_view, Token>, 7> KEYWORDS{
             std::pair{"var", Token::Var},
             std::pair{"fun", Token::Fun},
             std::pair{"struct", Token::Struct},
             std::pair{"return", Token::Return},
             std::pair{"if", Token::If},
             std::pair{"else", Token::Else},
+            std::pair{"while", Token::Else},
         };
         for (const auto& [s, t] : KEYWORDS) {
             if (s == ident) {

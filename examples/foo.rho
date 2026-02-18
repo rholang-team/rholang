@@ -7,10 +7,12 @@ fun (a A) getSum() int {
     return a.a + a.b;
 }
 
-fun foo(a int, b int) int {
-    var s = A{
-        .b = b,
-        .a = a,
-    };
+fun aFromOne(a int) A {
+    return A {.a = a, .b = a};
+}
+
+fun foo(x int) int {
+    var s A = aFromOne(x);
+    s.b = 42;
     return s.getSum();
 }
