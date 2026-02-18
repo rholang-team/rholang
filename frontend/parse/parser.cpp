@@ -47,6 +47,22 @@ std::optional<ast::BinaryExpr::Op> binaryOpFromToken(lex::Token tok) {
             return ast::BinaryExpr::Op::Mul;
         case lex::Token::Eq:
             return ast::BinaryExpr::Op::Eq;
+        case lex::Token::Ne:
+            return ast::BinaryExpr::Op::Ne;
+        case lex::Token::Lt:
+            return ast::BinaryExpr::Op::Lt;
+        case lex::Token::Gt:
+            return ast::BinaryExpr::Op::Gt;
+        case lex::Token::Le:
+            return ast::BinaryExpr::Op::Le;
+        case lex::Token::Ge:
+            return ast::BinaryExpr::Op::Ge;
+        case lex::Token::PlusAssign:
+            return ast::BinaryExpr::Op::PlusAssign;
+        case lex::Token::MinusAssign:
+            return ast::BinaryExpr::Op::MinusAssign;
+        case lex::Token::MulAssign:
+            return ast::BinaryExpr::Op::MulAssign;
         default:
             return std::nullopt;
     }
@@ -57,18 +73,28 @@ std::pair<unsigned, bool> binaryOpInfo(ast::BinaryExpr::Op op) {
     unsigned prec;
     switch (op) {
         case ast::BinaryExpr::Op::Assign:
+        case ast::BinaryExpr::Op::PlusAssign:
+        case ast::BinaryExpr::Op::MinusAssign:
+        case ast::BinaryExpr::Op::MulAssign:
             leftAssociative = false;
             prec = 1;
             break;
         case ast::BinaryExpr::Op::Eq:
+        case ast::BinaryExpr::Op::Ne:
             prec = 2;
+            break;
+        case ast::BinaryExpr::Op::Lt:
+        case ast::BinaryExpr::Op::Gt:
+        case ast::BinaryExpr::Op::Le:
+        case ast::BinaryExpr::Op::Ge:
+            prec = 3;
             break;
         case ast::BinaryExpr::Op::Plus:
         case ast::BinaryExpr::Op::Minus:
-            prec = 3;
+            prec = 4;
             break;
         case ast::BinaryExpr::Op::Mul:
-            prec = 4;
+            prec = 5;
             break;
     }
 
@@ -432,10 +458,7 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
 
 std::unique_ptr<ast::Expr> Parser::parseTerm() {
     // prefix ops
-
-    // ops are going from left to right as in source file
     std::vector<lex::WithSpan<ast::UnaryExpr::Op>> ops;
-
     while (auto op = unaryOpFromToken(lexemes.peek().token)) {
         auto span = lexemes.next().span;
         if (std::ranges::find_if(ops, [op](const auto& seenOp) {

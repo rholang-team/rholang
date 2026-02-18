@@ -19,14 +19,8 @@
 
 namespace frontend {
 namespace {
-bool typeIsComparable(const Type* ty) {
-    if (const PrimitiveType* primitive =
-            dynamic_cast<const PrimitiveType*>(ty)) {
-        return primitive->kind == PrimitiveType::Primitive::Bool ||
-               primitive->kind == PrimitiveType::Primitive::Int;
-    }
-
-    return false;
+bool typeIsComparable(const Type& ty) {
+    return ty == *PrimitiveType::boolType || ty == *PrimitiveType::intType;
 }
 
 class Sema : private ast::DeclVisitor,
@@ -101,13 +95,19 @@ class Sema : private ast::DeclVisitor,
 
         switch (expr.op.value) {
             case ast::UnaryExpr::Op::Minus:
-                if (!utils::isa<PrimitiveType>(expr.value->type.get()) ||
-                    dynamic_cast<PrimitiveType*>(expr.value->type.get())
-                            ->kind != PrimitiveType::Primitive::Int) {
+                if (*expr.value->type != *PrimitiveType::intType) {
                     throw Error(file.input,
                                 expr.value->span(),
                                 "invalid subexpression type");
                 }
+                break;
+            case ast::UnaryExpr::Op::Not:
+                if (*expr.value->type != *PrimitiveType::boolType) {
+                    throw Error(file.input,
+                                expr.value->span(),
+                                "invalid subexpression type");
+                }
+                break;
         }
 
         expr.type = expr.value->type;
@@ -121,13 +121,8 @@ class Sema : private ast::DeclVisitor,
         bool assignableExpr = utils::isa<ast::VarRefExpr>(expr) ||
                               utils::isa<ast::MemberRefExpr>(expr);
 
-        bool assignableType;
-        if (const auto* prim =
-                dynamic_cast<const PrimitiveType*>(expr->type.get())) {
-            assignableType = prim->kind != PrimitiveType::Primitive::Void;
-        } else {
-            assignableType = !utils::isa<FunctionType>(expr->type.get());
-        }
+        bool assignableType = *expr->type != *PrimitiveType::voidType &&
+                              !utils::isa<FunctionType>(expr->type.get());
 
         return assignableExpr && assignableType;
     }
@@ -153,9 +148,22 @@ class Sema : private ast::DeclVisitor,
                               *lhsType == *rhsType);
                 expr.type = expr.rhs->type;
                 break;
+            case ast::BinaryExpr::Op::PlusAssign:
+            case ast::BinaryExpr::Op::MinusAssign:
+            case ast::BinaryExpr::Op::MulAssign:
+                checkValidity(isAssignable(expr.lhs.get()) &&
+                              *lhsType == *PrimitiveType::intType &&
+                              *rhsType == *PrimitiveType::intType);
+                expr.type = PrimitiveType::intType;
+                break;
             case ast::BinaryExpr::Op::Eq:
-                checkValidity(typeIsComparable(expr.lhs->type.get()) &&
-                              typeIsComparable(expr.rhs->type.get()) &&
+            case ast::BinaryExpr::Op::Ne:
+            case ast::BinaryExpr::Op::Lt:
+            case ast::BinaryExpr::Op::Gt:
+            case ast::BinaryExpr::Op::Le:
+            case ast::BinaryExpr::Op::Ge:
+                checkValidity(typeIsComparable(*expr.lhs->type) &&
+                              typeIsComparable(*expr.rhs->type) &&
                               *lhsType == *rhsType);
                 expr.type = PrimitiveType::boolType;
                 break;
@@ -209,9 +217,9 @@ class Sema : private ast::DeclVisitor,
         expr.type = it->type;
     }
 
-    void visit(ast::CallExpr& expr) {
-        visit(expr.callee.get());
+    // TODO: separate function for method call checks
 
+    void visit(ast::CallExpr& expr) {
         if (ast::MemberRefExpr* memberRef =
                 dynamic_cast<ast::MemberRefExpr*>(expr.callee.get())) {
             std::string_view targetName =
@@ -227,6 +235,8 @@ class Sema : private ast::DeclVisitor,
 
             expr = ast::CallExpr{std::move(newCallee), std::move(expr.args)};
         }
+
+        visit(expr.callee.get());
 
         for (auto& arg : expr.args)
             visit(arg.get());

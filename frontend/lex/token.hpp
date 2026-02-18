@@ -7,32 +7,35 @@ enum class Token {
     Eof,
     Id,
     Num,
-    Assign,     // =
-    Plus,       // +
-    Minus,      // -
-    Bang,       // !
-    Asterisk,   // *
-    Eq,         // ==
-    Ne,         // !=
-    Lt,         // <
-    Gt,         // >
-    Le,         // <=
-    Ge,         // >=
-    Dot,        // .
-    Comma,      // ,
-    Semicolon,  // ;
-    Colon,      // :
-    LParen,     // (
-    RParen,     // )
-    LBrace,     // {
-    RBrace,     // }
-    Var,        // `var`
-    Fun,        // `fun`
-    Struct,     // `struct`
-    If,         // `if`
-    Else,       // `else`
-    While,      // `while`
-    Return,     // `return`
+    Assign,       // =
+    Plus,         // +
+    Minus,        // -
+    Asterisk,     // *
+    PlusAssign,   // +=
+    MinusAssign,  // -=
+    MulAssign,    // *=
+    Bang,         // !
+    Eq,           // ==
+    Ne,           // !=
+    Lt,           // <
+    Gt,           // >
+    Le,           // <=
+    Ge,           // >=
+    Dot,          // .
+    Comma,        // ,
+    Semicolon,    // ;
+    Colon,        // :
+    LParen,       // (
+    RParen,       // )
+    LBrace,       // {
+    RBrace,       // }
+    Var,          // `var`
+    Fun,          // `fun`
+    Struct,       // `struct`
+    If,           // `if`
+    Else,         // `else`
+    While,        // `while`
+    Return,       // `return`
 };
 
 }  // namespace frontend::lex
@@ -57,10 +60,16 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`+`");
             case frontend::lex::Token::Minus:
                 return std::format_to(ctx.out(), "`-`");
-            case frontend::lex::Token::Bang:
-                return std::format_to(ctx.out(), "`!`");
             case frontend::lex::Token::Asterisk:
                 return std::format_to(ctx.out(), "`*`");
+            case frontend::lex::Token::PlusAssign:
+                return std::format_to(ctx.out(), "`+=`");
+            case frontend::lex::Token::MinusAssign:
+                return std::format_to(ctx.out(), "`-=`");
+            case frontend::lex::Token::MulAssign:
+                return std::format_to(ctx.out(), "`*=`");
+            case frontend::lex::Token::Bang:
+                return std::format_to(ctx.out(), "`!`");
             case frontend::lex::Token::Eq:
                 return std::format_to(ctx.out(), "`==`");
             case frontend::lex::Token::Ne:

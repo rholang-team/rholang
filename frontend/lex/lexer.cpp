@@ -73,14 +73,14 @@ std::optional<Lexeme> Lexer::nextLexeme() {
     SINGLE_CHAR_TOKEN(')', Token::RParen);
     SINGLE_CHAR_TOKEN('{', Token::LBrace);
     SINGLE_CHAR_TOKEN('}', Token::RBrace);
-    SINGLE_CHAR_TOKEN('+', Token::Plus);
-    SINGLE_CHAR_TOKEN('-', Token::Minus);
-    SINGLE_CHAR_TOKEN('*', Token::Asterisk);
 
     TWO_CHAR_TOKEN('=', '=', Token::Assign, Token::Eq);
     TWO_CHAR_TOKEN('!', '=', Token::Bang, Token::Ne);
     TWO_CHAR_TOKEN('<', '=', Token::Lt, Token::Le);
     TWO_CHAR_TOKEN('>', '=', Token::Gt, Token::Ge);
+    TWO_CHAR_TOKEN('+', '=', Token::Plus, Token::PlusAssign);
+    TWO_CHAR_TOKEN('-', '=', Token::Minus, Token::MinusAssign);
+    TWO_CHAR_TOKEN('*', '=', Token::Asterisk, Token::MulAssign);
 
     auto ch = peekChar();
     if (!ch.has_value()) {
@@ -104,7 +104,7 @@ std::optional<Lexeme> Lexer::nextLexeme() {
             std::pair{"return", Token::Return},
             std::pair{"if", Token::If},
             std::pair{"else", Token::Else},
-            std::pair{"while", Token::Else},
+            std::pair{"while", Token::While},
         };
         for (const auto& [s, t] : KEYWORDS) {
             if (s == ident) {

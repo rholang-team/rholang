@@ -36,9 +36,17 @@ struct BinaryExpr final : public Expr {
     enum class Op {
         Assign,
         Eq,
+        Ne,
+        Lt,
+        Gt,
+        Le,
+        Ge,
         Plus,
         Minus,
         Mul,
+        PlusAssign,
+        MinusAssign,
+        MulAssign,
     };
 
     lex::WithSpan<Op> op;

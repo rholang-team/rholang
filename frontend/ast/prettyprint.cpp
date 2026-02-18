@@ -160,6 +160,21 @@ void PrettyPrinter::visit(BinaryExpr& expr) {
         case BinaryExpr::Op::Eq:
             os << "==";
             break;
+        case BinaryExpr::Op::Ne:
+            os << "!=";
+            break;
+        case BinaryExpr::Op::Lt:
+            os << "<";
+            break;
+        case BinaryExpr::Op::Gt:
+            os << ">";
+            break;
+        case BinaryExpr::Op::Le:
+            os << "<=";
+            break;
+        case BinaryExpr::Op::Ge:
+            os << ">=";
+            break;
         case BinaryExpr::Op::Plus:
             os << '+';
             break;

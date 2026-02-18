@@ -1,18 +1,18 @@
-struct A {
-    a int,
-    b int,
+struct Pow {
+    x int,
+    n int
 }
 
-fun (a A) getSum() int {
-    return a.a + a.b;
+fun (pow Pow) run() int {
+    var i int = 1;
+    var res int = 1;
+
+    while i <= pow.n {
+        res *= pow.x;
+        i += 1;
+    }
 }
 
-fun aFromOne(a int) A {
-    return A {.a = a, .b = a};
-}
-
-fun foo(x int) int {
-    var s A = aFromOne(x);
-    s.b = 42;
-    return s.getSum();
+fun square(x int) int {
+    return Pow {.x = x, .n = 2}.run();
 }
