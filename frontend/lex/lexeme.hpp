@@ -20,7 +20,9 @@ class Lexemes {
 
 public:
     Lexemes(std::string input, std::vector<Lexeme> lexemes, Span eofSpan)
-        : input{std::move(input)}, lexemes{std::move(lexemes)}, eofSpan{eofSpan} {}
+        : input{std::move(input)},
+          lexemes{std::move(lexemes)},
+          eofSpan{eofSpan} {}
 
     std::string_view getInput() const;
     std::string_view getLiteral(Span span) const;

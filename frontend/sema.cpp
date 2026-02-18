@@ -20,7 +20,8 @@
 namespace frontend {
 namespace {
 bool typeIsComparable(const Type* ty) {
-    if (const PrimitiveType* primitive = dynamic_cast<const PrimitiveType*>(ty)) {
+    if (const PrimitiveType* primitive =
+            dynamic_cast<const PrimitiveType*>(ty)) {
         return primitive->kind == PrimitiveType::Primitive::Bool ||
                primitive->kind == PrimitiveType::Primitive::Int;
     }
@@ -28,14 +29,17 @@ bool typeIsComparable(const Type* ty) {
     return false;
 }
 
-class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<void> {
+class Sema : private ast::DeclVisitor,
+             ast::StmtVisitor<void>,
+             ast::ExprVisitor<void> {
     using DeclVisitor::visit;
     using StmtVisitor<void>::visit;
     using ExprVisitor<void>::visit;
 
     ast::File file;
     std::unordered_map<std::string, std::shared_ptr<StructType>> structs;
-    std::forward_list<std::unordered_map<std::string, std::shared_ptr<Type>>> scopes;
+    std::forward_list<std::unordered_map<std::string, std::shared_ptr<Type>>>
+        scopes;
     ast::FunctionDecl* curFunction = nullptr;
 
     void pushScope() {
@@ -60,7 +64,8 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         return std::nullopt;
     }
 
-    std::optional<std::shared_ptr<StructType>> lookupType(const std::string& name) const {
+    std::optional<std::shared_ptr<StructType>> lookupType(
+        const std::string& name) const {
         auto it = structs.find(name);
         if (it == structs.end()) {
             return std::nullopt;
@@ -76,11 +81,14 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         return type;
     }
 
-    std::shared_ptr<Type> derefType(const lex::WithSpan<std::shared_ptr<Type>>& type) const {
+    std::shared_ptr<Type> derefType(
+        const lex::WithSpan<std::shared_ptr<Type>>& type) const {
         if (const auto* typeRef = dynamic_cast<TypeRef*>(type.value.get())) {
             auto actualType = lookupType(typeRef->name);
             if (!actualType.has_value()) {
-                throw Error(file.input, type.span, std::format("undefined type {}", typeRef->name));
+                throw Error(file.input,
+                            type.span,
+                            std::format("undefined type {}", typeRef->name));
             }
 
             return *actualType;
@@ -94,9 +102,11 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         switch (expr.op.value) {
             case ast::UnaryExpr::Op::Minus:
                 if (!utils::isa<PrimitiveType>(expr.value->type.get()) ||
-                    dynamic_cast<PrimitiveType*>(expr.value->type.get())->kind !=
-                        PrimitiveType::Primitive::Int) {
-                    throw Error(file.input, expr.value->span(), "invalid subexpression type");
+                    dynamic_cast<PrimitiveType*>(expr.value->type.get())
+                            ->kind != PrimitiveType::Primitive::Int) {
+                    throw Error(file.input,
+                                expr.value->span(),
+                                "invalid subexpression type");
                 }
         }
 
@@ -108,11 +118,12 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
     }
 
     bool isAssignable(const ast::Expr* expr) {
-        bool assignableExpr =
-            utils::isa<ast::VarRefExpr>(expr) || utils::isa<ast::MemberRefExpr>(expr);
+        bool assignableExpr = utils::isa<ast::VarRefExpr>(expr) ||
+                              utils::isa<ast::MemberRefExpr>(expr);
 
         bool assignableType;
-        if (const auto* prim = dynamic_cast<const PrimitiveType*>(expr->type.get())) {
+        if (const auto* prim =
+                dynamic_cast<const PrimitiveType*>(expr->type.get())) {
             assignableType = prim->kind != PrimitiveType::Primitive::Void;
         } else {
             assignableType = !utils::isa<FunctionType>(expr->type.get());
@@ -127,7 +138,9 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
 
         auto checkValidity = [this, &expr](bool cond) {
             if (!cond) {
-                throw Error(file.input, expr.op.span, "invalid types for binary expression");
+                throw Error(file.input,
+                            expr.op.span,
+                            "invalid types for binary expression");
             }
         };
 
@@ -136,12 +149,14 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
 
         switch (expr.op.value) {
             case ast::BinaryExpr::Op::Assign:
-                checkValidity(isAssignable(expr.lhs.get()) && *lhsType == *rhsType);
+                checkValidity(isAssignable(expr.lhs.get()) &&
+                              *lhsType == *rhsType);
                 expr.type = expr.rhs->type;
                 break;
             case ast::BinaryExpr::Op::Eq:
                 checkValidity(typeIsComparable(expr.lhs->type.get()) &&
-                              typeIsComparable(expr.rhs->type.get()) && *lhsType == *rhsType);
+                              typeIsComparable(expr.rhs->type.get()) &&
+                              *lhsType == *rhsType);
                 expr.type = PrimitiveType::boolType;
                 break;
             case ast::BinaryExpr::Op::Plus:
@@ -157,9 +172,10 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
     void visit(ast::VarRefExpr& expr) {
         auto type = lookup(expr.name.value);
         if (!type.has_value()) {
-            throw Error(file.input,
-                        expr.name.span,
-                        std::format("reference to undefined name {}", expr.name.value));
+            throw Error(
+                file.input,
+                expr.name.span,
+                std::format("reference to undefined name {}", expr.name.value));
         }
 
         expr.type = *type;
@@ -169,19 +185,25 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         visit(expr.target.get());
 
         if (!utils::isa<StructType>(expr.target->type.get())) {
-            throw Error(file.input, expr.target->span(), "value is not a struct");
+            throw Error(file.input,
+                        expr.target->span(),
+                        "value is not a struct");
         }
 
-        StructType& targetStruct = dynamic_cast<StructType&>(*expr.target->type);
+        StructType& targetStruct =
+            dynamic_cast<StructType&>(*expr.target->type);
 
-        auto it = std::ranges::find_if(
-            targetStruct.fields,
-            [&expr](const StructType::Field& field) { return field.name == expr.member.value; });
+        auto it =
+            std::ranges::find_if(targetStruct.fields,
+                                 [&expr](const StructType::Field& field) {
+                                     return field.name == expr.member.value;
+                                 });
 
         if (it == targetStruct.fields.end()) {
             throw Error(file.input,
                         expr.member.span,
-                        std::format("object has no member named {}", expr.member.value));
+                        std::format("object has no member named {}",
+                                    expr.member.value));
         }
 
         expr.type = it->type;
@@ -190,13 +212,16 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
     void visit(ast::CallExpr& expr) {
         visit(expr.callee.get());
 
-        if (ast::MemberRefExpr* memberRef = dynamic_cast<ast::MemberRefExpr*>(expr.callee.get())) {
-            std::string_view targetName = dynamic_cast<StructType&>(*memberRef->target.get()).name;
+        if (ast::MemberRefExpr* memberRef =
+                dynamic_cast<ast::MemberRefExpr*>(expr.callee.get())) {
+            std::string_view targetName =
+                dynamic_cast<StructType&>(*memberRef->target.get()).name;
 
             expr.args.insert(expr.args.begin(), std::move(memberRef->target));
 
             auto newCallee = std::make_unique<ast::VarRefExpr>(lex::WithSpan{
-                mangleMethodName(targetName, memberRef->member.value), memberRef->span()});
+                mangleMethodName(targetName, memberRef->member.value),
+                memberRef->span()});
 
             visit(newCallee.get());
 
@@ -216,20 +241,23 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
 
         StructType* structType;
         if (!(structType = dynamic_cast<StructType*>(expr.type.get()))) {
-            throw Error(
-                file.input, expr.tySpan, std::format("{} is not a struct type", *expr.type));
+            throw Error(file.input,
+                        expr.tySpan,
+                        std::format("{} is not a struct type", *expr.type));
         }
 
         for (const auto& [n, _] : expr.fields) {
             bool nIsExtraField =
-                std::ranges::find_if(structType->fields, [&n](const StructType::Field& f) {
-                    return f.name == n;
-                }) == structType->fields.end();
+                std::ranges::find_if(structType->fields,
+                                     [&n](const StructType::Field& f) {
+                                         return f.name == n;
+                                     }) == structType->fields.end();
 
             if (nIsExtraField) {
-                throw Error(file.input,
-                            expr.span(),
-                            std::format("extra field `{}` in struct initializer", n));
+                throw Error(
+                    file.input,
+                    expr.span(),
+                    std::format("extra field `{}` in struct initializer", n));
             }
         }
 
@@ -237,20 +265,22 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
             if (!expr.fields.contains(f.name)) {
                 throw Error(file.input,
                             expr.span(),
-                            std::format("struct field `{}` is not initialized", f.name));
+                            std::format("struct field `{}` is not initialized",
+                                        f.name));
             }
 
-            std::unique_ptr<ast::Expr>& fieldInitializer = expr.fields.at(f.name);
+            std::unique_ptr<ast::Expr>& fieldInitializer =
+                expr.fields.at(f.name);
             visit(fieldInitializer.get());
 
             if (*f.type != *fieldInitializer->type) {
-                throw Error(
-                    file.input,
-                    fieldInitializer->span(),
-                    std::format("field `{}` initializer type mismatch: expected {}, but got {}",
-                                f.name,
-                                *f.type,
-                                *fieldInitializer->type));
+                throw Error(file.input,
+                            fieldInitializer->span(),
+                            std::format("field `{}` initializer type mismatch: "
+                                        "expected {}, but got {}",
+                                        f.name,
+                                        *f.type,
+                                        *fieldInitializer->type));
             }
         }
     }
@@ -263,11 +293,12 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         }
 
         if (**rettype != *curFunction->rettype.value) {
-            throw Error(file.input,
-                        curFunction->rettype.span,
-                        std::format("return type mismatch: expected {}, but got {}",
-                                    *curFunction->rettype.value,
-                                    **rettype));
+            throw Error(
+                file.input,
+                curFunction->rettype.span,
+                std::format("return type mismatch: expected {}, but got {}",
+                            *curFunction->rettype.value,
+                            **rettype));
         }
     }
 
@@ -283,6 +314,40 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         popScope();
     }
 
+    void visit(ast::CondStmt& stmt) {
+        visit(stmt.cond.get());
+
+        if (*stmt.cond->type != *PrimitiveType::boolType) {
+            throw Error(
+                file.input,
+                stmt.cond->span(),
+                std::format("invalid condition type: expected {}, but got {}",
+                            *PrimitiveType::boolType,
+                            *stmt.cond->type));
+        }
+
+        visit(stmt.onTrue);
+
+        if (stmt.onFalse.has_value()) {
+            visit(stmt.onFalse->get());
+        }
+    }
+
+    void visit(ast::WhileStmt& stmt) {
+        visit(stmt.cond.get());
+
+        if (*stmt.cond->type != *PrimitiveType::boolType) {
+            throw Error(
+                file.input,
+                stmt.cond->span(),
+                std::format("invalid condition type: expected {}, but got {}",
+                            *PrimitiveType::boolType,
+                            *stmt.cond->type));
+        }
+
+        visit(stmt.body);
+    }
+
     void visit(ast::VarDecl& decl) {
         auto actualType = derefType(decl.type);
 
@@ -290,13 +355,12 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
             ast::Expr* value = decl.value->get();
             visit(value);
             if (*value->type != *actualType) {
-                throw Error(
-                    file.input,
-                    value->span(),
-                    std::format(
-                        "value type does not match declared variable type: expected {}, got {}",
-                        *actualType,
-                        *value->type));
+                throw Error(file.input,
+                            value->span(),
+                            std::format("value type does not match declared "
+                                        "variable type: expected {}, got {}",
+                                        *actualType,
+                                        *value->type));
             }
         }
 
@@ -305,10 +369,12 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
 
     void visit(ast::FunctionDecl& decl) {
         curFunction = &decl;
-        addToScope(decl.name.value, std::make_shared<FunctionType>(decl.type()));
+        addToScope(decl.name.value,
+                   std::make_shared<FunctionType>(decl.type()));
 
         pushScope();
-        for (const auto& [name, type] : std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
+        for (const auto& [name, type] :
+             std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
             addToScope(name.value, derefType(type));
         }
         visit(decl.body);
@@ -320,17 +386,21 @@ class Sema : private ast::DeclVisitor, ast::StmtVisitor<void>, ast::ExprVisitor<
         for (auto& [name, structDecl] : file.structs) {
             std::vector<StructType::Field> fields;
             for (auto& field : structDecl.fields) {
-                if (auto* typeRef = dynamic_cast<TypeRef*>(field.type.value.get());
+                if (auto* typeRef =
+                        dynamic_cast<TypeRef*>(field.type.value.get());
                     typeRef && !file.structs.contains(typeRef->name)) {
-                    throw Error(file.input,
-                                field.type.span,
-                                std::format("undefined type {}", typeRef->name));
+                    throw Error(
+                        file.input,
+                        field.type.span,
+                        std::format("undefined type {}", typeRef->name));
                 }
 
                 fields.emplace_back(field.name, field.type.value);
             }
 
-            structs.emplace(name, std::make_shared<StructType>(name, std::move(fields)));
+            structs.emplace(
+                name,
+                std::make_shared<StructType>(name, std::move(fields)));
         }
     }
 

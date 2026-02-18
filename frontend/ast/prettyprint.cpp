@@ -54,7 +54,8 @@ void PrettyPrinter::visit(FunctionDecl& decl) {
     pad();
     os << "FunctionDecl " << decl.name.value << " (";
     bool first = true;
-    for (const auto& [n, t] : std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
+    for (const auto& [n, t] :
+         std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
         if (!first) {
             os << ", ";
         }
@@ -88,6 +89,30 @@ void PrettyPrinter::visit(CompoundStmt& stmt) {
     }
 }
 
+void PrettyPrinter::visit(CondStmt& stmt) {
+    pad();
+    os << "CondStmt\n";
+    visit(stmt.cond.get());
+
+    pad();
+    os << "Then\n";
+    visit(stmt.onTrue);
+
+    if (stmt.onFalse.has_value()) {
+        pad();
+        os << "Else\n";
+        visit(stmt.onFalse->get());
+    }
+}
+
+void PrettyPrinter::visit(WhileStmt& stmt) {
+    pad();
+    os << "WhileStmt\n";
+    visit(stmt.cond.get());
+
+    visit(stmt.body);
+}
+
 void PrettyPrinter::visit(RetStmt& stmt) {
     pad();
     os << "RetStmt\n";
@@ -114,6 +139,9 @@ void PrettyPrinter::visit(UnaryExpr& expr) {
     switch (expr.op.value) {
         case UnaryExpr::Op::Minus:
             os << '-';
+            break;
+        case UnaryExpr::Op::Not:
+            os << '!';
             break;
     }
     os << ' ';

@@ -19,20 +19,25 @@ struct StmtVisitor {
     virtual ~StmtVisitor() = default;
 
     virtual RetTy visit(Stmt* stmt) {
-        if (auto* compoundStmt = dynamic_cast<CompoundStmt*>(stmt)) {
+        if (auto* compoundStmt = dynamic_cast<CompoundStmt*>(stmt))
             return visit(*compoundStmt);
-        } else if (auto* declStmt = dynamic_cast<DeclStmt*>(stmt)) {
+        else if (auto* condStmt = dynamic_cast<CondStmt*>(stmt))
+            return visit(*condStmt);
+        else if (auto* whileStmt = dynamic_cast<WhileStmt*>(stmt))
+            return visit(*whileStmt);
+        else if (auto* declStmt = dynamic_cast<DeclStmt*>(stmt))
             return visit(*declStmt);
-        } else if (auto* retStmt = dynamic_cast<RetStmt*>(stmt)) {
+        else if (auto* retStmt = dynamic_cast<RetStmt*>(stmt))
             return visit(*retStmt);
-        } else if (auto* exprStmt = dynamic_cast<ExprStmt*>(stmt)) {
+        else if (auto* exprStmt = dynamic_cast<ExprStmt*>(stmt))
             return visit(*exprStmt);
-        }
 
         std::unreachable();
     }
 
     virtual RetTy visit([[maybe_unused]] CompoundStmt& stmt) {}
+    virtual RetTy visit([[maybe_unused]] CondStmt& stmt) {}
+    virtual RetTy visit([[maybe_unused]] WhileStmt& stmt) {}
     virtual RetTy visit([[maybe_unused]] DeclStmt& stmt) {}
     virtual RetTy visit([[maybe_unused]] RetStmt& stmt) {}
     virtual RetTy visit([[maybe_unused]] ExprStmt& stmt) {}

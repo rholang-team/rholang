@@ -10,8 +10,14 @@ enum class Token {
     Assign,     // =
     Plus,       // +
     Minus,      // -
+    Bang,       // !
     Asterisk,   // *
     Eq,         // ==
+    Ne,         // !=
+    Lt,         // <
+    Gt,         // >
+    Le,         // <=
+    Ge,         // >=
     Dot,        // .
     Comma,      // ,
     Semicolon,  // ;
@@ -51,10 +57,22 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`+`");
             case frontend::lex::Token::Minus:
                 return std::format_to(ctx.out(), "`-`");
+            case frontend::lex::Token::Bang:
+                return std::format_to(ctx.out(), "`!`");
             case frontend::lex::Token::Asterisk:
                 return std::format_to(ctx.out(), "`*`");
             case frontend::lex::Token::Eq:
                 return std::format_to(ctx.out(), "`==`");
+            case frontend::lex::Token::Ne:
+                return std::format_to(ctx.out(), "`!=`");
+            case frontend::lex::Token::Lt:
+                return std::format_to(ctx.out(), "`<`");
+            case frontend::lex::Token::Gt:
+                return std::format_to(ctx.out(), "`>`");
+            case frontend::lex::Token::Le:
+                return std::format_to(ctx.out(), "`<=`");
+            case frontend::lex::Token::Ge:
+                return std::format_to(ctx.out(), "`>=`");
             case frontend::lex::Token::Dot:
                 return std::format_to(ctx.out(), "`.`");
             case frontend::lex::Token::Comma:

@@ -26,6 +26,8 @@ public:
     void visit(StructDecl& decl);
 
     void visit(CompoundStmt& stmt) override;
+    void visit(CondStmt& stmt) override;
+    void visit(WhileStmt& stmt) override;
     void visit(DeclStmt& stmt) override;
     void visit(RetStmt& stmt) override;
     void visit(ExprStmt& stmt) override;

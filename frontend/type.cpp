@@ -22,7 +22,9 @@ bool TypeRef::operator==(const TypeRef& that) const {
 
 bool FunctionType::operator==(const FunctionType& that) const {
     return std::ranges::equal(
-               params, that.params, [](const auto& x, const auto& y) { return *x == *y; }) &&
+               params,
+               that.params,
+               [](const auto& x, const auto& y) { return *x == *y; }) &&
            *rettype == *that.rettype;
 }
 

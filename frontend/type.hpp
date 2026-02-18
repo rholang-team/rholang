@@ -38,7 +38,8 @@ struct FunctionType final : public Type {
     std::shared_ptr<Type> rettype;
 
     FunctionType() = default;
-    FunctionType(std::vector<std::shared_ptr<Type>> params, std::shared_ptr<Type> rettype)
+    FunctionType(std::vector<std::shared_ptr<Type>> params,
+                 std::shared_ptr<Type> rettype)
         : params{std::move(params)}, rettype{rettype} {}
 
     bool operator==(const FunctionType& that) const;
@@ -48,7 +49,8 @@ struct TypeRef final : public Type {
     std::string name;
 
     template <typename S>
-        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+        requires std::convertible_to<std::string, S> ||
+                 std::constructible_from<std::string, S>
     explicit TypeRef(S&& s) : name{std::forward<S>(s)} {}
 
     bool operator==(const TypeRef& that) const;
@@ -60,8 +62,10 @@ struct StructType final : public Type {
         std::shared_ptr<Type> type;
 
         template <typename S>
-            requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
-        Field(S&& name, std::shared_ptr<Type> type) : name{std::forward<S>(name)}, type{type} {}
+            requires std::convertible_to<std::string, S> ||
+                         std::constructible_from<std::string, S>
+        Field(S&& name, std::shared_ptr<Type> type)
+            : name{std::forward<S>(name)}, type{type} {}
 
         bool operator==(const Field& that) const;
     };
@@ -70,7 +74,8 @@ struct StructType final : public Type {
     std::vector<Field> fields;
 
     template <typename S>
-        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+        requires std::convertible_to<std::string, S> ||
+                     std::constructible_from<std::string, S>
     StructType(S&& name, std::vector<Field> fields)
         : name{std::forward<S>(name)}, fields{std::move(fields)} {}
 
@@ -165,18 +170,29 @@ struct std::formatter<frontend::StructType> {
 };
 
 template <typename Ctx>
-Ctx::iterator std::formatter<frontend::Type>::format(const frontend::Type& type, Ctx& ctx) const {
+Ctx::iterator std::formatter<frontend::Type>::format(const frontend::Type& type,
+                                                     Ctx& ctx) const {
     if (utils::isa<frontend::PrimitiveType>(&type)) {
-        return std::format_to(ctx.out(), "{}", dynamic_cast<const frontend::PrimitiveType&>(type));
+        return std::format_to(
+            ctx.out(),
+            "{}",
+            dynamic_cast<const frontend::PrimitiveType&>(type));
     }
     if (utils::isa<frontend::FunctionType>(&type)) {
-        return std::format_to(ctx.out(), "{}", dynamic_cast<const frontend::FunctionType&>(type));
+        return std::format_to(
+            ctx.out(),
+            "{}",
+            dynamic_cast<const frontend::FunctionType&>(type));
     }
     if (utils::isa<frontend::TypeRef>(&type)) {
-        return std::format_to(ctx.out(), "{}", dynamic_cast<const frontend::TypeRef&>(type));
+        return std::format_to(ctx.out(),
+                              "{}",
+                              dynamic_cast<const frontend::TypeRef&>(type));
     }
     if (utils::isa<frontend::StructType>(&type)) {
-        return std::format_to(ctx.out(), "{}", dynamic_cast<const frontend::StructType&>(type));
+        return std::format_to(ctx.out(),
+                              "{}",
+                              dynamic_cast<const frontend::StructType&>(type));
     }
 
     std::unreachable();

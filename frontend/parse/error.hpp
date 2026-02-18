@@ -23,9 +23,14 @@ std::string formatExpectedList(const T& e, const Ts&... es) {
 }
 
 template <typename... Exp, typename Act>
-Error error(std::string_view input, lex::Span span, const Act& actual, const Exp&... expected) {
+Error error(std::string_view input,
+            lex::Span span,
+            const Act& actual,
+            const Exp&... expected) {
     return Error{input,
                  span,
-                 std::format("expected {}, but got {}", formatExpectedList(expected...), actual)};
+                 std::format("expected {}, but got {}",
+                             formatExpectedList(expected...),
+                             actual)};
 }
 }  // namespace frontend::parse

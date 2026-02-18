@@ -12,7 +12,8 @@ class Error final : public std::exception {
 
 public:
     template <typename S>
-        requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+        requires std::convertible_to<std::string, S> ||
+                     std::constructible_from<std::string, S>
     Error(std::string_view input, lex::Span span, S&& msg)
         : input{input}, span{span}, msg{std::move(msg)} {}
 

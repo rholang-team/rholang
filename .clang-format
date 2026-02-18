@@ -1,5 +1,5 @@
 BasedOnStyle: Google
-ColumnLimit: 100
+ColumnLimit: 80
 IndentWidth: 4
 AccessModifierOffset: -4
 AllowShortBlocksOnASingleLine: Empty
@@ -13,3 +13,4 @@ InsertBraces: false
 BinPackParameters: OnePerLine
 BinPackArguments: false
 AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false

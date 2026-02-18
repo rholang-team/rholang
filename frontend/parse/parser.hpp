@@ -48,17 +48,21 @@ class Parser {
     }
 
     template <typename P>
-        requires std::invocable<P> && (!std::same_as<std::invoke_result_t<P>, void>)
+        requires std::invocable<P> &&
+                 (!std::same_as<std::invoke_result_t<P>, void>)
     std::vector<std::invoke_result_t<P>> parseManyUntil(const P& parser,
                                                         lex::Token sep,
                                                         lex::Token end) {
         std::vector<std::invoke_result_t<P>> res;
-        parseManyUntil([&res, &parser]() { res.emplace_back(parser()); }, sep, end);
+        parseManyUntil([&res, &parser]() { res.emplace_back(parser()); },
+                       sep,
+                       end);
         return res;
     }
 
     template <typename P>
-        requires std::invocable<P> && std::same_as<std::invoke_result_t<P>, void>
+        requires std::invocable<P> &&
+                 std::same_as<std::invoke_result_t<P>, void>
     void parseManyUntil(const P& parser, lex::Token sep, lex::Token end) {
         for (;;) {
             lex::Lexeme l = lexemes.peek();

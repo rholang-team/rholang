@@ -24,11 +24,13 @@ struct WithSpan {
 
     template <typename U>
         requires std::constructible_from<T, U> || std::convertible_to<U, T>
-    WithSpan(U&& value, Span span) : value{std::forward<U>(value)}, span{span} {}
+    WithSpan(U&& value, Span span)
+        : value{std::forward<U>(value)}, span{span} {}
 
     template <typename U>
         requires std::constructible_from<T, U> || std::convertible_to<U, T>
-    WithSpan(WithSpan<U>& that) : value{std::forward<U>(that.value)}, span{that.span} {}
+    WithSpan(WithSpan<U>& that)
+        : value{std::forward<U>(that.value)}, span{that.span} {}
 };
 
 template <typename T>

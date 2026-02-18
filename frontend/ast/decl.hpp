@@ -22,7 +22,8 @@ struct VarDecl {
 };
 
 struct FunctionDecl {
-    using Param = std::pair<lex::WithSpan<std::string>, lex::WithSpan<std::shared_ptr<Type>>>;
+    using Param = std::pair<lex::WithSpan<std::string>,
+                            lex::WithSpan<std::shared_ptr<Type>>>;
 
     lex::WithSpan<std::string> name;
     std::vector<lex::WithSpan<std::string>> paramNames;
@@ -50,7 +51,8 @@ struct StructDecl {
         lex::WithSpan<std::shared_ptr<Type>> type;
 
         template <typename S>
-            requires std::convertible_to<std::string, S> || std::constructible_from<std::string, S>
+            requires std::convertible_to<std::string, S> ||
+                         std::constructible_from<std::string, S>
         Field(S&& name, lex::WithSpan<std::shared_ptr<Type>> type)
             : name{std::forward<S>(name)}, type{type} {}
     };

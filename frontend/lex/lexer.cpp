@@ -53,7 +53,9 @@ Lexemes Lexer::lex() {
         lexemes.push_back(*lexeme);
     }
 
-    return Lexemes{std::move(input), std::move(lexemes), Span(input.size() - 1)};
+    return Lexemes{std::move(input),
+                   std::move(lexemes),
+                   Span(input.size() - 1)};
 }
 
 std::optional<Lexeme> Lexer::nextLexeme() {
@@ -76,6 +78,9 @@ std::optional<Lexeme> Lexer::nextLexeme() {
     SINGLE_CHAR_TOKEN('*', Token::Asterisk);
 
     TWO_CHAR_TOKEN('=', '=', Token::Assign, Token::Eq);
+    TWO_CHAR_TOKEN('!', '=', Token::Bang, Token::Ne);
+    TWO_CHAR_TOKEN('<', '=', Token::Lt, Token::Le);
+    TWO_CHAR_TOKEN('>', '=', Token::Gt, Token::Ge);
 
     auto ch = peekChar();
     if (!ch.has_value()) {
@@ -89,7 +94,8 @@ std::optional<Lexeme> Lexer::nextLexeme() {
 
     if (isIdentifierStart(*ch)) {
         Span span = getWhile(isIdentifierChar);
-        std::string_view ident = std::string_view{input}.substr(span.begin, span.length());
+        std::string_view ident =
+            std::string_view{input}.substr(span.begin, span.length());
 
         constexpr std::array<std::pair<std::string_view, Token>, 7> KEYWORDS{
             std::pair{"var", Token::Var},

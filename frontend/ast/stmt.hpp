@@ -26,7 +26,8 @@ struct RetStmt final : public Stmt {
 struct CompoundStmt final : public Stmt {
     std::vector<std::unique_ptr<Stmt>> stmts;
 
-    explicit CompoundStmt(std::vector<std::unique_ptr<Stmt>> stmts) : stmts{std::move(stmts)} {}
+    explicit CompoundStmt(std::vector<std::unique_ptr<Stmt>> stmts)
+        : stmts{std::move(stmts)} {}
 };
 
 struct CondStmt final : public Stmt {
@@ -37,7 +38,9 @@ struct CondStmt final : public Stmt {
     CondStmt(std::unique_ptr<Expr> cond,
              CompoundStmt onTrue,
              std::optional<std::unique_ptr<Stmt>> onFalse = std::nullopt)
-        : cond{std::move(cond)}, onTrue{std::move(onTrue)}, onFalse{std::move(onFalse)} {}
+        : cond{std::move(cond)},
+          onTrue{std::move(onTrue)},
+          onFalse{std::move(onFalse)} {}
 };
 
 struct WhileStmt final : public Stmt {

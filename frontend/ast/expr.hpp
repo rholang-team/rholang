@@ -20,6 +20,7 @@ struct Expr {
 struct UnaryExpr final : public Expr {
     enum class Op {
         Minus,
+        Not,
     };
 
     lex::WithSpan<Op> op;
@@ -44,7 +45,9 @@ struct BinaryExpr final : public Expr {
     std::unique_ptr<Expr> lhs;
     std::unique_ptr<Expr> rhs;
 
-    BinaryExpr(lex::WithSpan<Op> op, std::unique_ptr<Expr> lhs, std::unique_ptr<Expr> rhs)
+    BinaryExpr(lex::WithSpan<Op> op,
+               std::unique_ptr<Expr> lhs,
+               std::unique_ptr<Expr> rhs)
         : op{op}, lhs{std::move(lhs)}, rhs{std::move(rhs)} {}
 
     lex::Span span() const override;
@@ -61,7 +64,8 @@ struct NumLitExpr final : public Expr {
 struct VarRefExpr final : public Expr {
     lex::WithSpan<std::string> name;
 
-    explicit VarRefExpr(lex::WithSpan<std::string> name) : name{std::move(name)} {}
+    explicit VarRefExpr(lex::WithSpan<std::string> name)
+        : name{std::move(name)} {}
 
     lex::Span span() const override;
 };
@@ -70,7 +74,8 @@ struct MemberRefExpr final : public Expr {
     std::unique_ptr<Expr> target;
     lex::WithSpan<std::string> member;
 
-    MemberRefExpr(std::unique_ptr<Expr> target, lex::WithSpan<std::string> member)
+    MemberRefExpr(std::unique_ptr<Expr> target,
+                  lex::WithSpan<std::string> member)
         : target{std::move(target)}, member{std::move(member)} {}
 
     lex::Span span() const override;
@@ -80,7 +85,8 @@ struct CallExpr final : public Expr {
     std::unique_ptr<Expr> callee;
     std::vector<std::unique_ptr<Expr>> args;
 
-    CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args)
+    CallExpr(std::unique_ptr<Expr> callee,
+             std::vector<std::unique_ptr<Expr>> args)
         : callee{std::move(callee)}, args{std::move(args)} {}
 
     lex::Span span() const override;
@@ -90,8 +96,9 @@ struct StructInitExpr final : public Expr {
     lex::Span tySpan;
     std::unordered_map<std::string, std::unique_ptr<Expr>> fields;
 
-    StructInitExpr(lex::WithSpan<std::shared_ptr<Type>> ty,
-                   std::unordered_map<std::string, std::unique_ptr<Expr>> fields)
+    StructInitExpr(
+        lex::WithSpan<std::shared_ptr<Type>> ty,
+        std::unordered_map<std::string, std::unique_ptr<Expr>> fields)
         : Expr{ty.value}, tySpan{ty.span}, fields{std::move(fields)} {}
 
     lex::Span span() const override;

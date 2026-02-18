@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
         std::println(stderr, "syntax error: {}", e.pretty());
     }
 
-    // printAst(file);
+    printAst(file);
 
     frontend::TranslationUnit tu;
     try {
