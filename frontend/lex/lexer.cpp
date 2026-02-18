@@ -32,11 +32,11 @@
 
 namespace {
 bool isIdentifierStart(char c) {
-    return std::isalpha(c);
+    return std::isalpha(c) || c == '_';
 }
 
 bool isIdentifierChar(char c) {
-    return std::isalnum(c);
+    return std::isalnum(c) || c == '_';
 }
 }  // namespace
 
