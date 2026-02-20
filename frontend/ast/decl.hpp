@@ -13,11 +13,11 @@ namespace frontend::ast {
 struct VarDecl {
     lex::WithSpan<std::string> name;
     lex::WithSpan<std::shared_ptr<Type>> type;
-    std::optional<std::unique_ptr<Expr>> value;
+    std::optional<std::shared_ptr<Expr>> value;
 
     VarDecl(lex::WithSpan<std::string> name,
             lex::WithSpan<std::shared_ptr<Type>> type,
-            std::optional<std::unique_ptr<Expr>> value)
+            std::optional<std::shared_ptr<Expr>> value)
         : name{std::move(name)}, type{type}, value{std::move(value)} {}
 };
 
@@ -47,20 +47,23 @@ struct FunctionDecl {
 
 struct StructDecl {
     struct Field {
-        std::string name;
+        lex::WithSpan<std::string> name;
         lex::WithSpan<std::shared_ptr<Type>> type;
 
-        template <typename S>
-            requires std::convertible_to<std::string, S> ||
-                         std::constructible_from<std::string, S>
-        Field(S&& name, lex::WithSpan<std::shared_ptr<Type>> type)
-            : name{std::forward<S>(name)}, type{type} {}
+        Field(lex::WithSpan<std::string> name,
+              lex::WithSpan<std::shared_ptr<Type>> type)
+            : name{std::move(name)}, type{type} {}
     };
 
     lex::WithSpan<std::string> name;
     std::vector<Field> fields;
+    std::unordered_map<std::string, FunctionDecl> methods;
 
-    StructDecl(lex::WithSpan<std::string> name, std::vector<Field> fields)
-        : name{std::move(name)}, fields{std::move(fields)} {}
+    StructDecl(lex::WithSpan<std::string> name,
+               std::vector<Field> fields,
+               std::unordered_map<std::string, FunctionDecl> methods)
+        : name{std::move(name)},
+          fields{std::move(fields)},
+          methods{std::move(methods)} {}
 };
 }  // namespace frontend::ast

@@ -37,8 +37,6 @@ std::optional<ast::UnaryExpr::Op> unaryOpFromToken(lex::Token tok) {
 
 std::optional<ast::BinaryExpr::Op> binaryOpFromToken(lex::Token tok) {
     switch (tok) {
-        case lex::Token::Assign:
-            return ast::BinaryExpr::Op::Assign;
         case lex::Token::Plus:
             return ast::BinaryExpr::Op::Plus;
         case lex::Token::Minus:
@@ -57,12 +55,6 @@ std::optional<ast::BinaryExpr::Op> binaryOpFromToken(lex::Token tok) {
             return ast::BinaryExpr::Op::Le;
         case lex::Token::Ge:
             return ast::BinaryExpr::Op::Ge;
-        case lex::Token::PlusAssign:
-            return ast::BinaryExpr::Op::PlusAssign;
-        case lex::Token::MinusAssign:
-            return ast::BinaryExpr::Op::MinusAssign;
-        case lex::Token::MulAssign:
-            return ast::BinaryExpr::Op::MulAssign;
         default:
             return std::nullopt;
     }
@@ -72,13 +64,13 @@ std::pair<unsigned, bool> binaryOpInfo(ast::BinaryExpr::Op op) {
     bool leftAssociative = true;
     unsigned prec;
     switch (op) {
-        case ast::BinaryExpr::Op::Assign:
-        case ast::BinaryExpr::Op::PlusAssign:
-        case ast::BinaryExpr::Op::MinusAssign:
-        case ast::BinaryExpr::Op::MulAssign:
-            leftAssociative = false;
-            prec = 1;
-            break;
+        // case ast::BinaryExpr::Op::Assign:
+        // case ast::BinaryExpr::Op::PlusAssign:
+        // case ast::BinaryExpr::Op::MinusAssign:
+        // case ast::BinaryExpr::Op::MulAssign:
+        //     leftAssociative = false;
+        //     prec = 1;
+        //     break;
         case ast::BinaryExpr::Op::Eq:
         case ast::BinaryExpr::Op::Ne:
             prec = 2;
@@ -167,12 +159,12 @@ ast::VarDecl Parser::parseVarDecl() {
             std::nullopt,
         };
     } else if (next.token == lex::Token::Assign) {
-        std::unique_ptr<ast::Expr> value = parseExpr();
+        std::shared_ptr<ast::Expr> value = parseExpr();
         get(lex::Token::Semicolon);
         return ast::VarDecl{
             lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
             lex::WithSpan{type, typeSpan},
-            std::move(value),
+            value,
         };
     }
 
@@ -270,34 +262,65 @@ ast::StructDecl Parser::parseStructDecl() {
 
     get(lex::Token::LBrace);
 
-    std::unordered_set<std::string> seenFieldNames;
-    auto fields = parseManyUntil(
-        [this, &seenFieldNames]() {
+    std::unordered_set<std::string> seenMemberNames;
+
+    auto checkName =
+        [this, &seenMemberNames](const lex::WithSpan<std::string>& name) {
+            if (seenMemberNames.contains(name.value)) {
+                throw Error(
+                    lexemes.getInput(),
+                    name.span,
+                    std::format("redeclaration of member `{}`", name.value));
+            }
+        };
+
+    std::vector<ast::StructDecl::Field> fields;
+    std::unordered_map<std::string, ast::FunctionDecl> methods;
+
+    for (;;) {
+        auto l = lexemes.peek();
+        if (l.token == lex::Token::RBrace)
+            break;
+        else if (l.token == lex::Token::Fun) {
+            auto decl = parseFunctionDecl();
+            checkName(decl.name);
+            seenMemberNames.insert(decl.name.value);
+            methods.emplace(decl.name.value, std::move(decl));
+        } else if (l.token == lex::Token::Var) {
+            lexemes.next();
             auto nameSpan = get(lex::Token::Id);
             auto typeSpan = get(lex::Token::Id);
+            get(lex::Token::Semicolon);
 
-            std::string name{lexemes.getLiteral(nameSpan)};
+            lex::WithSpan<std::string> name{
+                std::string{lexemes.getLiteral(nameSpan)},
+                nameSpan,
+            };
 
-            if (seenFieldNames.contains(name)) {
-                throw Error(lexemes.getInput(),
-                            nameSpan,
-                            std::format("redefinition of field {}", name));
-            }
-            seenFieldNames.insert(name);
+            lex::WithSpan<std::shared_ptr<Type>> type{
+                typeFromString(lexemes.getLiteral(typeSpan)),
+                typeSpan,
+            };
 
-            return ast::StructDecl::Field{
-                std::move(name),
-                lex::WithSpan{
-                    typeFromString(lexemes.getLiteral(typeSpan)),
-                    typeSpan,
-                }};
-        },
-        lex::Token::Comma,
-        lex::Token::RBrace);
+            checkName(name);
+            seenMemberNames.insert(name.value);
+            fields.emplace_back(std::move(name), type);
+        } else {
+            throw parse::error(lexemes.getInput(),
+                               l.span,
+                               l.token,
+                               lex::Token::RBrace,
+                               "field",
+                               "method");
+        }
+    }
+
+    get(lex::Token::RBrace);
 
     return ast::StructDecl{
         lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
         std::move(fields),
+        std::move(methods),
     };
 }
 
@@ -357,6 +380,53 @@ ast::WhileStmt Parser::parseWhileStmt() {
     return ast::WhileStmt{parseExpr(), parseCompoundStmt()};
 }
 
+std::unique_ptr<ast::Stmt> Parser::parseExprOrAssignment() {
+    auto lhs = parseExpr();
+    auto l = lexemes.peek();
+
+    if (l.token == lex::Token::Semicolon) {
+        lexemes.next();
+        return std::make_unique<ast::ExprStmt>(std::move(lhs));
+    }
+
+    std::optional<ast::BinaryExpr::Op> assigmentOp;
+
+    switch (l.token) {
+        case lex::Token::Assign:
+            break;
+        case lex::Token::PlusAssign:
+            assigmentOp = ast::BinaryExpr::Op::Plus;
+            break;
+        case lex::Token::MinusAssign:
+            assigmentOp = ast::BinaryExpr::Op::Minus;
+            break;
+        case lex::Token::MulAssign:
+            assigmentOp = ast::BinaryExpr::Op::Mul;
+            break;
+        default:
+            throw parse::error(lexemes.getInput(),
+                               l.span,
+                               l.token,
+                               lex::Token::Semicolon,
+                               "assignment");
+    }
+
+    lexemes.next();
+    auto rhs = parseExpr();
+    get(lex::Token::Semicolon);
+
+    if (assigmentOp.has_value()) {
+        rhs = std::make_shared<ast::BinaryExpr>(
+            lex::WithSpan{*assigmentOp, l.span},
+            lhs,
+            rhs);
+    }
+
+    return std::make_unique<ast::AssignmentStmt>(l.span,
+                                                 std::move(lhs),
+                                                 std::move(rhs));
+}
+
 std::unique_ptr<ast::Stmt> Parser::parseStmt() {
     switch (lexemes.peek().token) {
         case lex::Token::LBrace:
@@ -377,18 +447,15 @@ std::unique_ptr<ast::Stmt> Parser::parseStmt() {
         }
         case lex::Token::Var:
             return std::make_unique<ast::DeclStmt>(parseVarDecl());
-        default: {
-            auto res = parseExpr();
-            get(lex::Token::Semicolon);
-            return std::make_unique<ast::ExprStmt>(std::move(res));
-        }
+        default:
+            return parseExprOrAssignment();
     }
 }
 
-std::unique_ptr<ast::Expr> Parser::parseExpr() {
+std::shared_ptr<ast::Expr> Parser::parseExpr() {
     // https://www.nsl.com/k/parse/OperatorPrecedenceParsing.pdf
 
-    std::stack<std::unique_ptr<ast::Expr>> terms;
+    std::stack<std::shared_ptr<ast::Expr>> terms;
     std::stack<lex::WithSpan<ast::BinaryExpr::Op>> ops;
 
     bool reduced = false;
@@ -399,7 +466,7 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
         auto lhs = std::move(terms.top());
         terms.pop();
 
-        terms.emplace(std::make_unique<ast::BinaryExpr>(ops.top(),
+        terms.emplace(std::make_shared<ast::BinaryExpr>(ops.top(),
                                                         std::move(lhs),
                                                         std::move(rhs)));
         ops.pop();
@@ -456,7 +523,7 @@ std::unique_ptr<ast::Expr> Parser::parseExpr() {
     }
 }
 
-std::unique_ptr<ast::Expr> Parser::parseTerm() {
+std::shared_ptr<ast::Expr> Parser::parseTerm() {
     // prefix ops
     std::vector<lex::WithSpan<ast::UnaryExpr::Op>> ops;
     while (auto op = unaryOpFromToken(lexemes.peek().token)) {
@@ -473,11 +540,11 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
     }
 
     // the term itself
-    std::unique_ptr<ast::Expr> term;
+    std::shared_ptr<ast::Expr> term;
 
     auto l = lexemes.peek();
     auto parseStructInitFields = [this, &l]() {
-        std::unordered_map<std::string, std::unique_ptr<ast::Expr>> fields;
+        std::unordered_map<std::string, std::shared_ptr<ast::Expr>> fields;
 
         parseManyUntil(
             [this, &fields]() {
@@ -513,10 +580,10 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
             lexemes.next();
             if (lexemes.peek().token == lex::Token::LBrace) {
                 lexemes.next();
-                term = std::make_unique<ast::StructInitExpr>(
+                term = std::make_shared<ast::StructInitExpr>(
                     parseStructInitFields());
             } else {
-                term = std::make_unique<ast::VarRefExpr>(
+                term = std::make_shared<ast::VarRefExpr>(
                     lex::WithSpan<std::string>{lexemes.getLiteral(l.span),
                                                l.span});
             }
@@ -529,7 +596,7 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
                 std::from_chars(lit.data(), lit.data() + lit.size(), value);
             assert(res.ec == std::errc{});
             term =
-                std::make_unique<ast::NumLitExpr>(lex::WithSpan{value, l.span});
+                std::make_shared<ast::NumLitExpr>(lex::WithSpan{value, l.span});
             break;
         }
         case lex::Token::LParen: {
@@ -549,7 +616,7 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
         if (l.token == lex::Token::Dot) {
             lexemes.next();
             auto idSpan = get(lex::Token::Id);
-            term = std::make_unique<ast::MemberRefExpr>(
+            term = std::make_shared<ast::MemberRefExpr>(
                 std::move(term),
                 lex::WithSpan<std::string>{lexemes.getLiteral(idSpan), idSpan});
         } else if (l.token == lex::Token::LParen) {
@@ -557,7 +624,7 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
             auto args = parseManyUntil([this]() { return parseExpr(); },
                                        lex::Token::Comma,
                                        lex::Token::RParen);
-            term = std::make_unique<ast::CallExpr>(std::move(term),
+            term = std::make_shared<ast::CallExpr>(std::move(term),
                                                    std::move(args));
         } else {
             break;
@@ -566,7 +633,7 @@ std::unique_ptr<ast::Expr> Parser::parseTerm() {
 
     // add prefix ops
     for (const auto& op : std::ranges::reverse_view{ops}) {
-        term = std::make_unique<ast::UnaryExpr>(op, std::move(term));
+        term = std::make_shared<ast::UnaryExpr>(op, std::move(term));
     }
 
     return term;

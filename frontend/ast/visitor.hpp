@@ -31,16 +31,19 @@ struct StmtVisitor {
             return visit(*retStmt);
         else if (auto* exprStmt = dynamic_cast<ExprStmt*>(stmt))
             return visit(*exprStmt);
+        else if (auto* assignmentStmt = dynamic_cast<AssignmentStmt*>(stmt))
+            return visit(*assignmentStmt);
 
         std::unreachable();
     }
 
-    virtual RetTy visit([[maybe_unused]] CompoundStmt& stmt) {}
-    virtual RetTy visit([[maybe_unused]] CondStmt& stmt) {}
-    virtual RetTy visit([[maybe_unused]] WhileStmt& stmt) {}
-    virtual RetTy visit([[maybe_unused]] DeclStmt& stmt) {}
-    virtual RetTy visit([[maybe_unused]] RetStmt& stmt) {}
-    virtual RetTy visit([[maybe_unused]] ExprStmt& stmt) {}
+    virtual RetTy visit(CompoundStmt&) {}
+    virtual RetTy visit(CondStmt&) {}
+    virtual RetTy visit(WhileStmt&) {}
+    virtual RetTy visit(DeclStmt&) {}
+    virtual RetTy visit(RetStmt&) {}
+    virtual RetTy visit(ExprStmt&) {}
+    virtual RetTy visit(AssignmentStmt&) {}
 };
 
 template <typename RetTy>
@@ -67,12 +70,12 @@ struct ExprVisitor {
         std::unreachable();
     }
 
-    virtual RetTy visit([[maybe_unused]] UnaryExpr& expr) {}
-    virtual RetTy visit([[maybe_unused]] NumLitExpr& expr) {}
-    virtual RetTy visit([[maybe_unused]] BinaryExpr& expr) {}
-    virtual RetTy visit([[maybe_unused]] VarRefExpr& expr) {}
-    virtual RetTy visit([[maybe_unused]] MemberRefExpr& expr) {}
-    virtual RetTy visit([[maybe_unused]] CallExpr& expr) {}
-    virtual RetTy visit([[maybe_unused]] StructInitExpr& expr) {}
+    virtual RetTy visit(UnaryExpr&) {}
+    virtual RetTy visit(NumLitExpr&) {}
+    virtual RetTy visit(BinaryExpr&) {}
+    virtual RetTy visit(VarRefExpr&) {}
+    virtual RetTy visit(MemberRefExpr&) {}
+    virtual RetTy visit(CallExpr&) {}
+    virtual RetTy visit(StructInitExpr&) {}
 };
 }  // namespace frontend::ast

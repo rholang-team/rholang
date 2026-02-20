@@ -72,13 +72,23 @@ void PrettyPrinter::visit(StructDecl& decl) {
     pad();
 
     os << "StructDecl " << decl.name.value << '\n';
+
     depth += 1;
     for (const auto& [name, type] : decl.fields) {
         pad();
-        os << name << ' ' << *type.value << '\n';
+        os << name.value << ' ' << *type.value << '\n';
+    }
+    depth -= 1;
+
+    if (!decl.fields.empty() && !decl.methods.empty()) {
+        os << '\n';
     }
 
-    depth -= 2;
+    for (auto& [_, decl] : decl.methods) {
+        visit(decl);
+    }
+
+    depth -= 1;
 }
 
 void PrettyPrinter::visit(CompoundStmt& stmt) {
@@ -133,6 +143,13 @@ void PrettyPrinter::visit(ExprStmt& stmt) {
     visit(stmt.expr.get());
 }
 
+void PrettyPrinter::visit(AssignmentStmt& stmt) {
+    pad();
+    os << "AssignmentStmt\n";
+    visit(stmt.lhs.get());
+    visit(stmt.rhs.get());
+}
+
 void PrettyPrinter::visit(UnaryExpr& expr) {
     pad();
     os << "UnaryExpr ";
@@ -154,9 +171,6 @@ void PrettyPrinter::visit(BinaryExpr& expr) {
     pad();
     os << "BinaryExpr ";
     switch (expr.op.value) {
-        case BinaryExpr::Op::Assign:
-            os << '=';
-            break;
         case BinaryExpr::Op::Eq:
             os << "==";
             break;
@@ -220,10 +234,13 @@ void PrettyPrinter::visit(CallExpr& expr) {
     showTyPtr(expr.type.get());
     os << '\n';
     visit(expr.callee.get());
-    pad();
-    os << "Call arguments:\n";
-    for (auto& a : expr.args) {
-        visit(a.get());
+
+    if (!expr.args.empty()) {
+        pad();
+        os << "Call arguments:\n";
+        for (auto& a : expr.args) {
+            visit(a.get());
+        }
     }
 }
 

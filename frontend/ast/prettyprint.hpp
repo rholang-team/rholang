@@ -31,6 +31,7 @@ public:
     void visit(DeclStmt& stmt) override;
     void visit(RetStmt& stmt) override;
     void visit(ExprStmt& stmt) override;
+    void visit(AssignmentStmt& stmt) override;
 
     void visit(UnaryExpr& expr) override;
     void visit(NumLitExpr& expr) override;

@@ -118,8 +118,11 @@ class Sema : private ast::DeclVisitor,
     }
 
     bool isAssignable(const ast::Expr* expr) {
-        bool assignableExpr = utils::isa<ast::VarRefExpr>(expr) ||
-                              utils::isa<ast::MemberRefExpr>(expr);
+        bool assignableExpr =
+            utils::isa<ast::VarRefExpr>(expr) ||
+            (utils::isa<ast::MemberRefExpr>(expr) &&
+             isAssignable(
+                 dynamic_cast<const ast::MemberRefExpr*>(expr)->target.get()));
 
         bool assignableType = *expr->type != *PrimitiveType::voidType &&
                               !utils::isa<FunctionType>(expr->type.get());
@@ -143,19 +146,19 @@ class Sema : private ast::DeclVisitor,
         std::shared_ptr<Type> rhsType = expr.rhs->type;
 
         switch (expr.op.value) {
-            case ast::BinaryExpr::Op::Assign:
-                checkValidity(isAssignable(expr.lhs.get()) &&
-                              *lhsType == *rhsType);
-                expr.type = expr.rhs->type;
-                break;
-            case ast::BinaryExpr::Op::PlusAssign:
-            case ast::BinaryExpr::Op::MinusAssign:
-            case ast::BinaryExpr::Op::MulAssign:
-                checkValidity(isAssignable(expr.lhs.get()) &&
-                              *lhsType == *PrimitiveType::intType &&
-                              *rhsType == *PrimitiveType::intType);
-                expr.type = PrimitiveType::intType;
-                break;
+            // case ast::BinaryExpr::Op::Assign:
+            //     checkValidity(isAssignable(expr.lhs.get()) &&
+            //                   *lhsType == *rhsType);
+            //     expr.type = expr.rhs->type;
+            //     break;
+            // case ast::BinaryExpr::Op::PlusAssign:
+            // case ast::BinaryExpr::Op::MinusAssign:
+            // case ast::BinaryExpr::Op::MulAssign:
+            //     checkValidity(isAssignable(expr.lhs.get()) &&
+            //                   *lhsType == *PrimitiveType::intType &&
+            //                   *rhsType == *PrimitiveType::intType);
+            //     expr.type = PrimitiveType::intType;
+            //     break;
             case ast::BinaryExpr::Op::Eq:
             case ast::BinaryExpr::Op::Ne:
             case ast::BinaryExpr::Op::Lt:
@@ -279,7 +282,7 @@ class Sema : private ast::DeclVisitor,
                                         f.name));
             }
 
-            std::unique_ptr<ast::Expr>& fieldInitializer =
+            std::shared_ptr<ast::Expr> fieldInitializer =
                 expr.fields.at(f.name);
             visit(fieldInitializer.get());
 
@@ -309,6 +312,21 @@ class Sema : private ast::DeclVisitor,
                 std::format("return type mismatch: expected {}, but got {}",
                             *curFunction->rettype.value,
                             **rettype));
+        }
+    }
+
+    void visit(ast::ExprStmt& stmt) {
+        visit(stmt.expr.get());
+    }
+
+    void visit(ast::AssignmentStmt& stmt) {
+        visit(stmt.lhs.get());
+        visit(stmt.rhs.get());
+
+        if (!isAssignable(stmt.lhs.get())) {
+            throw Error(file.input,
+                        stmt.lhs->span(),
+                        "expression is not assignable");
         }
     }
 
@@ -405,7 +423,7 @@ class Sema : private ast::DeclVisitor,
                         std::format("undefined type {}", typeRef->name));
                 }
 
-                fields.emplace_back(field.name, field.type.value);
+                fields.emplace_back(field.name.value, field.type.value);
             }
 
             structs.emplace(

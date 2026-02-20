@@ -1,18 +1,20 @@
 struct Pow {
-    x int,
-    n int
-}
+    var x int;
+    var n int;
 
-fun (pow Pow) run() int {
-    var i int = 1;
-    var res int = 1;
+    fun run() int {
+        var i int = 1;
+        var res int = 1;
 
-    while i <= pow.n {
-        res *= pow.x;
-        i += 1;
+        while i <= pow.n {
+            res *= pow.x;
+            i += 1;
+        }
+
+        return res;
     }
 }
 
 fun square(x int) int {
-    return Pow {.x = x, .n = 2}.run();
+    return Pow{.x = x, .n = 2}.run();
 }

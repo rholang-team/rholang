@@ -10,17 +10,28 @@ struct Stmt {
     virtual ~Stmt() = default;
 };
 
-struct ExprStmt final : public Stmt {
-    std::unique_ptr<Expr> expr;
+struct AssignmentStmt final : public Stmt {
+    lex::Span opSpan;
+    std::shared_ptr<Expr> lhs;
+    std::shared_ptr<Expr> rhs;
 
-    explicit ExprStmt(std::unique_ptr<Expr> expr) : expr{std::move(expr)} {}
+    AssignmentStmt(lex::Span opSpan,
+                   std::shared_ptr<Expr> lhs,
+                   std::shared_ptr<Expr> rhs)
+        : opSpan{opSpan}, lhs{std::move(lhs)}, rhs{std::move(rhs)} {};
+};
+
+struct ExprStmt final : public Stmt {
+    std::shared_ptr<Expr> expr;
+
+    explicit ExprStmt(std::shared_ptr<Expr> expr) : expr{std::move(expr)} {}
 };
 
 struct RetStmt final : public Stmt {
-    std::optional<std::unique_ptr<Expr>> value;
+    std::optional<std::shared_ptr<Expr>> value;
 
     RetStmt() : value{std::nullopt} {}
-    explicit RetStmt(std::unique_ptr<Expr> value) : value{std::move(value)} {}
+    explicit RetStmt(std::shared_ptr<Expr> value) : value{std::move(value)} {}
 };
 
 struct CompoundStmt final : public Stmt {
@@ -31,11 +42,11 @@ struct CompoundStmt final : public Stmt {
 };
 
 struct CondStmt final : public Stmt {
-    std::unique_ptr<Expr> cond;
+    std::shared_ptr<Expr> cond;
     CompoundStmt onTrue;
     std::optional<std::unique_ptr<Stmt>> onFalse;
 
-    CondStmt(std::unique_ptr<Expr> cond,
+    CondStmt(std::shared_ptr<Expr> cond,
              CompoundStmt onTrue,
              std::optional<std::unique_ptr<Stmt>> onFalse = std::nullopt)
         : cond{std::move(cond)},
@@ -44,10 +55,10 @@ struct CondStmt final : public Stmt {
 };
 
 struct WhileStmt final : public Stmt {
-    std::unique_ptr<Expr> cond;
+    std::shared_ptr<Expr> cond;
     CompoundStmt body;
 
-    WhileStmt(std::unique_ptr<Expr> cond, CompoundStmt body)
+    WhileStmt(std::shared_ptr<Expr> cond, CompoundStmt body)
         : cond{std::move(cond)}, body{std::move(body)} {}
 };
 }  // namespace frontend::ast
