@@ -163,6 +163,12 @@ class Sema : private ast::DeclVisitor,
                               *rhsType == *PrimitiveType::intType);
                 expr.type = PrimitiveType::intType;
                 break;
+            case ast::BinaryExpr::Op::And:
+            case ast::BinaryExpr::Op::Or:
+                checkValidity(*lhsType == *PrimitiveType::boolType &&
+                              *rhsType == *PrimitiveType::boolType);
+                expr.type = PrimitiveType::boolType;
+                break;
         }
     }
 

@@ -43,6 +43,8 @@ struct BinaryExpr final : public Expr {
         Plus,
         Minus,
         Mul,
+        And,
+        Or,
     };
 
     lex::WithSpan<Op> op;

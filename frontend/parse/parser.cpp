@@ -63,29 +63,28 @@ std::pair<unsigned, bool> binaryOpInfo(ast::BinaryExpr::Op op) {
     bool leftAssociative = true;
     unsigned prec;
     switch (op) {
-        // case ast::BinaryExpr::Op::Assign:
-        // case ast::BinaryExpr::Op::PlusAssign:
-        // case ast::BinaryExpr::Op::MinusAssign:
-        // case ast::BinaryExpr::Op::MulAssign:
-        //     leftAssociative = false;
-        //     prec = 1;
-        //     break;
+        case ast::BinaryExpr::Op::Or:
+            prec = 1;
+            break;
+        case ast::BinaryExpr::Op::And:
+            prec = 2;
+            break;
         case ast::BinaryExpr::Op::Eq:
         case ast::BinaryExpr::Op::Ne:
-            prec = 2;
+            prec = 3;
             break;
         case ast::BinaryExpr::Op::Lt:
         case ast::BinaryExpr::Op::Gt:
         case ast::BinaryExpr::Op::Le:
         case ast::BinaryExpr::Op::Ge:
-            prec = 3;
+            prec = 4;
             break;
         case ast::BinaryExpr::Op::Plus:
         case ast::BinaryExpr::Op::Minus:
-            prec = 4;
+            prec = 5;
             break;
         case ast::BinaryExpr::Op::Mul:
-            prec = 5;
+            prec = 6;
             break;
     }
 

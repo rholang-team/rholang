@@ -196,6 +196,12 @@ void PrettyPrinter::visit(BinaryExpr& expr) {
         case BinaryExpr::Op::Mul:
             os << '*';
             break;
+        case BinaryExpr::Op::And:
+            os << "&&";
+            break;
+        case BinaryExpr::Op::Or:
+            os << "||";
+            break;
     }
     os << ' ';
     showTyPtr(expr.type.get());

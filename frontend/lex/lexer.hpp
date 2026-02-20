@@ -15,6 +15,8 @@ class Lexer {
 
     std::optional<char> nextChar();
 
+    void rollback();
+
     std::optional<Lexeme> nextLexeme();
 
     template <typename F>

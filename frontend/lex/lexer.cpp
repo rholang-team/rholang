@@ -30,6 +30,19 @@
         }                                                                      \
     }
 
+#define STRICTLY_TWO_CHAR_TOKEN(c1, c2, tok)                                  \
+    {                                                                         \
+        auto ch = peekChar();                                                 \
+        if (ch.has_value() && *ch == c1) {                                    \
+            auto offset1 = ++offset;                                          \
+            ch = peekChar();                                                  \
+            if (ch.has_value() && *ch == c2) {                                \
+                return Lexeme{.token = tok, .span = Span{offset1, offset++}}; \
+            } else                                                            \
+                rollback();                                                   \
+        }                                                                     \
+    }
+
 namespace {
 bool isIdentifierStart(char c) {
     return std::isalpha(c) || c == '_';
@@ -82,6 +95,9 @@ std::optional<Lexeme> Lexer::nextLexeme() {
     TWO_CHAR_TOKEN('-', '=', Token::Minus, Token::MinusAssign);
     TWO_CHAR_TOKEN('*', '=', Token::Asterisk, Token::MulAssign);
 
+    STRICTLY_TWO_CHAR_TOKEN('&', '&', Token::And);
+    STRICTLY_TWO_CHAR_TOKEN('|', '|', Token::Or);
+
     auto ch = peekChar();
     if (!ch.has_value()) {
         return std::nullopt;
@@ -132,6 +148,13 @@ std::optional<char> Lexer::nextChar() {
         offset++;
     }
     return res;
+}
+
+void Lexer::rollback() {
+    if (offset == 0)
+        return;
+
+    --offset;
 }
 
 std::string_view Lexer::peekChars(size_t n) const {

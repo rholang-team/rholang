@@ -21,6 +21,8 @@ enum class Token {
     Gt,           // >
     Le,           // <=
     Ge,           // >=
+    And,          // &&
+    Or,           // ||
     Dot,          // .
     Comma,        // ,
     Semicolon,    // ;
@@ -82,6 +84,10 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`<=`");
             case frontend::lex::Token::Ge:
                 return std::format_to(ctx.out(), "`>=`");
+            case frontend::lex::Token::And:
+                return std::format_to(ctx.out(), "`&&`");
+            case frontend::lex::Token::Or:
+                return std::format_to(ctx.out(), "`||`");
             case frontend::lex::Token::Dot:
                 return std::format_to(ctx.out(), "`.`");
             case frontend::lex::Token::Comma:
