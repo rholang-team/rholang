@@ -28,27 +28,29 @@ struct ExprStmt final : public Stmt {
 };
 
 struct RetStmt final : public Stmt {
+    lex::Span span;
     std::optional<std::shared_ptr<Expr>> value;
 
-    RetStmt() : value{std::nullopt} {}
-    explicit RetStmt(std::shared_ptr<Expr> value) : value{std::move(value)} {}
+    explicit RetStmt(lex::Span span) : span{span}, value{std::nullopt} {}
+    RetStmt(lex::Span span, std::shared_ptr<Expr> value)
+        : span{span}, value{std::move(value)} {}
 };
 
 struct CompoundStmt final : public Stmt {
-    std::vector<std::unique_ptr<Stmt>> stmts;
+    std::vector<std::shared_ptr<Stmt>> stmts;
 
-    explicit CompoundStmt(std::vector<std::unique_ptr<Stmt>> stmts)
+    explicit CompoundStmt(std::vector<std::shared_ptr<Stmt>> stmts)
         : stmts{std::move(stmts)} {}
 };
 
 struct CondStmt final : public Stmt {
     std::shared_ptr<Expr> cond;
     CompoundStmt onTrue;
-    std::optional<std::unique_ptr<Stmt>> onFalse;
+    std::optional<std::shared_ptr<Stmt>> onFalse;
 
     CondStmt(std::shared_ptr<Expr> cond,
              CompoundStmt onTrue,
-             std::optional<std::unique_ptr<Stmt>> onFalse = std::nullopt)
+             std::optional<std::shared_ptr<Stmt>> onFalse = std::nullopt)
         : cond{std::move(cond)},
           onTrue{std::move(onTrue)},
           onFalse{std::move(onFalse)} {}

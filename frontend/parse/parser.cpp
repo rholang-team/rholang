@@ -8,7 +8,6 @@
 #include "frontend/ast/declstmt.hpp"
 #include "frontend/ast/file.hpp"
 #include "frontend/lex/span.hpp"
-#include "frontend/mangling.hpp"
 #include "frontend/parse/error.hpp"
 
 namespace frontend::parse {
@@ -166,35 +165,14 @@ ast::VarDecl Parser::parseVarDecl() {
 ast::FunctionDecl Parser::parseFunctionDecl() {
     get(lex::Token::Fun);
 
-    std::optional<std::pair<lex::WithSpan<std::string>,
-                            lex::WithSpan<std::shared_ptr<Type>>>>
-        reciever;
-
-    auto l = lexemes.peek();
-    if (l.token == lex::Token::LParen) {
-        lexemes.next();
-        auto nameSpan = get(lex::Token::Id);
-        auto typeSpan = get(lex::Token::Id);
-        reciever = std::pair{
-            lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
-            lex::WithSpan{
-                typeFromString(lexemes.getLiteral(typeSpan)),
-                typeSpan,
-            }};
-        get(lex::Token::RParen);
-    }
-
     auto nameSpan = get(lex::Token::Id);
 
     get(lex::Token::LParen);
 
-    std::vector<lex::WithSpan<std::string>> paramNames;
+    std::vector<std::string> paramNames;
     std::vector<lex::WithSpan<std::shared_ptr<Type>>> paramTypes;
 
     std::unordered_set<std::string> seenParamNames;
-    if (reciever.has_value()) {
-        seenParamNames.insert(reciever->first.value);
-    }
 
     parseManyUntil(
         [this, &paramNames, &paramTypes, &seenParamNames]() {
@@ -212,7 +190,7 @@ ast::FunctionDecl Parser::parseFunctionDecl() {
 
             seenParamNames.insert(name);
 
-            paramNames.emplace_back(std::move(name), nameSpan);
+            paramNames.emplace_back(std::move(name));
             paramTypes.emplace_back(
                 typeFromString(lexemes.getLiteral(typeSpan)),
                 typeSpan);
@@ -220,16 +198,7 @@ ast::FunctionDecl Parser::parseFunctionDecl() {
         lex::Token::Comma,
         lex::Token::RParen);
 
-    std::string name =
-        (reciever.has_value())
-            ? mangleMethodName(lexemes.getLiteral(reciever->second.span),
-                               lexemes.getLiteral(nameSpan))
-            : std::string{lexemes.getLiteral(nameSpan)};
-
-    if (reciever.has_value()) {
-        paramNames.emplace(paramNames.begin(), std::move(reciever->first));
-        paramTypes.emplace(paramTypes.begin(), reciever->second);
-    }
+    std::string name{lexemes.getLiteral(nameSpan)};
 
     auto typeSpan = get(lex::Token::Id);
     auto type = typeFromString(lexemes.getLiteral(typeSpan));
@@ -313,7 +282,7 @@ ast::StructDecl Parser::parseStructDecl() {
 }
 
 ast::CompoundStmt Parser::parseCompoundStmt() {
-    std::vector<std::unique_ptr<ast::Stmt>> stmts;
+    std::vector<std::shared_ptr<ast::Stmt>> stmts;
 
     get(lex::Token::LBrace);
     for (;;) {
@@ -336,19 +305,22 @@ ast::CompoundStmt Parser::parseCompoundStmt() {
 ast::CondStmt Parser::parseCondStmt() {
     get(lex::Token::If);
 
+    get(lex::Token::LParen);
     auto cond = parseExpr();
+    get(lex::Token::RParen);
+
     auto onTrue = parseCompoundStmt();
 
-    std::optional<std::unique_ptr<ast::Stmt>> onFalse;
+    std::optional<std::shared_ptr<ast::Stmt>> onFalse;
 
     if (lexemes.peek().token == lex::Token::Else) {
         lexemes.next();
 
         auto l = lexemes.peek();
         if (l.token == lex::Token::If) {
-            onFalse = std::make_unique<ast::CondStmt>(parseCondStmt());
+            onFalse = std::make_shared<ast::CondStmt>(parseCondStmt());
         } else if (l.token == lex::Token::LBrace) {
-            onFalse = std::make_unique<ast::CompoundStmt>(parseCompoundStmt());
+            onFalse = std::make_shared<ast::CompoundStmt>(parseCompoundStmt());
         } else {
             throw parse::error(lexemes.getInput(),
                                l.span,
@@ -365,16 +337,23 @@ ast::CondStmt Parser::parseCondStmt() {
 
 ast::WhileStmt Parser::parseWhileStmt() {
     get(lex::Token::While);
-    return ast::WhileStmt{parseExpr(), parseCompoundStmt()};
+
+    get(lex::Token::LParen);
+    auto cond = parseExpr();
+    get(lex::Token::RParen);
+
+    auto body = parseCompoundStmt();
+
+    return ast::WhileStmt{cond, body};
 }
 
-std::unique_ptr<ast::Stmt> Parser::parseExprOrAssignment() {
+std::shared_ptr<ast::Stmt> Parser::parseExprOrAssignment() {
     auto lhs = parseExpr();
     auto l = lexemes.peek();
 
     if (l.token == lex::Token::Semicolon) {
         lexemes.next();
-        return std::make_unique<ast::ExprStmt>(std::move(lhs));
+        return std::make_shared<ast::ExprStmt>(std::move(lhs));
     }
 
     std::optional<ast::BinaryExpr::Op> assigmentOp;
@@ -410,31 +389,31 @@ std::unique_ptr<ast::Stmt> Parser::parseExprOrAssignment() {
             rhs);
     }
 
-    return std::make_unique<ast::AssignmentStmt>(l.span,
+    return std::make_shared<ast::AssignmentStmt>(l.span,
                                                  std::move(lhs),
                                                  std::move(rhs));
 }
 
-std::unique_ptr<ast::Stmt> Parser::parseStmt() {
+std::shared_ptr<ast::Stmt> Parser::parseStmt() {
     switch (lexemes.peek().token) {
         case lex::Token::LBrace:
-            return std::make_unique<ast::CompoundStmt>(parseCompoundStmt());
+            return std::make_shared<ast::CompoundStmt>(parseCompoundStmt());
         case lex::Token::If:
-            return std::make_unique<ast::CondStmt>(parseCondStmt());
+            return std::make_shared<ast::CondStmt>(parseCondStmt());
         case lex::Token::While:
-            return std::make_unique<ast::WhileStmt>(parseWhileStmt());
+            return std::make_shared<ast::WhileStmt>(parseWhileStmt());
         case lex::Token::Return: {
-            lexemes.next();
+            auto retspan = lexemes.next().span;
             if (lexemes.peek().token == lex::Token::Semicolon) {
                 lexemes.next();
-                return std::make_unique<ast::RetStmt>();
+                return std::make_shared<ast::RetStmt>(retspan);
             }
             auto res = parseExpr();
             get(lex::Token::Semicolon);
-            return std::make_unique<ast::RetStmt>(std::move(res));
+            return std::make_shared<ast::RetStmt>(retspan, std::move(res));
         }
         case lex::Token::Var:
-            return std::make_unique<ast::DeclStmt>(parseVarDecl());
+            return std::make_shared<ast::DeclStmt>(parseVarDecl());
         default:
             return parseExprOrAssignment();
     }

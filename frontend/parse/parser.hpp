@@ -92,8 +92,8 @@ class Parser {
     ast::CompoundStmt parseCompoundStmt();
     ast::CondStmt parseCondStmt();
     ast::WhileStmt parseWhileStmt();
-    std::unique_ptr<ast::Stmt> parseExprOrAssignment();
-    std::unique_ptr<ast::Stmt> parseStmt();
+    std::shared_ptr<ast::Stmt> parseExprOrAssignment();
+    std::shared_ptr<ast::Stmt> parseStmt();
 
     std::shared_ptr<ast::Expr> parseTerm();
     std::shared_ptr<ast::Expr> parseExpr();

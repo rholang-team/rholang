@@ -6,8 +6,8 @@ struct Pow {
         var i int = 1;
         var res int = 1;
 
-        while i <= pow.n {
-            res *= pow.x;
+        while (i <= n) {
+            res *= x;
             i += 1;
         }
 

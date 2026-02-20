@@ -26,13 +26,13 @@ struct FunctionDecl {
                             lex::WithSpan<std::shared_ptr<Type>>>;
 
     lex::WithSpan<std::string> name;
-    std::vector<lex::WithSpan<std::string>> paramNames;
+    std::vector<std::string> paramNames;
     std::vector<lex::WithSpan<std::shared_ptr<Type>>> paramTypes;
     lex::WithSpan<std::shared_ptr<Type>> rettype;
     CompoundStmt body;
 
     FunctionDecl(lex::WithSpan<std::string> name,
-                 std::vector<lex::WithSpan<std::string>> paramNames,
+                 std::vector<std::string> paramNames,
                  std::vector<lex::WithSpan<std::shared_ptr<Type>>> paramTypes,
                  lex::WithSpan<std::shared_ptr<Type>> rettype,
                  CompoundStmt body)
@@ -65,5 +65,7 @@ struct StructDecl {
         : name{std::move(name)},
           fields{std::move(fields)},
           methods{std::move(methods)} {}
+
+    StructType type() const;
 };
 }  // namespace frontend::ast

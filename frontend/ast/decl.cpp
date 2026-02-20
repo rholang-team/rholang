@@ -10,4 +10,14 @@ FunctionType FunctionDecl::type() const {
 
     return FunctionType{std::move(paramTypes), rettype.value};
 }
+
+StructType StructDecl::type() const {
+    std::vector<StructType::Field> fields;
+
+    for (const auto& field : this->fields) {
+        fields.emplace_back(field.name.value, field.type.value);
+    }
+
+    return StructType{name.value, fields};
+}
 }  // namespace frontend::ast

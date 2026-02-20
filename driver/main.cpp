@@ -25,7 +25,7 @@ void printAst(frontend::ast::File& file) {
 
 void printTranslationUnit(frontend::TranslationUnit& tu) {
     for (auto& [name, s] : tu.structs) {
-        std::println("{}\n", *s);
+        std::println("{}\n", s);
     }
     for (auto& [name, decl] : tu.globals) {
         frontend::ast::PrettyPrinter{std::cout}.visit(decl);
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
         std::print(stderr, "syntax error: {}", e.pretty());
     }
 
-    printAst(file);
+    // printAst(file);
 
     frontend::TranslationUnit tu;
     try {

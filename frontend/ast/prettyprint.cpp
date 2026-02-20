@@ -58,7 +58,7 @@ void PrettyPrinter::visit(FunctionDecl& decl) {
             os << ", ";
         }
         first = false;
-        os << n.value << ": " << *t.value;
+        os << n << ": " << *t.value;
     }
     os << ") -> " << *decl.rettype.value << '\n';
     visit(decl.body);
