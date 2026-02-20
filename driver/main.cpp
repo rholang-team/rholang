@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     try {
         file = parser.parse();
     } catch (const frontend::Error& e) {
-        std::println(stderr, "syntax error: {}", e.pretty());
+        std::print(stderr, "syntax error: {}", e.pretty());
     }
 
     printAst(file);
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
     try {
         tu = frontend::runSema(std::move(file));
     } catch (const frontend::Error& e) {
-        std::cout << e.pretty() << '\n';
+        std::print(stderr, "error: {}", e.pretty());
     }
 
     printTranslationUnit(tu);
