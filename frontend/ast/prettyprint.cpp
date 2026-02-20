@@ -43,9 +43,7 @@ void PrettyPrinter::visit(VarDecl& decl) {
     depth += 1;
     pad();
     os << "VarDecl " << decl.name.value << " " << *decl.type.value << '\n';
-    if (decl.value.has_value()) {
-        visit(decl.value->get());
-    }
+    visit(decl.value.get());
     depth -= 1;
 }
 

@@ -151,28 +151,16 @@ ast::VarDecl Parser::parseVarDecl() {
     auto typeSpan = get(lex::Token::Id);
     auto type = typeFromString(lexemes.getLiteral(typeSpan));
 
-    auto next = lexemes.next();
-    if (next.token == lex::Token::Semicolon) {
-        return ast::VarDecl{
-            lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
-            lex::WithSpan{type, typeSpan},
-            std::nullopt,
-        };
-    } else if (next.token == lex::Token::Assign) {
-        std::shared_ptr<ast::Expr> value = parseExpr();
-        get(lex::Token::Semicolon);
-        return ast::VarDecl{
-            lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
-            lex::WithSpan{type, typeSpan},
-            value,
-        };
-    }
+    get(lex::Token::Assign);
+    std::shared_ptr<ast::Expr> value = parseExpr();
 
-    throw parse::error(lexemes.getInput(),
-                       next.span,
-                       next.token,
-                       lex::Token::Semicolon,
-                       lex::Token::Assign);
+    get(lex::Token::Semicolon);
+
+    return ast::VarDecl{
+        lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
+        lex::WithSpan{type, typeSpan},
+        value,
+    };
 }
 
 ast::FunctionDecl Parser::parseFunctionDecl() {

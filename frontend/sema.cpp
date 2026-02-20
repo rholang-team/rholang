@@ -379,17 +379,15 @@ class Sema : private ast::DeclVisitor,
     void visit(ast::VarDecl& decl) {
         auto actualType = derefType(decl.type);
 
-        if (decl.value.has_value()) {
-            ast::Expr* value = decl.value->get();
-            visit(value);
-            if (*value->type != *actualType) {
-                throw Error(file.input,
-                            value->span(),
-                            std::format("value type does not match declared "
-                                        "variable type: expected {}, got {}",
-                                        *actualType,
-                                        *value->type));
-            }
+        ast::Expr* value = decl.value.get();
+        visit(value);
+        if (*value->type != *actualType) {
+            throw Error(file.input,
+                        value->span(),
+                        std::format("value type does not match declared "
+                                    "variable type: expected {}, got {}",
+                                    *actualType,
+                                    *value->type));
         }
 
         addToScope(decl.name.value, actualType);

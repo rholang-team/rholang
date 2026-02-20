@@ -13,12 +13,12 @@ namespace frontend::ast {
 struct VarDecl {
     lex::WithSpan<std::string> name;
     lex::WithSpan<std::shared_ptr<Type>> type;
-    std::optional<std::shared_ptr<Expr>> value;
+    std::shared_ptr<Expr> value;
 
     VarDecl(lex::WithSpan<std::string> name,
             lex::WithSpan<std::shared_ptr<Type>> type,
-            std::optional<std::shared_ptr<Expr>> value)
-        : name{std::move(name)}, type{type}, value{std::move(value)} {}
+            std::shared_ptr<Expr> value)
+        : name{std::move(name)}, type{type}, value{value} {}
 };
 
 struct FunctionDecl {
