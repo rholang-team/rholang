@@ -28,7 +28,12 @@ frontend_src = [
     'compiler/frontend/mangling.cpp',
 ]
 
-ir_src = []
+ir_src = [
+    'compiler/ir/type.cpp',
+    'compiler/ir/context.cpp',
+    'compiler/ir/typesets.cpp',
+]
+
 backend_src = []
 
 compiler_src = frontend_src + ir_src + backend_src

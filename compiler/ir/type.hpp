@@ -1,28 +1,61 @@
 #pragma once
 
-#include <memory>
-#include <vector>
-
+#include <span>
 namespace ir {
+class Context;
+
+struct VoidType;
+struct BoolType;
+struct IntType;
+
 struct Type {
-    enum class Id {
-        Bool,
-        Int,
-        Pointer,
-        Function,
-        Struct,
-    };
+    static VoidType* getVoidTy(Context& c);
+    static BoolType* getBoolTy(Context& c);
+    static IntType* getIntTy(Context& c);
 
-    /// Funny thing inspired by LLVM.
-    /// This may contain function parameter types, struct field types or even
-    /// the type under the pointer.
-    std::vector<std::shared_ptr<Type>> containedTypes;
+    virtual ~Type() = default;
+};
 
-    static const std::shared_ptr<Type> boolType;
-    static const std::shared_ptr<Type> intType;
+struct VoidType final : public Type {};
+struct BoolType final : public Type {};
+struct IntType final : public Type {};
 
-    static std::shared_ptr<Type> makePointer(std::shared_ptr<Type> underlying);
+class PointerType final : public Type {
+    Type* underlying_;
 
-    static std::shared_ptr<Type> makeFunction(std::shared_ptr<Type> rettype, );
+    explicit PointerType(Type* underlying) : underlying_{underlying} {}
+
+public:
+    static PointerType* get(Context& ctx, Type* underlying);
+
+    Type* underlying() const;
+};
+
+class StructType final : public Type {
+    std::span<Type*> fields_;
+
+    explicit StructType(std::span<Type*> fields) : fields_{fields} {}
+
+public:
+    static StructType* get(Context& ctx, std::span<Type*> fields);
+
+    std::span<Type*> fields();
+    std::span<Type*> fields() const;
+};
+
+class FunctionType final : public Type {
+    Type* rettype_;
+    std::span<Type*> params_;
+
+    FunctionType(Type* rettype, std::span<Type*> params)
+        : rettype_{rettype}, params_{params} {}
+
+public:
+    static FunctionType* get(Context& ctx,
+                             Type* rettype,
+                             std::span<Type*> params);
+
+    Type* rettype() const;
+    std::span<Type*> params() const;
 };
 }  // namespace ir
