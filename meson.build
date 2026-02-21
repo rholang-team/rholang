@@ -16,28 +16,25 @@ runtime_src = [
 runtime = static_library('runtime', runtime_src)
 
 frontend_src = [
-    'frontend/type.cpp',
-    'frontend/error.cpp',
-    'frontend/lex/lexeme.cpp',
-    'frontend/lex/lexer.cpp',
-    'frontend/parse/parser.cpp',
-    'frontend/ast/prettyprint.cpp',
-    'frontend/ast/decl.cpp',
-    'frontend/ast/expr.cpp',
-    'frontend/sema.cpp',
-    'frontend/mangling.cpp',
+    'compiler/frontend/type.cpp',
+    'compiler/frontend/error.cpp',
+    'compiler/frontend/lex/lexeme.cpp',
+    'compiler/frontend/lex/lexer.cpp',
+    'compiler/frontend/parse/parser.cpp',
+    'compiler/frontend/ast/prettyprint.cpp',
+    'compiler/frontend/ast/decl.cpp',
+    'compiler/frontend/ast/expr.cpp',
+    'compiler/frontend/sema.cpp',
+    'compiler/frontend/mangling.cpp',
 ]
-frontend = static_library('frontend', frontend_src)
-test(
-    'frontend tests',
-    executable(
-        'frontendtests',
-        [],
-        dependencies: [gtest_dep],
-    ),
-)
+
+ir_src = []
+backend_src = []
+
+compiler_src = frontend_src + ir_src + backend_src
+compiler = static_library('compiler', compiler_src)
 
 driver_src = [
     'driver/main.cpp',
 ]
-executable('compiler', driver_src, link_with: [frontend])
+executable('compiler', driver_src, link_with: [compiler])
