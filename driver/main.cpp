@@ -2,10 +2,10 @@
 #include <iostream>
 #include <print>
 
-#include "frontend/ast/prettyprint.hpp"
-#include "frontend/lex/lexer.hpp"
-#include "frontend/parse/parser.hpp"
-#include "frontend/sema.hpp"
+#include "compiler/frontend/ast/prettyprint.hpp"
+#include "compiler/frontend/lex/lexer.hpp"
+#include "compiler/frontend/parse/parser.hpp"
+#include "compiler/frontend/sema.hpp"
 
 namespace {
 void printAst(frontend::ast::File& file) {
