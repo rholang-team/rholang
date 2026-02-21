@@ -22,9 +22,6 @@ struct VarDecl {
 };
 
 struct FunctionDecl {
-    using Param = std::pair<lex::WithSpan<std::string>,
-                            lex::WithSpan<std::shared_ptr<Type>>>;
-
     lex::WithSpan<std::string> name;
     std::vector<std::string> paramNames;
     std::vector<lex::WithSpan<std::shared_ptr<Type>>> paramTypes;
@@ -43,6 +40,8 @@ struct FunctionDecl {
           body{std::move(body)} {}
 
     FunctionType type() const;
+
+    bool isInstanceMethod() const;
 };
 
 struct StructDecl {
@@ -57,11 +56,11 @@ struct StructDecl {
 
     lex::WithSpan<std::string> name;
     std::vector<Field> fields;
-    std::unordered_map<std::string, FunctionDecl> methods;
+    std::unordered_map<std::string, std::shared_ptr<FunctionDecl>> methods;
 
     StructDecl(lex::WithSpan<std::string> name,
                std::vector<Field> fields,
-               std::unordered_map<std::string, FunctionDecl> methods)
+               std::unordered_map<std::string, std::shared_ptr<FunctionDecl>> methods)
         : name{std::move(name)},
           fields{std::move(fields)},
           methods{std::move(methods)} {}

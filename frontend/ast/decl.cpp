@@ -11,6 +11,10 @@ FunctionType FunctionDecl::type() const {
     return FunctionType{std::move(paramTypes), rettype.value};
 }
 
+bool FunctionDecl::isInstanceMethod() const {
+    return !paramNames.empty() && paramNames[0] == "self";
+}
+
 StructType StructDecl::type() const {
     std::vector<StructType::Field> fields;
 

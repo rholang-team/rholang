@@ -34,6 +34,7 @@ enum class Token {
     Var,          // `var`
     Fun,          // `fun`
     Struct,       // `struct`
+    Self,         // `self`
     If,           // `if`
     Else,         // `else`
     While,        // `while`
@@ -108,6 +109,8 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`fun`");
             case frontend::lex::Token::Struct:
                 return std::format_to(ctx.out(), "`struct`");
+            case frontend::lex::Token::Self:
+                return std::format_to(ctx.out(), "`self`");
             case frontend::lex::Token::Var:
                 return std::format_to(ctx.out(), "`var`");
             case frontend::lex::Token::If:

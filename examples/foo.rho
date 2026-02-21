@@ -2,12 +2,12 @@ struct Pow {
     var x int;
     var n int;
 
-    fun run() int {
+    fun run(self) int {
         var i int = 1;
         var res int = 1;
 
-        while (i <= n) {
-            res *= x;
+        while (i <= self.n) {
+            res *= self.x;
             i += 1;
         }
 

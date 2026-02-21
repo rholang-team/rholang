@@ -1,3 +1,0 @@
-- add `this` parameter to mangled functions from methods
-- translate method calls to mangled function calls
-- translate field references to `this` member references (possibly add `this` as a keyword)

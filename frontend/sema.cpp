@@ -13,7 +13,6 @@
 #include "frontend/ast/stmt.hpp"
 #include "frontend/ast/visitor.hpp"
 #include "frontend/error.hpp"
-#include "frontend/mangling.hpp"
 #include "frontend/translationunit.hpp"
 #include "frontend/type.hpp"
 
@@ -34,6 +33,7 @@ class Sema : private ast::DeclVisitor,
     std::forward_list<std::unordered_map<std::string, std::shared_ptr<Type>>>
         scopes;
     ast::FunctionDecl* curFunction = nullptr;
+    ast::StructDecl* curStruct = nullptr;
 
     void pushScope() {
         scopes.emplace_front();
@@ -211,7 +211,8 @@ class Sema : private ast::DeclVisitor,
         auto methodIt = methods.find(expr.member.value);
 
         if (methodIt != methods.end()) {
-            expr.type = std::make_shared<FunctionType>(methodIt->second.type());
+            expr.type =
+                std::make_shared<FunctionType>(methodIt->second->type());
             return;
         }
 
@@ -227,29 +228,51 @@ class Sema : private ast::DeclVisitor,
         for (auto& arg : expr.args)
             visit(arg.get());
 
-        FunctionType* fntype =
+        FunctionType* fntypePtr =
             dynamic_cast<FunctionType*>(expr.callee->type.get());
 
-        if (!fntype) {
+        if (!fntypePtr) {
             throw Error(file.input,
                         expr.callee->span(),
                         std::format("callee of type {} is not callable",
                                     *expr.callee->type));
         }
 
-        if (expr.args.size() != fntype->params.size()) {
+        FunctionType fntype = *fntypePtr;
+
+        if (auto* memberRef =
+                dynamic_cast<ast::MemberRefExpr*>(expr.callee.get())) {
+            expr.args.emplace(expr.args.begin(), memberRef->target);
+
+            auto& structDecl = file.structs.at(
+                dynamic_cast<StructType&>(*memberRef->target->type).name);
+
+            auto method = structDecl.methods.at(memberRef->member.value);
+
+            expr.callee =
+                std::make_shared<ast::VarRefExpr>(lex::WithSpan<std::string>{
+                    method->name.value,
+                    expr.callee->span(),
+                });
+
+            visit(expr.callee.get());
+
+            fntype = method->type();
+        }
+
+        if (expr.args.size() != fntype.params.size()) {
             throw Error(
                 file.input,
                 expr.span(),
                 std::format(
                     "too {} arguments for call: expected {}, but got {}",
-                    (expr.args.size() < fntype->params.size() ? "few" : "many"),
-                    fntype->params.size(),
+                    (expr.args.size() < fntype.params.size() ? "few" : "many"),
+                    fntype.params.size(),
                     expr.args.size()));
         }
 
         for (const auto& [param, arg] :
-             std::ranges::zip_view{fntype->params, expr.args}) {
+             std::ranges::zip_view{fntype.params, expr.args}) {
             if (*param != *arg->type) {
                 throw Error(
                     file.input,
@@ -261,7 +284,7 @@ class Sema : private ast::DeclVisitor,
             }
         }
 
-        expr.type = fntype->rettype;
+        expr.type = fntype.rettype;
     }
 
     void visit(ast::StructInitExpr& expr) {
@@ -410,6 +433,17 @@ class Sema : private ast::DeclVisitor,
     }
 
     void visit(ast::FunctionDecl& decl) {
+        if (decl.isInstanceMethod()) {
+            if (!curStruct) {
+                throw Error(file.input,
+                            decl.name.span,
+                            "methods cannot be created at the top level");
+            }
+
+            decl.paramTypes[0].value =
+                std::make_shared<StructType>(curStruct->type());
+        }
+
         curFunction = &decl;
         addToScope(decl.name.value,
                    std::make_shared<FunctionType>(decl.type()));
@@ -431,10 +465,10 @@ class Sema : private ast::DeclVisitor,
             }
 
             for (auto& [name, decl] : file.structs.at(name).methods) {
-                for (auto& type : decl.paramTypes) {
+                for (auto& type : decl->paramTypes) {
                     type.value = derefType(type);
                 }
-                decl.rettype.value = derefType(decl.rettype);
+                decl->rettype.value = derefType(decl->rettype);
             }
         }
     }
@@ -446,10 +480,10 @@ class Sema : private ast::DeclVisitor,
 
         for (auto& [name, decl] : file.functions) {
             for (const auto& [name, type] :
-                 std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
+                 std::ranges::zip_view{decl->paramNames, decl->paramTypes}) {
                 type.value = derefType(type);
             }
-            decl.rettype.value = derefType(decl.rettype);
+            decl->rettype.value = derefType(decl->rettype);
         }
     }
 
@@ -457,7 +491,7 @@ class Sema : private ast::DeclVisitor,
         pushScope();
 
         for (const auto& [name, decl] : file.functions) {
-            addToScope(name, std::make_shared<FunctionType>(decl.type()));
+            addToScope(name, std::make_shared<FunctionType>(decl->type()));
         }
         for (const auto& [name, decl] : file.globals) {
             addToScope(name, derefType(decl.type));
@@ -473,51 +507,38 @@ public:
         fillTopLevelScope();
 
         for (auto& [name, s] : file.structs) {
-            pushScope();
+            curStruct = &s;
+
             for (auto& field : s.fields) {
                 addToScope(field.name.value, field.type.value);
             }
             for (auto& [methodName, method] : s.methods) {
                 addToScope(methodName,
-                           std::make_shared<FunctionType>(method.type()));
+                           std::make_shared<FunctionType>(method->type()));
             }
 
             for (auto& [methodName, method] : s.methods) {
-                visit(method);
+                visit(*method);
             }
-
-            popScope();
         }
+        curStruct = nullptr;
+
         for (auto& [name, decl] : file.globals) {
             visit(decl);
         }
         for (auto& [name, decl] : file.functions) {
-            visit(decl);
+            visit(*decl);
         }
 
-        std::unordered_map<std::string, ast::FunctionDecl> functions =
-            file.functions;
+        std::unordered_map<std::string, std::shared_ptr<ast::FunctionDecl>>
+            functions = file.functions;
         std::unordered_map<std::string, StructType> structs;
 
         for (auto& [name, s] : file.structs) {
             structs.emplace(name, s.type());
 
             for (auto& [methodName, method] : s.methods) {
-                std::vector<std::string> newParamNames;
-                std::vector<lex::WithSpan<std::shared_ptr<Type>>> newParamTypes;
-
-                ast::FunctionDecl methodAsFunction{
-                    lex::WithSpan{
-                        mangleMethodName(name, methodName),
-                        method.name.span,
-                    },
-                    newParamNames,
-                    newParamTypes,
-                    method.rettype,
-                    method.body};
-
-                functions.emplace(methodAsFunction.name.value,
-                                  std::move(methodAsFunction));
+                functions.emplace(method->name.value, method);
             }
         }
 

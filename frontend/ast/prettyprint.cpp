@@ -49,8 +49,10 @@ void PrettyPrinter::visit(VarDecl& decl) {
 
 void PrettyPrinter::visit(FunctionDecl& decl) {
     depth += 1;
+
     pad();
     os << "FunctionDecl " << decl.name.value << " (";
+
     bool first = true;
     for (const auto& [n, t] :
          std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
@@ -58,7 +60,8 @@ void PrettyPrinter::visit(FunctionDecl& decl) {
             os << ", ";
         }
         first = false;
-        os << n << ": " << *t.value;
+        os << n << ": ";
+        showTyPtr(t.value.get());
     }
     os << ") -> " << *decl.rettype.value << '\n';
     visit(decl.body);
@@ -83,7 +86,7 @@ void PrettyPrinter::visit(StructDecl& decl) {
     }
 
     for (auto& [_, decl] : decl.methods) {
-        visit(decl);
+        visit(*decl);
     }
 
     depth -= 1;

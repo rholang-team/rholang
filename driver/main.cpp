@@ -18,7 +18,7 @@ void printAst(frontend::ast::File& file) {
         std::cout << '\n';
     }
     for (auto& [name, decl] : file.functions) {
-        frontend::ast::PrettyPrinter{std::cout}.visit(decl);
+        frontend::ast::PrettyPrinter{std::cout}.visit(*decl);
         std::cout << '\n';
     }
 }
@@ -32,7 +32,7 @@ void printTranslationUnit(frontend::TranslationUnit& tu) {
         std::cout << '\n';
     }
     for (auto& [name, decl] : tu.functions) {
-        frontend::ast::PrettyPrinter{std::cout}.visit(decl);
+        frontend::ast::PrettyPrinter{std::cout}.visit(*decl);
         std::cout << '\n';
     }
 }
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
         std::print(stderr, "syntax error: {}", e.pretty());
     }
 
-    // printAst(file);
+    printAst(file);
 
     frontend::TranslationUnit tu;
     try {

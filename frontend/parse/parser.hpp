@@ -87,7 +87,7 @@ class Parser {
     }
 
     ast::VarDecl parseVarDecl();
-    ast::FunctionDecl parseFunctionDecl();
+    std::shared_ptr<ast::FunctionDecl> parseFunctionDecl();
 
     ast::CompoundStmt parseCompoundStmt();
     ast::CondStmt parseCondStmt();

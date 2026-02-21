@@ -8,6 +8,7 @@
 #include "frontend/ast/declstmt.hpp"
 #include "frontend/ast/file.hpp"
 #include "frontend/lex/span.hpp"
+#include "frontend/mangling.hpp"
 #include "frontend/parse/error.hpp"
 
 namespace frontend::parse {
@@ -119,8 +120,8 @@ ast::File Parser::parse() {
             break;
         else if (l.token == lex::Token::Fun) {
             auto decl = parseFunctionDecl();
-            checkName(decl.name);
-            res.functions.emplace(decl.name.value, std::move(decl));
+            checkName(decl->name);
+            res.functions.emplace(decl->name.value, std::move(decl));
         } else if (l.token == lex::Token::Var) {
             auto decl = parseVarDecl();
             checkName(decl.name);
@@ -161,15 +162,29 @@ ast::VarDecl Parser::parseVarDecl() {
     };
 }
 
-ast::FunctionDecl Parser::parseFunctionDecl() {
+std::shared_ptr<ast::FunctionDecl> Parser::parseFunctionDecl() {
     get(lex::Token::Fun);
 
     auto nameSpan = get(lex::Token::Id);
 
     get(lex::Token::LParen);
 
+    auto l = lexemes.peek();
+
     std::vector<std::string> paramNames;
     std::vector<lex::WithSpan<std::shared_ptr<Type>>> paramTypes;
+
+    if (l.token == lex::Token::Self) {
+        lexemes.next();
+        paramNames.emplace_back("self");
+        paramTypes.emplace_back(
+            lex::WithSpan{std::shared_ptr<Type>{nullptr}, l.span});
+
+        l = lexemes.peek();
+        if (l.token == lex::Token::Comma) {
+            lexemes.next();
+        }
+    }
 
     std::unordered_set<std::string> seenParamNames;
 
@@ -204,17 +219,19 @@ ast::FunctionDecl Parser::parseFunctionDecl() {
 
     ast::CompoundStmt body = parseCompoundStmt();
 
-    return ast::FunctionDecl{lex::WithSpan{std::move(name), nameSpan},
-                             std::move(paramNames),
-                             std::move(paramTypes),
-                             lex::WithSpan{type, typeSpan},
-                             std::move(body)};
+    return std::make_shared<ast::FunctionDecl>(
+        lex::WithSpan{std::move(name), nameSpan},
+        std::move(paramNames),
+        std::move(paramTypes),
+        lex::WithSpan{type, typeSpan},
+        std::move(body));
 }
 
 ast::StructDecl Parser::parseStructDecl() {
     get(lex::Token::Struct);
 
     auto nameSpan = get(lex::Token::Id);
+    std::string structName{lexemes.getLiteral(nameSpan)};
 
     get(lex::Token::LBrace);
 
@@ -231,7 +248,7 @@ ast::StructDecl Parser::parseStructDecl() {
         };
 
     std::vector<ast::StructDecl::Field> fields;
-    std::unordered_map<std::string, ast::FunctionDecl> methods;
+    std::unordered_map<std::string, std::shared_ptr<ast::FunctionDecl>> methods;
 
     for (;;) {
         auto l = lexemes.peek();
@@ -239,9 +256,18 @@ ast::StructDecl Parser::parseStructDecl() {
             break;
         else if (l.token == lex::Token::Fun) {
             auto decl = parseFunctionDecl();
-            checkName(decl.name);
-            seenMemberNames.insert(decl.name.value);
-            methods.emplace(decl.name.value, std::move(decl));
+            if (!decl->isInstanceMethod()) {
+                throw Error(lexemes.getInput(),
+                            decl->name.span,
+                            "static methods are not supported");
+            }
+
+            checkName(decl->name);
+            seenMemberNames.insert(decl->name.value);
+
+            std::string originalName = decl->name.value;
+            decl->name.value = mangleMethodName(structName, originalName);
+            methods.emplace(originalName, std::move(decl));
         } else if (l.token == lex::Token::Var) {
             lexemes.next();
             auto nameSpan = get(lex::Token::Id);
@@ -274,7 +300,7 @@ ast::StructDecl Parser::parseStructDecl() {
     get(lex::Token::RBrace);
 
     return ast::StructDecl{
-        lex::WithSpan<std::string>{lexemes.getLiteral(nameSpan), nameSpan},
+        lex::WithSpan<std::string>{structName, nameSpan},
         std::move(fields),
         std::move(methods),
     };
@@ -554,6 +580,12 @@ std::shared_ptr<ast::Expr> Parser::parseTerm() {
                                                l.span});
             }
             break;
+        case lex::Token::Self: {
+            lexemes.next();
+            term = std::make_shared<ast::VarRefExpr>(
+                lex::WithSpan<std::string>{"self", l.span});
+            break;
+        }
         case lex::Token::Num: {
             lexemes.next();
             size_t value;
