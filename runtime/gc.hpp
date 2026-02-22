@@ -1,21 +1,13 @@
+#pragma once
+
 #include <stack>
 
-#include "alloc.hpp"
+#include "main_alloc.hpp"
 
-#define CLEAR_INFO_BITS(p) p &= 0x0000ffffffffffff;
-#define MARK_OBJ(p) p |= (1 << 63)
-#define UNMARK_OBJ(p) p &= 0x7fffffffffffffff;
-
-namespace GC {
+namespace memory_manager {
 
 class GC {
-    struct Object {
-        // 62 bit - mark bit.
-        // 61 - 48 are reserved.
-        void* ref_map;
-    };
-
-    Alloc allocator;
+    alloc::MainAllocator allocator;
     std::stack<void*> mark_stack;
 
 public:
@@ -28,4 +20,4 @@ private:
     void sweep();
 };
 
-}  // namespace GC
+}  // namespace memory_manager
