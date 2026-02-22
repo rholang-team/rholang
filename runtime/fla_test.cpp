@@ -1,9 +1,13 @@
-#include "alloc.hpp"
+#include "fla.hpp"
 
 #include <gtest/gtest.h>
 
 #include <random>
 #include <vector>
+
+#include "fla.hpp"
+
+namespace memory_manager::alloc {
 
 struct TestStruct {
     char a;
@@ -11,22 +15,22 @@ struct TestStruct {
     size_t c;
 };
 
-TEST(AllocTest, ValuedLinearAllocation) {
-    GC::Alloc gpa(128);
+TEST(AllocFLATest, ValuedLinearAllocation) {
+    FreeListAllocator fla;
 
-    TestStruct* a = (TestStruct*)gpa.allocate(sizeof(TestStruct));
+    TestStruct* a = (TestStruct*)fla.allocate(sizeof(TestStruct));
     ASSERT_NE(a, nullptr);
     a->a = 'a';
     a->b = 12;
     a->c = 0xbebebebe;
 
-    TestStruct* b = (TestStruct*)gpa.allocate(sizeof(TestStruct));
+    TestStruct* b = (TestStruct*)fla.allocate(sizeof(TestStruct));
     ASSERT_NE(b, nullptr);
     b->a = 'b';
     b->b = 13;
     b->c = 0xbebebebe + 1;
 
-    TestStruct* c = (TestStruct*)gpa.allocate(sizeof(TestStruct));
+    TestStruct* c = (TestStruct*)fla.allocate(sizeof(TestStruct));
     ASSERT_NE(c, nullptr);
     c->a = 'c';
     c->b = 14;
@@ -42,44 +46,45 @@ TEST(AllocTest, ValuedLinearAllocation) {
     ASSERT_EQ(c->b, 14);
     ASSERT_EQ(c->c, 0xbebebebe + 2);
 
-    gpa.deallocate(a);
-    gpa.deallocate(b);
-    gpa.deallocate(c);
+    fla.deallocate(a);
+    fla.deallocate(b);
+    fla.deallocate(c);
 }
 
-TEST(AllocTest, HugeLinearAllocation) {
-    GC::Alloc gpa(32768 + 128 * 16);
+TEST(AllocFLATest, HugeLinearAllocation) {
+    constexpr size_t size = 256;
+    FreeListAllocator fla;
 
     std::vector<void*> objs;
     for (int i = 0; i < 128; i++) {
-        objs.push_back(gpa.allocate(256));
+        objs.push_back(fla.allocate(size));
     }
     for (int i = 0; i < 128; i++) {
-        gpa.deallocate(objs.back());
+        fla.deallocate(objs.back());
         objs.pop_back();
     }
 }
 
-TEST(AllocTest, FuzzAllocDeallocOrder) {
-    constexpr size_t header_size = 16;
-    constexpr size_t heap_size = 1 << 20;
-    constexpr size_t size_threshold = 1024;
+TEST(AllocFLATest, FuzzAllocDeallocOrder) {
+    constexpr size_t size_threshold = 7000;
+    constexpr size_t heap_limit = 1 << 22;
 
-    GC::Alloc gpa(heap_size * header_size);
+    FreeListAllocator fla;
     std::random_device rd;
     std::mt19937 g(rd());
     std::uniform_int_distribution<> dist(1, size_threshold);
     std::vector<void*> objs;
 
-    for (size_t total = 0; total < heap_size;) {
+    for (size_t total = 0; total < heap_limit;) {
         auto size = dist(g);
         total += size;
-        objs.push_back(gpa.allocate(size));
+        objs.push_back(fla.allocate(size));
     }
 
     std::shuffle(objs.begin(), objs.end(), g);
 
     for (auto p : objs) {
-        gpa.deallocate(p);
+        fla.deallocate(p);
     }
 }
+}  // namespace memory_manager::alloc
