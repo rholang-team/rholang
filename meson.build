@@ -29,9 +29,12 @@ frontend_src = [
 ]
 
 ir_src = [
-    'compiler/ir/type.cpp',
-    'compiler/ir/context.cpp',
     'compiler/ir/typesets.cpp',
+    'compiler/ir/context.cpp',
+    'compiler/ir/value.cpp',
+    'compiler/ir/type.cpp',
+    'compiler/ir/instr.cpp',
+    'compiler/ir/builder.cpp',
 ]
 
 backend_src = []

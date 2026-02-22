@@ -3,9 +3,9 @@
 #include <list>
 #include <memory>
 
-#include "compiler/ir/instr.hpp"
-
 namespace ir {
+class Instr;
+
 class BasicBlock {
     std::list<std::shared_ptr<Instr>> instrs_;
 };

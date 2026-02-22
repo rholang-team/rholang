@@ -7,7 +7,25 @@
 
 namespace ir {
 class Function {
-    Type* type_;
-    std::list<BasicBlock> bbs_;
+    std::string name_;
+    FunctionType* type_;
+    std::list<std::unique_ptr<BasicBlock>> bbs_;
+
+public:
+    Function(std::string name, FunctionType* fntype)
+        : name_{std::move(name)}, type_{fntype} {}
+
+    std::string_view name() const {
+        return name_;
+    }
+    FunctionType* type() const {
+        return type_;
+    }
+    auto& bbs() {
+        return bbs_;
+    }
+    const auto& bbs() const {
+        return bbs_;
+    }
 };
 }  // namespace ir

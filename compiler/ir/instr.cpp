@@ -9,51 +9,68 @@ bool Instr::isTerminator() const {
     return false;
 }
 
-InstrWithResult::InstrWithResult(std::shared_ptr<TmpVar> dest)
-    : Instr{dest->type()}, dest_{dest} {}
+AllocaInstr::AllocaInstr(Type* ty) : Instr{ty} {}
 
-std::shared_ptr<TmpVar> InstrWithResult::dest() const {
-    return dest_;
+std::shared_ptr<AllocaInstr> AllocaInstr::create(Context& ctx, Type* itemType) {
+    return std::shared_ptr<AllocaInstr>{
+        new AllocaInstr{PointerType::get(ctx, itemType)}};
 }
 
-NotInstr::NotInstr(std::shared_ptr<TmpVar> dest, std::shared_ptr<Value> target)
-    : InstrWithResult{dest}, target_{target} {
+Type* AllocaInstr::itemType() const {
+    return dynamic_cast<PointerType*>(type())->underlying();
+}
+
+CallInstr::CallInstr(Function* callee, std::vector<std::shared_ptr<Value>> args)
+    : Instr{dynamic_cast<FunctionType*>(callee->type())->rettype()},
+      args_{std::move(args)} {}
+
+std::shared_ptr<CallInstr> CallInstr::create(
+    Function* callee,
+    std::vector<std::shared_ptr<Value>> args) {
+    return std::shared_ptr<CallInstr>{new CallInstr{callee, std::move(args)}};
+}
+
+Function* CallInstr::callee() const {
+    return callee_;
+}
+
+std::vector<std::shared_ptr<Value>>& CallInstr::args() {
+    return args_;
+}
+
+const std::vector<std::shared_ptr<Value>>& CallInstr::args() const {
+    return args_;
+}
+
+NotInstr::NotInstr(std::shared_ptr<Value> target)
+    : Instr{target->type()}, target_{target} {
     assert(utils::isa<BoolType>(target->type()));
-    assert(utils::isa<BoolType>(dest->type()));
 }
 
-std::shared_ptr<NotInstr> NotInstr::get(Context& ctx,
-                                        std::shared_ptr<Value> target) {
-    return std::shared_ptr<NotInstr>{
-        new NotInstr{TmpVar::get(ctx, ctx.getBoolTy()), target}};
+std::shared_ptr<NotInstr> NotInstr::create(std::shared_ptr<Value> target) {
+    return std::shared_ptr<NotInstr>{new NotInstr{target}};
 }
 
-NegInstr::NegInstr(std::shared_ptr<TmpVar> dest, std::shared_ptr<Value> target)
-    : InstrWithResult{dest}, target_{target} {
+NegInstr::NegInstr(std::shared_ptr<Value> target)
+    : Instr{target->type()}, target_{target} {
     assert(utils::isa<IntType>(target->type()));
 }
 
-std::shared_ptr<NegInstr> NegInstr::get(Context& ctx,
-                                        std::shared_ptr<Value> target) {
-    return std::shared_ptr<NegInstr>{
-        new NegInstr{TmpVar::get(ctx, ctx.getIntTy()), target}};
+std::shared_ptr<NegInstr> NegInstr::create(std::shared_ptr<Value> target) {
+    return std::shared_ptr<NegInstr>{new NegInstr{target}};
 }
 
 std::shared_ptr<Value> NegInstr::target() const {
     return target_;
 }
 
-LoadInstr::LoadInstr(std::shared_ptr<TmpVar> dest, std::shared_ptr<Value> src)
-    : InstrWithResult{dest}, src_{src} {
-    assert(dest->type() == src->type());
-}
+LoadInstr::LoadInstr(Type* ty, std::shared_ptr<Value> src)
+    : Instr{ty}, src_{src} {}
 
-std::shared_ptr<LoadInstr> LoadInstr::get(Context& ctx,
-                                          std::shared_ptr<Value> src) {
+std::shared_ptr<LoadInstr> LoadInstr::create(std::shared_ptr<Value> src) {
     PointerType* resTy = dynamic_cast<PointerType*>(src->type());
 
-    return std::shared_ptr<LoadInstr>{
-        new LoadInstr{TmpVar::get(ctx, resTy->underlying()), src}};
+    return std::shared_ptr<LoadInstr>{new LoadInstr{resTy, src}};
 }
 
 std::shared_ptr<Value> LoadInstr::src() const {
@@ -68,9 +85,9 @@ StoreInstr::StoreInstr(VoidType* ty,
            src->type());
 }
 
-std::shared_ptr<StoreInstr> StoreInstr::get(Context& ctx,
-                                            std::shared_ptr<Value> dest,
-                                            std::shared_ptr<Value> src) {
+std::shared_ptr<StoreInstr> StoreInstr::create(Context& ctx,
+                                               std::shared_ptr<Value> dest,
+                                               std::shared_ptr<Value> src) {
     return std::shared_ptr<StoreInstr>{
         new StoreInstr{ctx.getVoidTy(), dest, src}};
 }
@@ -82,20 +99,20 @@ std::shared_ptr<Value> StoreInstr::src() const {
     return src_;
 }
 
-CmpInstr::CmpInstr(std::shared_ptr<TmpVar> dest,
+CmpInstr::CmpInstr(BoolType* ty,
                    Cond cond,
                    std::shared_ptr<Value> lhs,
                    std::shared_ptr<Value> rhs)
-    : InstrWithResult{dest}, cond_{cond}, lhs_{lhs}, rhs_{rhs} {
+    : Instr{ty}, cond_{cond}, lhs_{lhs}, rhs_{rhs} {
     assert(lhs->type() == rhs->type());
 }
 
-std::shared_ptr<CmpInstr> CmpInstr::get(Context& ctx,
-                                        Cond cond,
-                                        std::shared_ptr<Value> lhs,
-                                        std::shared_ptr<Value> rhs) {
+std::shared_ptr<CmpInstr> CmpInstr::create(Context& ctx,
+                                           Cond cond,
+                                           std::shared_ptr<Value> lhs,
+                                           std::shared_ptr<Value> rhs) {
     return std::shared_ptr<CmpInstr>{
-        new CmpInstr{TmpVar::get(ctx, ctx.getBoolTy()), cond, lhs, rhs}};
+        new CmpInstr{ctx.getBoolTy(), cond, lhs, rhs}};
 }
 
 CmpInstr::Cond CmpInstr::cond() const {
@@ -110,28 +127,40 @@ std::shared_ptr<Value> CmpInstr::rhs() const {
     return rhs_;
 }
 
-GetFieldPtr::GetFieldPtr(std::shared_ptr<TmpVar> dest,
-                         std::shared_ptr<Value> target,
-                         unsigned fieldIdx)
-    : InstrWithResult{dest}, target_{target}, fieldIdx_{fieldIdx} {}
+GetFieldPtrInstr::GetFieldPtrInstr(Type* ty,
+                                   std::shared_ptr<Value> target,
+                                   unsigned fieldIdx)
+    : Instr{ty}, target_{target}, fieldIdx_{fieldIdx} {}
 
-std::shared_ptr<GetFieldPtr> GetFieldPtr::get(Context& ctx,
-                                              std::shared_ptr<Value> target,
-                                              unsigned fieldIdx) {
+std::shared_ptr<GetFieldPtrInstr> GetFieldPtrInstr::create(
+    std::shared_ptr<Value> target,
+    unsigned fieldIdx) {
     Type* resTy = dynamic_cast<StructType*>(target->type())->fields()[fieldIdx];
 
-    return std::shared_ptr<GetFieldPtr>{
-        new GetFieldPtr{TmpVar::get(ctx, resTy), target, fieldIdx}};
+    return std::shared_ptr<GetFieldPtrInstr>{
+        new GetFieldPtrInstr{resTy, target, fieldIdx}};
+}
+
+std::shared_ptr<Value> GetFieldPtrInstr::target() const {
+    return target_;
+}
+
+unsigned GetFieldPtrInstr::fieldIdx() const {
+    return fieldIdx_;
 }
 
 GotoInstr::GotoInstr(VoidType* ty, BasicBlock* dest) : Instr{ty}, dest_{dest} {}
 
-std::shared_ptr<GotoInstr> GotoInstr::get(Context& ctx, BasicBlock* dest) {
+std::shared_ptr<GotoInstr> GotoInstr::create(Context& ctx, BasicBlock* dest) {
     return std::shared_ptr<GotoInstr>{new GotoInstr{ctx.getVoidTy(), dest}};
 }
 
 bool GotoInstr::isTerminator() const {
     return true;
+}
+
+BasicBlock* GotoInstr::dest() const {
+    return dest_;
 }
 
 BrInstr::BrInstr(VoidType* ty,
@@ -140,10 +169,10 @@ BrInstr::BrInstr(VoidType* ty,
                  BasicBlock* onFalse)
     : Instr{ty}, cond_{cond}, onTrue_{onTrue}, onFalse_{onFalse} {}
 
-std::shared_ptr<BrInstr> BrInstr::get(Context& ctx,
-                                      std::shared_ptr<Value> cond,
-                                      BasicBlock* onTrue,
-                                      BasicBlock* onFalse) {
+std::shared_ptr<BrInstr> BrInstr::create(Context& ctx,
+                                         std::shared_ptr<Value> cond,
+                                         BasicBlock* onTrue,
+                                         BasicBlock* onFalse) {
     return std::shared_ptr<BrInstr>{
         new BrInstr{ctx.getVoidTy(), cond, onTrue, onFalse}};
 }
@@ -152,10 +181,22 @@ bool BrInstr::isTerminator() const {
     return true;
 }
 
+std::shared_ptr<Value> BrInstr::cond() const {
+    return cond_;
+}
+
+BasicBlock* BrInstr::onTrue() const {
+    return onTrue_;
+}
+
+BasicBlock* BrInstr::onFalse() const {
+    return onFalse_;
+}
+
 RetInstr::RetInstr(VoidType* ty, std::optional<std::shared_ptr<Value>> value)
     : Instr{ty}, value_{value} {}
 
-std::shared_ptr<RetInstr> RetInstr::get(
+std::shared_ptr<RetInstr> RetInstr::create(
     Context& ctx,
     std::optional<std::shared_ptr<Value>> value) {
     return std::shared_ptr<RetInstr>{new RetInstr{ctx.getVoidTy(), value}};
