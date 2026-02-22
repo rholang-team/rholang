@@ -5,75 +5,109 @@
 #include <optional>
 
 #include "compiler/ir/value.hpp"
-#include "utils/match.hpp"
 
 namespace ir {
 class BasicBlock;
 
-struct Instr : public Value {
-    bool isTerminator;
+class Instr : public Value {
+protected:
+    explicit Instr(Type* type);
 
-    explicit Instr(Type* type, bool isTerminator = false)
-        : Value{type}, isTerminator{isTerminator} {}
+public:
+    virtual bool isTerminator() const;
 };
 
-class NotInstr final : public Instr {
+class InstrWithResult : public Instr {
+    std::shared_ptr<TmpVar> dest_;
+
+protected:
+    explicit InstrWithResult(std::shared_ptr<TmpVar> dest);
+
+public:
+    std::shared_ptr<TmpVar> dest() const;
+};
+
+class NotInstr final : public InstrWithResult {
     std::shared_ptr<Value> target_;
 
+    NotInstr(std::shared_ptr<TmpVar> dest, std::shared_ptr<Value> target);
+
 public:
-    NotInstr(Context& ctx, std::shared_ptr<Value> target)
-        : Instr{ctx.getBoolTy()}, target_{target} {
-        assert(utils::isa<BoolType>(target->type));
-    }
+    static std::shared_ptr<NotInstr> get(Context& ctx,
+                                         std::shared_ptr<Value> target);
+
+    std::shared_ptr<Value> target() const;
 };
 
-class NegInstr final : public Instr {
+class NegInstr final : public InstrWithResult {
     std::shared_ptr<Value> target_;
 
-public:
-    NegInstr(Context& ctx, std::shared_ptr<Value> target)
-        : Instr{ctx.getIntTy()}, target_{target} {
-        assert(utils::isa<IntType>(target->type));
-    }
-};
-
-class AllocaInstr final : public Instr {
-    Type* itemTy_;
+    NegInstr(std::shared_ptr<TmpVar> dest, std::shared_ptr<Value> target);
 
 public:
-    AllocaInstr(Context& ctx, Type* itemTy, size_t alignment)
-        : Instr{PointerType::get(ctx, itemTy)}, itemTy_{itemTy} {}
+    static std::shared_ptr<NegInstr> get(Context& ctx,
+                                         std::shared_ptr<Value> target);
+
+    std::shared_ptr<Value> target() const;
 };
 
-class LoadInstr final : public Instr {
-    Type* itemTy_;
+class LoadInstr final : public InstrWithResult {
     std::shared_ptr<Value> src_;
 
+    LoadInstr(std::shared_ptr<TmpVar> dest, std::shared_ptr<Value> src);
+
 public:
-    LoadInstr(Context& ctx, Type* itemTy, std::shared_ptr<Value> src)
-        : Instr{ctx.getVoidTy()}, itemTy_{itemTy}, src_{src} {}
+    static std::shared_ptr<LoadInstr> get(Context& ctx,
+                                          std::shared_ptr<Value> src);
+
+    std::shared_ptr<Value> src() const;
 };
 
 class StoreInstr final : public Instr {
     std::shared_ptr<Value> dest_;
     std::shared_ptr<Value> src_;
 
-public:
-    StoreInstr(Context& ctx,
+    StoreInstr(VoidType* ty,
                std::shared_ptr<Value> dest,
-               std::shared_ptr<Value> src)
-        : Instr{ctx.getVoidTy()}, dest_{dest}, src_{src} {}
+               std::shared_ptr<Value> src);
+
+public:
+    static std::shared_ptr<StoreInstr> get(Context& ctx,
+                                           std::shared_ptr<Value> dest,
+                                           std::shared_ptr<Value> src);
+
+    std::shared_ptr<Value> dest() const;
+    std::shared_ptr<Value> src() const;
 };
 
-#define MAKE_BINARY_INSTR(name, ty)                             \
-    class name final : public Instr {                           \
-        std::shared_ptr<Value> lhs_, rhs_;                      \
-                                                                \
-    public:                                                     \
-        name(Context& ctx,                                      \
-             std::shared_ptr<Value> lhs,                        \
-             std::shared_ptr<Value> rhs)                        \
-            : Instr{ctx.get##ty##Ty()}, lhs_{lhs}, rhs_{rhs} {} \
+#define MAKE_BINARY_INSTR(name, ty)                                    \
+    class name final : public InstrWithResult {                        \
+        std::shared_ptr<Value> lhs_, rhs_;                             \
+                                                                       \
+        name(std::shared_ptr<TmpVar> dest,                             \
+             std::shared_ptr<Value> lhs,                               \
+             std::shared_ptr<Value> rhs)                               \
+            : InstrWithResult{dest}, lhs_{lhs}, rhs_{rhs} {            \
+            assert(dest->type() == lhs->type());                       \
+            assert(dest->type() == rhs->type());                       \
+        }                                                              \
+                                                                       \
+    public:                                                            \
+        static std::shared_ptr<name> get(Context& ctx,                 \
+                                         std::shared_ptr<Value> lhs,   \
+                                         std::shared_ptr<Value> rhs) { \
+            return std::shared_ptr<name>{new name{                     \
+                TmpVar::get(ctx, ctx.get##ty##Ty()),                   \
+                lhs,                                                   \
+                rhs,                                                   \
+            }};                                                        \
+        }                                                              \
+        std::shared_ptr<Value> lhs() const {                           \
+            return lhs_;                                               \
+        }                                                              \
+        std::shared_ptr<Value> rhs() const {                           \
+            return rhs_;                                               \
+        }                                                              \
     };
 
 MAKE_BINARY_INSTR(AddInstr, Int);
@@ -84,7 +118,7 @@ MAKE_BINARY_INSTR(OrInstr, Bool);
 
 #undef MAKE_BINARY_INSTR
 
-class CmpInstr final : public Instr {
+class CmpInstr final : public InstrWithResult {
 public:
     enum class Cond {
         Eq,
@@ -99,28 +133,45 @@ private:
     Cond cond_;
     std::shared_ptr<Value> lhs_, rhs_;
 
-public:
-    CmpInstr(Context& ctx,
+    CmpInstr(std::shared_ptr<TmpVar> dest,
              Cond cond,
              std::shared_ptr<Value> lhs,
-             std::shared_ptr<Value> rhs)
-        : Instr{ctx.getBoolTy()}, cond_{cond}, lhs_{lhs}, rhs_{rhs} {}
-};
-
-class GetElementPtr final : public Instr {
-    std::vector<std::shared_ptr<Value>> indices_;
+             std::shared_ptr<Value> rhs);
 
 public:
-    GetElementPtr(Type* type, std::vector<std::shared_ptr<Value>> indices)
-        : Instr{type}, indices_{std::move(indices)} {}
+    static std::shared_ptr<CmpInstr> get(Context& ctx,
+                                         Cond cond,
+                                         std::shared_ptr<Value> lhs,
+                                         std::shared_ptr<Value> rhs);
+
+    Cond cond() const;
+    std::shared_ptr<Value> lhs() const;
+    std::shared_ptr<Value> rhs() const;
+};
+
+class GetFieldPtr final : public InstrWithResult {
+    std::shared_ptr<Value> target_;
+    unsigned fieldIdx_;
+
+    GetFieldPtr(std::shared_ptr<TmpVar> dest,
+                std::shared_ptr<Value> target,
+                unsigned fieldIdx);
+
+public:
+    static std::shared_ptr<GetFieldPtr> get(Context& ctx,
+                                            std::shared_ptr<Value> target,
+                                            unsigned fieldIdx);
 };
 
 class GotoInstr final : public Instr {
     BasicBlock* dest_;
 
+    GotoInstr(VoidType* ty, BasicBlock* dest);
+
 public:
-    GotoInstr(Context& ctx, BasicBlock* to)
-        : Instr{ctx.getVoidTy(), true}, dest_{to} {}
+    static std::shared_ptr<GotoInstr> get(Context& ctx, BasicBlock* dest);
+
+    bool isTerminator() const override;
 };
 
 class BrInstr final : public Instr {
@@ -128,26 +179,32 @@ class BrInstr final : public Instr {
     BasicBlock* onTrue_;
     BasicBlock* onFalse_;
 
-public:
-    BrInstr(Context& ctx,
+    BrInstr(VoidType* ty,
             std::shared_ptr<Value> cond,
             BasicBlock* onTrue,
-            BasicBlock* onFalse)
-        : Instr{ctx.getVoidTy(), true},
-          cond_{cond},
-          onTrue_{onTrue},
-          onFalse_{onFalse} {}
+            BasicBlock* onFalse);
+
+public:
+    static std::shared_ptr<BrInstr> get(Context& ctx,
+                                        std::shared_ptr<Value> cond,
+                                        BasicBlock* onTrue,
+                                        BasicBlock* onFalse);
+
+    bool isTerminator() const override;
 };
 
 class RetInstr final : public Instr {
     std::optional<std::shared_ptr<Value>> value_;
 
-public:
-    explicit RetInstr(
-        Context& ctx,
-        std::optional<std::shared_ptr<Value>> value = std::nullopt)
-        : Instr{ctx.getVoidTy(), true}, value_{value} {}
+    RetInstr(VoidType* ty, std::optional<std::shared_ptr<Value>> value);
 
-    std::shared_ptr<Value> value() const;
+public:
+    static std::shared_ptr<RetInstr> get(
+        Context& ctx,
+        std::optional<std::shared_ptr<Value>> value = std::nullopt);
+
+    std::optional<std::shared_ptr<Value>> value() const;
+
+    bool isTerminator() const override;
 };
 }  // namespace ir

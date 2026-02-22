@@ -67,7 +67,7 @@ struct StructType final : public Type {
         Field(S&& name, std::shared_ptr<Type> type)
             : name{std::forward<S>(name)}, type{type} {}
 
-        bool operator==(const Field& that) const;
+        bool operator==(const Field& that) const = default;
     };
 
     std::string name;

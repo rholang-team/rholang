@@ -28,19 +28,15 @@ bool FunctionType::operator==(const FunctionType& that) const {
            *rettype == *that.rettype;
 }
 
-bool StructType::Field::operator==(const Field& that) const {
-    return name == that.name && *type == *that.type;
-}
-
 bool StructType::operator==(const StructType& that) const {
     return name == that.name && std::ranges::equal(fields, that.fields);
 }
 
 bool Type::operator==(const Type& that) const {
-    return utils::polymorphicEq<PrimitiveType>(this, &that) ||
-           utils::polymorphicEq<FunctionType>(this, &that) ||
-           utils::polymorphicEq<TypeRef>(this, &that) ||
-           utils::polymorphicEq<StructType>(this, &that);
+    return utils::
+        polymorphicEq<Type, PrimitiveType, FunctionType, TypeRef, StructType>(
+            this,
+            &that);
 }
 }  // namespace frontend
 

@@ -18,6 +18,8 @@ class Context {
     StructTypeSet structTypes_;
     FunctionTypeSet functionTypes_;
 
+    size_t temporaryCounter_ = 0;
+
 public:
     Context() : memoryResource_{}, allocator_{&memoryResource_} {}
 
@@ -36,6 +38,8 @@ public:
     std::span<T> allocate(size_t n) {
         return std::span<T>{allocator_.allocate_object<T>(n), n};
     }
+
+    size_t nextTmpIdx();
 
     VoidType* getVoidTy();
     BoolType* getBoolTy();

@@ -13,6 +13,10 @@ IntType* Context::getIntTy() {
     return &intTy_;
 }
 
+size_t Context::nextTmpIdx() {
+    return temporaryCounter_++;
+}
+
 PointerType* Context::findPointerType(const PointerType& ty) {
     auto it = pointerTypes_.find(ty);
     return it == pointerTypes_.end() ? nullptr : *it;
