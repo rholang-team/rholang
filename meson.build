@@ -26,6 +26,7 @@ frontend_src = [
     'compiler/frontend/ast/expr.cpp',
     'compiler/frontend/sema.cpp',
     'compiler/frontend/mangling.cpp',
+    'compiler/frontend/ast2ir.cpp',
 ]
 
 ir_src = [
