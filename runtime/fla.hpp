@@ -7,7 +7,14 @@
 namespace memory_manager::alloc {
 
 class FreeListAllocator {
+    struct MapHeader {
+        void* start;
+        void* end;
+        MapHeader* next;
+    };
+
     Header* free_head;
+    MapHeader* map_head;
 
 public:
     FreeListAllocator();
@@ -21,6 +28,11 @@ private:
     void split_if_possible(Header* cell, size_t needed_size);
     Header* insert(Header* cell);
     void coalesce_with_next(Header* cell);
+
+    template <typename F>
+    void foreach_cell(F&& visitor);
+    template <typename F>
+    void foreach_allocated(F&& visitor);
 };
 
 }  // namespace memory_manager::alloc

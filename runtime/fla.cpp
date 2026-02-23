@@ -15,11 +15,22 @@ inline size_t align_up(size_t n) {
 }
 
 void FreeListAllocator::extend(size_t required_size) {
-    size_t pages = (required_size + PAGE_SIZE - 1) / PAGE_SIZE;
+    size_t map_off = align_up(sizeof(MapHeader));
+    size_t pages = (required_size + map_off + PAGE_SIZE - 1) / PAGE_SIZE;
     size_t total = pages * PAGE_SIZE;
     auto new_page =
         mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-    auto node = (Header*)new_page;
+    auto map = (MapHeader*)new_page;
+    auto node = (Header*)((char*)new_page + map_off);
+    map->start = node;
+    map->end = (char*)map + total;
+
+    if (map_head) [[likely]] {
+        map->next = map_head->next;
+    }
+
+    map_head = map;
+
     node->size = total - sizeof(Header);
     node->allocated = false;
     node->mark = false;
@@ -27,9 +38,7 @@ void FreeListAllocator::extend(size_t required_size) {
     free_head = node;
 }
 
-FreeListAllocator::FreeListAllocator() {
-    free_head = nullptr;
-}
+FreeListAllocator::FreeListAllocator() : free_head(nullptr), map_head(nullptr) {}
 
 void* FreeListAllocator::allocate(size_t size) {
     Header* prev;
@@ -123,5 +132,30 @@ void FreeListAllocator::coalesce_with_next(Header* cell) {
             cell->next = cell->next->next;
         }
     }
+}
+
+template <typename F>
+void FreeListAllocator::foreach_cell(F&& visitor) {
+    for (MapHeader* r = map_head; r != nullptr; r = r->next) {
+        void* cur = r->start;
+        void* end = r->end;
+
+        while (cur < end) {
+            Header* cell = (Header*)cur;
+            if (cell->allocated) {
+                visitor((Header*)((char*)cur + sizeof(Header)));
+            }
+            cur = (char*)cur + sizeof(Header) + cell->size;
+        }
+    }
+}
+
+template <typename F>
+void FreeListAllocator::foreach_allocated(F&& visitor) {
+    foreach_cell([&visitor](Header* cell) {
+        if (cell->allocated) {
+            visitor(cell);
+        }
+    });
 }
 }  // namespace memory_manager::alloc
