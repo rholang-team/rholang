@@ -90,6 +90,8 @@ void FreeListAllocator::split_if_possible(Header* cell, size_t payload_size) {
         auto new_cell = (Header*)((char*)cell + total_size);
         new_cell->size = cell->size - total_size;
         new_cell->next = cell->next;
+        new_cell->mark = false;
+        new_cell->allocated = false;
         cell->size = payload_size;
         cell->next = new_cell;
     }
