@@ -1,0 +1,56 @@
+FunctionDecl _R3Pow3run (self: struct Pow {x int, n int}) -> int
+  CompoundStmt
+    DeclStmt
+      VarDecl i int
+        NumLitExpr 1 int
+    DeclStmt
+      VarDecl res int
+        NumLitExpr 1 int
+    WhileStmt
+      BinaryExpr <= bool
+        VarRefExpr i int
+        MemberRefExpr n int
+          VarRefExpr self struct Pow {x int, n int}
+      CompoundStmt
+        AssignmentStmt
+          VarRefExpr res int
+          BinaryExpr * int
+            VarRefExpr res int
+            MemberRefExpr x int
+              VarRefExpr self struct Pow {x int, n int}
+        AssignmentStmt
+          VarRefExpr i int
+          BinaryExpr + int
+            VarRefExpr i int
+            NumLitExpr 1 int
+    RetStmt
+      VarRefExpr res int
+
+================================================================
+
+int _R3Pow3run(*struct{int, int}):
+bb1:
+	x0 = alloca int
+	store x0, 1
+	x1 = alloca int
+	store x1, 1
+	goto bb2
+bb2:
+	x2 = load x0
+	x3 = gfp a0, 1
+	x4 = load x3
+	x5 = cmp le, x2, x4
+	br x5, bb3, bb4
+	goto bb3
+bb3:
+	x7 = load x1
+	x8 = gfp a0, 0
+	x9 = mul x7, x8
+	store x1, x9
+	x10 = load x0
+	x11 = add x1, 1
+	store x0, x11
+	goto bb2
+bb4:
+	x12 = load x1
+	ret x12

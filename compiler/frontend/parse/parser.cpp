@@ -588,7 +588,7 @@ std::shared_ptr<ast::Expr> Parser::parseTerm() {
         }
         case lex::Token::Num: {
             lexemes.next();
-            size_t value;
+            unsigned value;
             auto lit = lexemes.getLiteral(l.span);
             auto res =
                 std::from_chars(lit.data(), lit.data() + lit.size(), value);

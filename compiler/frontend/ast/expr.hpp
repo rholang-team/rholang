@@ -60,9 +60,9 @@ struct BinaryExpr final : public Expr {
 };
 
 struct NumLitExpr final : public Expr {
-    lex::WithSpan<size_t> value;
+    lex::WithSpan<unsigned> value;
 
-    explicit NumLitExpr(lex::WithSpan<size_t> value) : value{value} {}
+    explicit NumLitExpr(lex::WithSpan<unsigned> value) : value{value} {}
 
     lex::Span span() const override;
 };

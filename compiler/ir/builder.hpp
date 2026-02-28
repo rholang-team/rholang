@@ -20,18 +20,34 @@ public:
 
     Module build();
 
-    Function* startFunction(std::string name, FunctionType* type);
+    VoidType* getVoidTy();
+    BoolType* getBoolTy();
+    IntType* getIntTy();
+
+    PointerType* getPointerTy(Type* underlying);
+    FunctionType* getFunctionTy(Type* rettype, std::span<Type*> params);
+    StructType* getStructTy(std::span<Type*> fields);
+
+    void addFunctionSignature(std::shared_ptr<FunctionSignature> signature);
+
+    Function* startFunction(std::shared_ptr<FunctionSignature> signature);
     void finishFunction();
+
+    std::optional<std::shared_ptr<FunctionSignature>> lookupSignature(
+        const std::string& name);
 
     BasicBlock* startBB();
     void finishBB();
 
+    void addToCurBB(std::shared_ptr<Instr> i);
+
     std::shared_ptr<IntImm> createIntImm(int value);
     std::shared_ptr<BoolImm> createBoolImm(bool value);
+    std::shared_ptr<FnArgRef> createFnArgRef(Function* fn, size_t idx);
 
     std::shared_ptr<AllocaInstr> createAllocaInstr(Type* itemType);
     std::shared_ptr<CallInstr> createCallInstr(
-        Function* callee,
+        std::shared_ptr<FunctionSignature> callee,
         std::vector<std::shared_ptr<Value>> args);
     std::shared_ptr<NotInstr> createNotInstr(std::shared_ptr<Value> target);
     std::shared_ptr<NegInstr> createNegInstr(std::shared_ptr<Value> target);
@@ -47,7 +63,7 @@ public:
     std::shared_ptr<CmpInstr> createCmpInstr(CmpInstr::Cond cond,
                                              std::shared_ptr<Value> lhs,
                                              std::shared_ptr<Value> rhs);
-    std::shared_ptr<GetFieldPtrInstr> createGetFieldInstr(
+    std::shared_ptr<GetFieldPtrInstr> createGetFieldPtrInstr(
         std::shared_ptr<Value> target,
         unsigned fieldIdx);
     std::shared_ptr<GotoInstr> createGotoInstr(BasicBlock* dest);

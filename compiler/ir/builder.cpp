@@ -6,11 +6,32 @@ namespace ir {
 Module Builder::build() {
     return std::move(module_);
 }
+VoidType* Builder::getVoidTy() {
+    return ctx_.getVoidTy();
+}
+BoolType* Builder::getBoolTy() {
+    return ctx_.getBoolTy();
+}
+IntType* Builder::getIntTy() {
+    return ctx_.getIntTy();
+}
 
-Function* Builder::startFunction(std::string name, FunctionType* type) {
+PointerType* Builder::getPointerTy(Type* underlying) {
+    return PointerType::get(ctx_, underlying);
+}
+
+FunctionType* Builder::getFunctionTy(Type* rettype, std::span<Type*> params) {
+    return FunctionType::get(ctx_, rettype, params);
+}
+
+StructType* Builder::getStructTy(std::span<Type*> fields) {
+    return StructType::get(ctx_, fields);
+}
+
+Function* Builder::startFunction(std::shared_ptr<FunctionSignature> signature) {
     assert(!function_);
 
-    function_ = std::make_unique<Function>(std::move(name), type);
+    function_ = std::make_unique<Function>(signature);
     return function_.get();
 }
 
@@ -19,6 +40,16 @@ void Builder::finishFunction() {
 
     module_.addFunction(
         std::exchange(function_, std::unique_ptr<Function>{nullptr}));
+}
+
+std::optional<std::shared_ptr<FunctionSignature>> Builder::lookupSignature(
+    const std::string& name) {
+    auto it = module_.signatures().find(name);
+
+    if (it == module_.signatures().end()) {
+        return std::nullopt;
+    }
+    return it->second;
 }
 
 BasicBlock* Builder::startBB() {
@@ -36,6 +67,11 @@ void Builder::finishBB() {
         std::exchange(bb_, std::unique_ptr<BasicBlock>{nullptr}));
 }
 
+void Builder::addToCurBB(std::shared_ptr<Instr> i) {
+    assert(bb_);
+    bb_->addInstr(i);
+}
+
 std::shared_ptr<IntImm> Builder::createIntImm(int value) {
     return IntImm::create(ctx_, value);
 }
@@ -44,12 +80,16 @@ std::shared_ptr<BoolImm> Builder::createBoolImm(bool value) {
     return BoolImm::create(ctx_, value);
 }
 
+std::shared_ptr<FnArgRef> Builder::createFnArgRef(Function* fn, size_t idx) {
+    return FnArgRef::create(fn, idx);
+}
+
 std::shared_ptr<AllocaInstr> Builder::createAllocaInstr(Type* itemType) {
     return AllocaInstr::create(ctx_, itemType);
 }
 
 std::shared_ptr<CallInstr> Builder::createCallInstr(
-    Function* callee,
+    std::shared_ptr<FunctionSignature> callee,
     std::vector<std::shared_ptr<Value>> args) {
     return CallInstr::create(callee, std::move(args));
 }
@@ -96,10 +136,10 @@ std::shared_ptr<CmpInstr> Builder::createCmpInstr(CmpInstr::Cond cond,
     return CmpInstr::create(ctx_, cond, lhs, rhs);
 }
 
-std::shared_ptr<GetFieldPtrInstr> Builder::createGetFieldInstr(
+std::shared_ptr<GetFieldPtrInstr> Builder::createGetFieldPtrInstr(
     std::shared_ptr<Value> target,
-    unsigned fieldIdx) {
-    return GetFieldPtrInstr::create(target, fieldIdx);
+    unsigned idx) {
+    return GetFieldPtrInstr::create(target, idx);
 }
 
 std::shared_ptr<GotoInstr> Builder::createGotoInstr(BasicBlock* dest) {

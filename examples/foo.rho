@@ -15,6 +15,11 @@ struct Pow {
     }
 }
 
-fun square(x int) int {
-    return Pow{.x = x, .n = 2}.run();
+fun square(x int, double bool) int {
+    var res int = Pow{.x = x, .n = 2}.run();
+    if (double) {
+        return res * 2;
+    } else {
+        return res;
+    }
 }

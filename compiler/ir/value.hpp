@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "compiler/ir/context.hpp"
+#include "compiler/ir/function.hpp"
 #include "compiler/ir/type.hpp"
 
 namespace ir {
@@ -38,5 +39,16 @@ public:
     static std::shared_ptr<BoolImm> create(Context& ctx, bool value);
 
     bool value() const;
+};
+
+class FnArgRef final : public Value {
+    size_t idx_;
+
+    FnArgRef(Type* ty, size_t idx) : Value{ty}, idx_{idx} {}
+
+public:
+    static std::shared_ptr<FnArgRef> create(Function* fn, size_t idx);
+
+    size_t idx() const;
 };
 }  // namespace ir

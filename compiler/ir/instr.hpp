@@ -28,17 +28,18 @@ public:
 };
 
 class CallInstr final : public Instr {
-    Function* callee_;
+    std::shared_ptr<FunctionSignature> callee_;
     std::vector<std::shared_ptr<Value>> args_;
 
-    CallInstr(Function* callee, std::vector<std::shared_ptr<Value>> args);
+    CallInstr(std::shared_ptr<FunctionSignature> callee,
+              std::vector<std::shared_ptr<Value>> args);
 
 public:
     static std::shared_ptr<CallInstr> create(
-        Function* callee,
+        std::shared_ptr<FunctionSignature> callee,
         std::vector<std::shared_ptr<Value>> args);
 
-    Function* callee() const;
+    std::shared_ptr<FunctionSignature> callee() const;
     std::vector<std::shared_ptr<Value>>& args();
     const std::vector<std::shared_ptr<Value>>& args() const;
 };

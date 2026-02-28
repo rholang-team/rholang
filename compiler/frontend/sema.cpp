@@ -1,7 +1,6 @@
 #include "compiler/frontend/sema.hpp"
 
 #include <cassert>
-#include <forward_list>
 #include <memory>
 #include <ranges>
 #include <string>
@@ -13,6 +12,7 @@
 #include "compiler/frontend/ast/stmt.hpp"
 #include "compiler/frontend/ast/visitor.hpp"
 #include "compiler/frontend/error.hpp"
+#include "compiler/frontend/scopedmap.hpp"
 #include "compiler/frontend/translationunit.hpp"
 #include "compiler/frontend/type.hpp"
 
@@ -29,38 +29,15 @@ class Sema : private ast::DeclVisitor,
     using StmtVisitor<void>::visit;
     using ExprVisitor<void>::visit;
 
-    ast::File file;
-    std::forward_list<std::unordered_map<std::string, std::shared_ptr<Type>>>
-        scopes;
-    ast::FunctionDecl* curFunction = nullptr;
-    ast::StructDecl* curStruct = nullptr;
-
-    void pushScope() {
-        scopes.emplace_front();
-    }
-
-    void popScope() {
-        scopes.pop_front();
-    }
-
-    void addToScope(std::string name, std::shared_ptr<Type> type) {
-        scopes.front().insert_or_assign(std::move(name), type);
-    }
-
-    std::optional<std::shared_ptr<Type>> lookup(const std::string& name) const {
-        for (const auto& scope : scopes) {
-            auto it = scope.find(name);
-            if (it != scope.end())
-                return it->second;
-        }
-
-        return std::nullopt;
-    }
+    ast::File file_;
+    ScopedMap<std::string, std::shared_ptr<Type>> scopes_;
+    ast::FunctionDecl* curFunction_ = nullptr;
+    ast::StructDecl* curStruct_ = nullptr;
 
     std::optional<std::shared_ptr<StructType>> lookupType(
         const std::string& name) const {
-        auto it = file.structs.find(name);
-        if (it == file.structs.end()) {
+        auto it = file_.structs.find(name);
+        if (it == file_.structs.end()) {
             return std::nullopt;
         }
 
@@ -79,7 +56,7 @@ class Sema : private ast::DeclVisitor,
         if (const auto* typeRef = dynamic_cast<TypeRef*>(type.value.get())) {
             auto actualType = lookupType(typeRef->name);
             if (!actualType.has_value()) {
-                throw Error(file.input,
+                throw Error(file_.input,
                             type.span,
                             std::format("undefined type {}", typeRef->name));
             }
@@ -95,14 +72,14 @@ class Sema : private ast::DeclVisitor,
         switch (expr.op.value) {
             case ast::UnaryExpr::Op::Minus:
                 if (*expr.value->type != *PrimitiveType::intType) {
-                    throw Error(file.input,
+                    throw Error(file_.input,
                                 expr.value->span(),
                                 "invalid subexpression type");
                 }
                 break;
             case ast::UnaryExpr::Op::Not:
                 if (*expr.value->type != *PrimitiveType::boolType) {
-                    throw Error(file.input,
+                    throw Error(file_.input,
                                 expr.value->span(),
                                 "invalid subexpression type");
                 }
@@ -135,7 +112,7 @@ class Sema : private ast::DeclVisitor,
 
         auto checkValidity = [this, &expr](bool cond) {
             if (!cond) {
-                throw Error(file.input,
+                throw Error(file_.input,
                             expr.op.span,
                             "invalid types for binary expression");
             }
@@ -173,10 +150,10 @@ class Sema : private ast::DeclVisitor,
     }
 
     void visit(ast::VarRefExpr& expr) {
-        auto type = lookup(expr.name.value);
+        auto type = scopes_.lookup(expr.name.value);
         if (!type.has_value()) {
             throw Error(
-                file.input,
+                file_.input,
                 expr.name.span,
                 std::format("reference to undefined name {}", expr.name.value));
         }
@@ -188,7 +165,7 @@ class Sema : private ast::DeclVisitor,
         visit(expr.target.get());
 
         if (!utils::isa<StructType>(expr.target->type.get())) {
-            throw Error(file.input,
+            throw Error(file_.input,
                         expr.target->span(),
                         "value is not a struct");
         }
@@ -207,7 +184,7 @@ class Sema : private ast::DeclVisitor,
             return;
         }
 
-        auto& methods = file.structs.at(targetStruct.name).methods;
+        auto& methods = file_.structs.at(targetStruct.name).methods;
         auto methodIt = methods.find(expr.member.value);
 
         if (methodIt != methods.end()) {
@@ -217,7 +194,7 @@ class Sema : private ast::DeclVisitor,
         }
 
         throw Error(
-            file.input,
+            file_.input,
             expr.member.span,
             std::format("object has no member named {}", expr.member.value));
     }
@@ -232,7 +209,7 @@ class Sema : private ast::DeclVisitor,
             dynamic_cast<FunctionType*>(expr.callee->type.get());
 
         if (!fntypePtr) {
-            throw Error(file.input,
+            throw Error(file_.input,
                         expr.callee->span(),
                         std::format("callee of type {} is not callable",
                                     *expr.callee->type));
@@ -244,7 +221,7 @@ class Sema : private ast::DeclVisitor,
                 dynamic_cast<ast::MemberRefExpr*>(expr.callee.get())) {
             expr.args.emplace(expr.args.begin(), memberRef->target);
 
-            auto& structDecl = file.structs.at(
+            auto& structDecl = file_.structs.at(
                 dynamic_cast<StructType&>(*memberRef->target->type).name);
 
             auto method = structDecl.methods.at(memberRef->member.value);
@@ -262,7 +239,7 @@ class Sema : private ast::DeclVisitor,
 
         if (expr.args.size() != fntype.params.size()) {
             throw Error(
-                file.input,
+                file_.input,
                 expr.span(),
                 std::format(
                     "too {} arguments for call: expected {}, but got {}",
@@ -275,7 +252,7 @@ class Sema : private ast::DeclVisitor,
              std::ranges::zip_view{fntype.params, expr.args}) {
             if (*param != *arg->type) {
                 throw Error(
-                    file.input,
+                    file_.input,
                     arg->span(),
                     std::format(
                         "argument type mismatch: expected {}, but got {}",
@@ -292,7 +269,7 @@ class Sema : private ast::DeclVisitor,
 
         StructType* structType = dynamic_cast<StructType*>(expr.type.get());
         if (!structType) {
-            throw Error(file.input,
+            throw Error(file_.input,
                         expr.tySpan,
                         std::format("{} is not a struct type", *expr.type));
         }
@@ -306,7 +283,7 @@ class Sema : private ast::DeclVisitor,
 
             if (nIsExtraField) {
                 throw Error(
-                    file.input,
+                    file_.input,
                     expr.span(),
                     std::format("extra field `{}` in struct initializer", n));
             }
@@ -314,7 +291,7 @@ class Sema : private ast::DeclVisitor,
 
         for (const StructType::Field& f : structType->fields) {
             if (!expr.fields.contains(f.name)) {
-                throw Error(file.input,
+                throw Error(file_.input,
                             expr.span(),
                             std::format("struct field `{}` is not initialized",
                                         f.name));
@@ -325,7 +302,7 @@ class Sema : private ast::DeclVisitor,
             visit(fieldInitializer.get());
 
             if (*f.type != *fieldInitializer->type) {
-                throw Error(file.input,
+                throw Error(file_.input,
                             fieldInitializer->span(),
                             std::format("field `{}` initializer type mismatch: "
                                         "expected {}, but got {}",
@@ -344,12 +321,12 @@ class Sema : private ast::DeclVisitor,
             rettype = (*stmt.value)->type;
         }
 
-        if (*rettype != *curFunction->rettype.value) {
+        if (*rettype != *curFunction_->rettype.value) {
             throw Error(
-                file.input,
+                file_.input,
                 stmt.span,
                 std::format("return type mismatch: expected {}, but got {}",
-                            *curFunction->rettype.value,
+                            *curFunction_->rettype.value,
                             *rettype));
         }
     }
@@ -363,7 +340,7 @@ class Sema : private ast::DeclVisitor,
         visit(stmt.rhs.get());
 
         if (!isAssignable(stmt.lhs.get())) {
-            throw Error(file.input,
+            throw Error(file_.input,
                         stmt.lhs->span(),
                         "expression is not assignable");
         }
@@ -374,11 +351,11 @@ class Sema : private ast::DeclVisitor,
     }
 
     void visit(ast::CompoundStmt& stmt) {
-        pushScope();
+        scopes_.pushScope();
         for (const auto& s : stmt.stmts) {
             visit(s.get());
         }
-        popScope();
+        scopes_.popScope();
     }
 
     void visit(ast::CondStmt& stmt) {
@@ -386,7 +363,7 @@ class Sema : private ast::DeclVisitor,
 
         if (*stmt.cond->type != *PrimitiveType::boolType) {
             throw Error(
-                file.input,
+                file_.input,
                 stmt.cond->span(),
                 std::format("invalid condition type: expected {}, but got {}",
                             *PrimitiveType::boolType,
@@ -405,7 +382,7 @@ class Sema : private ast::DeclVisitor,
 
         if (*stmt.cond->type != *PrimitiveType::boolType) {
             throw Error(
-                file.input,
+                file_.input,
                 stmt.cond->span(),
                 std::format("invalid condition type: expected {}, but got {}",
                             *PrimitiveType::boolType,
@@ -421,7 +398,7 @@ class Sema : private ast::DeclVisitor,
         ast::Expr* value = decl.value.get();
         visit(value);
         if (*value->type != *actualType) {
-            throw Error(file.input,
+            throw Error(file_.input,
                         value->span(),
                         std::format("value type does not match declared "
                                     "variable type: expected {}, got {}",
@@ -429,42 +406,42 @@ class Sema : private ast::DeclVisitor,
                                     *value->type));
         }
 
-        addToScope(decl.name.value, actualType);
+        scopes_.addOrShadow(decl.name.value, actualType);
     }
 
     void visit(ast::FunctionDecl& decl) {
         if (decl.isInstanceMethod()) {
-            if (!curStruct) {
-                throw Error(file.input,
+            if (!curStruct_) {
+                throw Error(file_.input,
                             decl.name.span,
                             "methods cannot be created at the top level");
             }
 
             decl.paramTypes[0].value =
-                std::make_shared<StructType>(curStruct->type());
+                std::make_shared<StructType>(curStruct_->type());
         }
 
-        curFunction = &decl;
-        addToScope(decl.name.value,
-                   std::make_shared<FunctionType>(decl.type()));
+        curFunction_ = &decl;
+        scopes_.addOrShadow(decl.name.value,
+                            std::make_shared<FunctionType>(decl.type()));
 
-        pushScope();
+        scopes_.pushScope();
         for (const auto& [name, type] :
              std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
-            addToScope(name, derefType(type));
+            scopes_.addOrShadow(name, derefType(type));
         }
         visit(decl.body);
-        popScope();
-        curFunction = nullptr;
+        scopes_.popScope();
+        curFunction_ = nullptr;
     }
 
     void derefStructMemberTypes() {
-        for (auto& [name, s] : file.structs) {
+        for (auto& [name, s] : file_.structs) {
             for (auto& field : s.fields) {
                 field.type.value = derefType(field.type);
             }
 
-            for (auto& [name, decl] : file.structs.at(name).methods) {
+            for (auto& [name, decl] : file_.structs.at(name).methods) {
                 for (auto& type : decl->paramTypes) {
                     type.value = derefType(type);
                 }
@@ -474,11 +451,11 @@ class Sema : private ast::DeclVisitor,
     }
 
     void derefGlobalTypes() {
-        for (auto& [name, decl] : file.globals) {
+        for (auto& [name, decl] : file_.globals) {
             decl.type.value = derefType(decl.type);
         }
 
-        for (auto& [name, decl] : file.functions) {
+        for (auto& [name, decl] : file_.functions) {
             for (const auto& [name, type] :
                  std::ranges::zip_view{decl->paramNames, decl->paramTypes}) {
                 type.value = derefType(type);
@@ -488,53 +465,55 @@ class Sema : private ast::DeclVisitor,
     }
 
     void fillTopLevelScope() {
-        pushScope();
+        scopes_.pushScope();
 
-        for (const auto& [name, decl] : file.functions) {
-            addToScope(name, std::make_shared<FunctionType>(decl->type()));
+        for (const auto& [name, decl] : file_.functions) {
+            scopes_.addOrShadow(name,
+                                std::make_shared<FunctionType>(decl->type()));
         }
-        for (const auto& [name, decl] : file.globals) {
-            addToScope(name, derefType(decl.type));
+        for (const auto& [name, decl] : file_.globals) {
+            scopes_.addOrShadow(name, derefType(decl.type));
         }
     }
 
 public:
-    Sema(ast::File file) : file{std::move(file)} {}
+    Sema(ast::File file) : file_{std::move(file)} {}
 
     TranslationUnit run() {
         derefStructMemberTypes();
         derefGlobalTypes();
         fillTopLevelScope();
 
-        for (auto& [name, s] : file.structs) {
-            curStruct = &s;
+        for (auto& [name, s] : file_.structs) {
+            curStruct_ = &s;
 
             for (auto& field : s.fields) {
-                addToScope(field.name.value, field.type.value);
+                scopes_.addOrShadow(field.name.value, field.type.value);
             }
             for (auto& [methodName, method] : s.methods) {
-                addToScope(methodName,
-                           std::make_shared<FunctionType>(method->type()));
+                scopes_.addOrShadow(
+                    methodName,
+                    std::make_shared<FunctionType>(method->type()));
             }
 
             for (auto& [methodName, method] : s.methods) {
                 visit(*method);
             }
         }
-        curStruct = nullptr;
+        curStruct_ = nullptr;
 
-        for (auto& [name, decl] : file.globals) {
+        for (auto& [name, decl] : file_.globals) {
             visit(decl);
         }
-        for (auto& [name, decl] : file.functions) {
+        for (auto& [name, decl] : file_.functions) {
             visit(*decl);
         }
 
         std::unordered_map<std::string, std::shared_ptr<ast::FunctionDecl>>
-            functions = file.functions;
+            functions = file_.functions;
         std::unordered_map<std::string, StructType> structs;
 
-        for (auto& [name, s] : file.structs) {
+        for (auto& [name, s] : file_.structs) {
             structs.emplace(name, s.type());
 
             for (auto& [methodName, method] : s.methods) {
@@ -543,7 +522,7 @@ public:
         }
 
         return TranslationUnit{
-            .globals = std::move(file.globals),
+            .globals = std::move(file_.globals),
             .functions = std::move(functions),
             .structs = std::move(structs),
         };

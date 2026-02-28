@@ -64,7 +64,7 @@ void PrettyPrinter::visit(FunctionDecl& decl) {
         showTyPtr(t.value.get());
     }
     os << ") -> " << *decl.rettype.value << '\n';
-    visit(decl.body);
+    visit(&decl.body);
     depth -= 1;
 }
 
@@ -107,7 +107,7 @@ void PrettyPrinter::visit(CondStmt& stmt) {
 
     pad();
     os << "Then\n";
-    visit(stmt.onTrue);
+    visit(&stmt.onTrue);
 
     if (stmt.onFalse.has_value()) {
         pad();
@@ -120,8 +120,7 @@ void PrettyPrinter::visit(WhileStmt& stmt) {
     pad();
     os << "WhileStmt\n";
     visit(stmt.cond.get());
-
-    visit(stmt.body);
+    visit(&stmt.body);
 }
 
 void PrettyPrinter::visit(RetStmt& stmt) {

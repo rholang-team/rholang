@@ -20,17 +20,18 @@ Type* AllocaInstr::itemType() const {
     return dynamic_cast<PointerType*>(type())->underlying();
 }
 
-CallInstr::CallInstr(Function* callee, std::vector<std::shared_ptr<Value>> args)
-    : Instr{dynamic_cast<FunctionType*>(callee->type())->rettype()},
+CallInstr::CallInstr(std::shared_ptr<FunctionSignature> callee,
+                     std::vector<std::shared_ptr<Value>> args)
+    : Instr{dynamic_cast<const FunctionType*>(callee->type())->rettype()},
       args_{std::move(args)} {}
 
 std::shared_ptr<CallInstr> CallInstr::create(
-    Function* callee,
+    std::shared_ptr<FunctionSignature> callee,
     std::vector<std::shared_ptr<Value>> args) {
     return std::shared_ptr<CallInstr>{new CallInstr{callee, std::move(args)}};
 }
 
-Function* CallInstr::callee() const {
+std::shared_ptr<FunctionSignature> CallInstr::callee() const {
     return callee_;
 }
 
@@ -129,16 +130,16 @@ std::shared_ptr<Value> CmpInstr::rhs() const {
 
 GetFieldPtrInstr::GetFieldPtrInstr(Type* ty,
                                    std::shared_ptr<Value> target,
-                                   unsigned fieldIdx)
-    : Instr{ty}, target_{target}, fieldIdx_{fieldIdx} {}
+                                   unsigned idx)
+    : Instr{ty}, target_{target}, fieldIdx_{idx} {}
 
 std::shared_ptr<GetFieldPtrInstr> GetFieldPtrInstr::create(
     std::shared_ptr<Value> target,
-    unsigned fieldIdx) {
-    Type* resTy = dynamic_cast<StructType*>(target->type())->fields()[fieldIdx];
+    unsigned idx) {
+    Type* resTy = dynamic_cast<StructType*>(target->type())->fields()[idx];
 
     return std::shared_ptr<GetFieldPtrInstr>{
-        new GetFieldPtrInstr{resTy, target, fieldIdx}};
+        new GetFieldPtrInstr{resTy, target, idx}};
 }
 
 std::shared_ptr<Value> GetFieldPtrInstr::target() const {
