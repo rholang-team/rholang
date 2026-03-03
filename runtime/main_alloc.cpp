@@ -1,8 +1,11 @@
 #include "main_alloc.hpp"
 
 #include <bit>
+#include <exception>
+#include <iostream>
 
 #include "header.hpp"
+#include "page_size.hpp"
 
 namespace memory_manager::alloc {
 
@@ -11,6 +14,11 @@ MainAllocator::MainAllocator() {
     for (size_t i = 0; i < BIN_LIMIT; i++) {
         bins[i] = Bin(cur_size);
         cur_size *= 2;
+    }
+
+    if (cur_size >= PAGE_SIZE - sizeof(MapHeader)) {
+        std::cerr << "INSANE BIN LIMIT!\n";
+        std::terminate();
     }
 }
 
