@@ -2,6 +2,7 @@
 
 #include <sys/mman.h>
 
+#include "header.hpp"
 #include "page_size.hpp"
 
 namespace memory_manager::alloc {
@@ -11,10 +12,16 @@ inline size_t align_up(size_t n) {
     return (n + (align - 1)) & ~(align - 1);
 }
 
-void Bin::init_free_list(void* page, Header* end) {
+void Bin::init_mapping(void* page) {
+    auto hdr = (MapHeader*)page;
+    hdr->start = page;
+    hdr->end = (char*)page + PAGE_SIZE - sizeof(MapHeader);
+    hdr->next = map_head;
+    map_head = hdr;
+
     Header* cur;
 
-    for (size_t i = 0; i < PAGE_SIZE / entry_size - 1; i++) {
+    for (size_t i = 0; i < (PAGE_SIZE + sizeof(MapHeader)) / entry_size - 1; i++) {
         cur = (Header*)((char*)page + i * entry_size);
         auto next = (Header*)((char*)cur + entry_size);
         cur->next = next;
@@ -22,24 +29,18 @@ void Bin::init_free_list(void* page, Header* end) {
         cur->allocated = false;
     }
 
-    cur->next = end;
+    cur->next = free_head;
+    free_head = (Header*)((char*)page + sizeof(Header));
 }
 
 void Bin::extend() {
-    size_t pages_needed = (entry_size > PAGE_SIZE) ? (entry_size / PAGE_SIZE) + 1 : 1;
-    auto new_page = mmap(nullptr,
-                         pages_needed * PAGE_SIZE,
-                         PROT_READ | PROT_WRITE,
-                         MAP_PRIVATE | MAP_ANONYMOUS,
-                         -1,
-                         0);
-    init_free_list(new_page, free_head);
-    free_head = (Header*)new_page;
+    auto new_page =
+        mmap(nullptr, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    init_mapping(new_page);
 }
 
-Bin::Bin(size_t class_sz) : class_size(class_sz) {
+Bin::Bin(size_t class_sz) : class_size(class_sz), free_head(nullptr), map_head(nullptr) {
     entry_size = align_up(class_size + sizeof(Header));
-    free_head = nullptr;
 }
 
 void* Bin::allocate() {
@@ -60,6 +61,26 @@ void Bin::deallocate(void* p) {
     cell->allocated = false;
     cell->next = free_head;
     free_head = cell;
+}
+
+template <typename F>
+void Bin::foreach_cell(F&& visitor) {
+    for (MapHeader* r = map_head; r != nullptr; r = r->next) {
+        void* cur = r->start;
+        while (cur != (char*)r + PAGE_SIZE) {
+            visitor((Header*)cur);
+            cur = (char*)cur + sizeof(Header) + class_size;
+        }
+    }
+}
+
+template <typename F>
+void Bin::foreach_allocated(F&& visitor) {
+    foreach_cell([&visitor](Header* cell) {
+        if (cell->allocated) {
+            visitor(cell);
+        }
+    });
 }
 
 }  // namespace memory_manager::alloc

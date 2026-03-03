@@ -13,6 +13,7 @@ class Bin {
     size_t entry_size;
     size_t class_size;
     Header* free_head;
+    MapHeader* map_head;
 
 public:
     Bin() = default;
@@ -23,7 +24,12 @@ public:
 
 private:
     void extend();
-    void init_free_list(void* page, Header* end);
+    void init_mapping(void* page);
+
+    template <typename F>
+    void foreach_cell(F&& visitor);
+    template <typename F>
+    void foreach_allocated(F&& visitor);
 };
 
 }  // namespace memory_manager::alloc
