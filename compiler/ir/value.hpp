@@ -42,13 +42,13 @@ public:
 };
 
 class FnArgRef final : public Value {
-    size_t idx_;
+    unsigned idx_;
 
-    FnArgRef(Type* ty, size_t idx) : Value{ty}, idx_{idx} {}
+    FnArgRef(Type* ty, unsigned idx) : Value{ty}, idx_{idx} {}
 
 public:
-    static std::shared_ptr<FnArgRef> create(Function* fn, size_t idx);
+    static std::shared_ptr<FnArgRef> create(Function* fn, unsigned idx);
 
-    size_t idx() const;
+    unsigned idx() const;
 };
 }  // namespace ir

@@ -32,10 +32,13 @@ frontend_src = [
 ir_src = [
     'compiler/ir/typesets.cpp',
     'compiler/ir/context.cpp',
-    'compiler/ir/value.cpp',
-    'compiler/ir/type.cpp',
     'compiler/ir/instr.cpp',
     'compiler/ir/builder.cpp',
+    'compiler/ir/bb.cpp',
+    'compiler/ir/value.cpp',
+    'compiler/ir/module.cpp',
+    'compiler/ir/type.cpp',
+    'compiler/ir/prettyprint.cpp',
 ]
 
 backend_src = []

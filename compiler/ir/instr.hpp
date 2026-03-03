@@ -27,19 +27,28 @@ public:
     Type* itemType() const;
 };
 
+class NewInstr final : public Instr {
+    explicit NewInstr(Type* ty);
+
+public:
+    static std::shared_ptr<NewInstr> create(Context& ctx, Type* itemType);
+
+    Type* itemType() const;
+};
+
 class CallInstr final : public Instr {
-    std::shared_ptr<FunctionSignature> callee_;
+    const FunctionSignature* callee_;
     std::vector<std::shared_ptr<Value>> args_;
 
-    CallInstr(std::shared_ptr<FunctionSignature> callee,
+    CallInstr(const FunctionSignature* callee,
               std::vector<std::shared_ptr<Value>> args);
 
 public:
     static std::shared_ptr<CallInstr> create(
-        std::shared_ptr<FunctionSignature> callee,
+        const FunctionSignature* callee,
         std::vector<std::shared_ptr<Value>> args);
 
-    std::shared_ptr<FunctionSignature> callee() const;
+    const FunctionSignature* callee() const;
     std::vector<std::shared_ptr<Value>>& args();
     const std::vector<std::shared_ptr<Value>>& args() const;
 };
@@ -165,9 +174,8 @@ class GetFieldPtrInstr final : public Instr {
                      unsigned fieldIdx);
 
 public:
-    static std::shared_ptr<GetFieldPtrInstr> create(
-        std::shared_ptr<Value> target,
-        unsigned fieldIdx);
+    static std::shared_ptr<GetFieldPtrInstr>
+    create(Context& ctx, std::shared_ptr<Value> target, unsigned fieldIdx);
 
     std::shared_ptr<Value> target() const;
     unsigned fieldIdx() const;

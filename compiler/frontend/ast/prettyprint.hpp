@@ -5,9 +5,9 @@
 #include "compiler/frontend/ast/visitor.hpp"
 
 namespace frontend::ast {
-class PrettyPrinter : public DeclVisitor,
-                      public StmtVisitor<void>,
-                      public ExprVisitor<void> {
+class PrettyPrinter final : public DeclVisitor,
+                            public StmtVisitor<void>,
+                            public ExprVisitor<void> {
     unsigned depth = 0;
     std::ostream& os;
 
@@ -37,6 +37,7 @@ public:
 
     void visit(UnaryExpr& expr) override;
     void visit(NumLitExpr& expr) override;
+    void visit(BoolLitExpr& expr) override;
     void visit(BinaryExpr& expr) override;
     void visit(VarRefExpr& expr) override;
     void visit(MemberRefExpr& expr) override;

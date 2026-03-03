@@ -19,6 +19,10 @@ lex::Span NumLitExpr::span() const {
     return value.span;
 }
 
+lex::Span BoolLitExpr::span() const {
+    return value.span;
+}
+
 lex::Span VarRefExpr::span() const {
     return name.span;
 }

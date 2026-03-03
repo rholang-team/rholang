@@ -3,9 +3,12 @@
 #include <print>
 
 #include "compiler/frontend/ast/prettyprint.hpp"
+#include "compiler/frontend/ast2ir.hpp"
 #include "compiler/frontend/lex/lexer.hpp"
 #include "compiler/frontend/parse/parser.hpp"
 #include "compiler/frontend/sema.hpp"
+#include "compiler/ir/context.hpp"
+#include "compiler/ir/prettyprint.hpp"
 
 namespace {
 void printAst(frontend::ast::File& file) {
@@ -71,4 +74,10 @@ int main(int argc, char** argv) {
     }
 
     printTranslationUnit(tu);
+
+    ir::Context ctx;
+    ir::Module module = frontend::ast2ir::translate(ctx, tu);
+
+    ir::PrettyPrinter irPretty{std::cout};
+    irPretty.visit(module);
 }

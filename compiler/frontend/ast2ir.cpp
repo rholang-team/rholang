@@ -13,6 +13,7 @@ class Translator : private ast::DeclVisitor,
     using StmtVisitor<void>::visit;
     using ExprVisitor<std::shared_ptr<ir::Value>>::visit;
 
+    ast::FunctionDecl* curFunction_;
     ScopedMap<std::string, std::shared_ptr<ir::Value>> namedValues_;
     ir::Builder builder_;
 
@@ -51,16 +52,76 @@ class Translator : private ast::DeclVisitor,
                                       translatedParams);
     }
 
-    ir::StructType* translateType(const StructType& ty) {
+    ir::PointerType* translateType(const StructType& ty) {
         std::vector<ir::Type*> translatedFields;
         for (auto& field : ty.fields) {
             translatedFields.push_back(translateType(field.type.get()));
         }
 
-        return builder_.getStructTy(translatedFields);
+        return builder_.getPointerTy(builder_.getStructTy(translatedFields));
+    }
+
+    std::optional<unsigned> findFieldIdx(const StructType& ty,
+                                         const std::string& field) {
+        auto it = std::ranges::find(
+            ty.fields,
+            field,
+            [](const StructType::Field& f) -> const std::string& {
+                return f.name;
+            });
+
+        if (it == ty.fields.end()) {
+            return std::nullopt;
+        }
+
+        return it - ty.fields.begin();
+    }
+
+    std::optional<unsigned> findArgIdx(const std::string& arg) {
+        auto it = std::ranges::find(curFunction_->paramNames, arg);
+
+        if (it == curFunction_->paramNames.end()) {
+            return std::nullopt;
+        }
+
+        return it - curFunction_->paramNames.begin();
+    }
+
+    std::shared_ptr<ir::Value> unrollRefToPtr(ast::Expr& e) {
+        return unrollRefToPtr(&e);
+    }
+
+    std::shared_ptr<ir::Value> unrollRefToPtr(ast::Expr* e) {
+        if (ast::VarRefExpr* vre = dynamic_cast<ast::VarRefExpr*>(e)) {
+            return namedValues_.lookup(vre->name.value).value();
+        } else if (ast::MemberRefExpr* mre =
+                       dynamic_cast<ast::MemberRefExpr*>(e)) {
+            auto target = unrollRefToPtr(mre->target.get());
+
+            if (utils::isa<ast::MemberRefExpr>(mre->target.get())) {
+                target = builder_.addToCurBB(builder_.createLoadInstr(target));
+            }
+
+            assert(utils::isa<ir::PointerType>(target->type()));
+            assert(!utils::isa<ir::PointerType>(
+                dynamic_cast<ir::PointerType*>(target->type())->underlying()));
+
+            unsigned idx =
+                findFieldIdx(dynamic_cast<StructType&>(*mre->target->type),
+                             mre->member.value)
+                    .value();
+
+            auto res = builder_.createGetFieldPtrInstr(target, idx);
+            builder_.addToCurBB(res);
+            return res;
+        } else {
+            return visit(e);
+        }
     }
 
     void visit(ast::FunctionDecl& decl) {
+        curFunction_ = &decl;
+
         ir::Function* res = builder_.startFunction(
             builder_.lookupSignature(decl.name.value).value());
 
@@ -71,15 +132,21 @@ class Translator : private ast::DeclVisitor,
                                      builder_.createFnArgRef(res, i));
         }
 
-        for (auto& stmt : decl.body.stmts) {
-            visit(stmt.get());
-        }
+        builder_.startBB();
+        visit(decl.body);
+
+        if (builder_.curBasicBlock())
+            builder_.finishBB();
 
         namedValues_.popScope();
         builder_.finishFunction();
+
+        curFunction_ = nullptr;
     }
 
     void visit(ast::VarDecl& decl) {
+        // globals are handled separately
+
         auto alloca =
             builder_.createAllocaInstr(translateType(decl.type.value.get()));
         builder_.addToCurBB(alloca);
@@ -90,11 +157,65 @@ class Translator : private ast::DeclVisitor,
         builder_.addToCurBB(builder_.createStoreInstr(alloca, value));
     }
 
-    void visit(ast::CompoundStmt& stmt) {}
+    void visit(ast::CompoundStmt& stmt) {
+        for (auto& s : stmt.stmts) {
+            visit(s.get());
+        }
+    }
 
-    void visit(ast::CondStmt& stmt) {}
+    void visit(ast::CondStmt& stmt) {
+        auto cond = visit(stmt.cond.get());
+        ir::BasicBlock* header = builder_.finishBB();
 
-    void visit(ast::WhileStmt& stmt) {}
+        ir::BasicBlock* trueBlock = builder_.startBB();
+        visit(stmt.onTrue);
+
+        ir::BasicBlock* falseBlock = nullptr;
+        if (stmt.onFalse.has_value()) {
+            builder_.finishBB();
+            falseBlock = builder_.startBB();
+            visit(stmt.onFalse->get());
+            builder_.finishBB();
+        }
+
+        if (!trueBlock->hasTerminator()) {
+            ir::BasicBlock* tailBlock = builder_.startBbAndLink();
+            trueBlock->addInstr(builder_.createGotoInstr(tailBlock));
+
+            if (falseBlock) {
+                if (!falseBlock->hasTerminator())
+                    falseBlock->addInstr(builder_.createGotoInstr(tailBlock));
+            } else
+                falseBlock = tailBlock;
+        }
+
+        if (!falseBlock) {
+            if (builder_.curBasicBlock() &&
+                !builder_.curBasicBlock()->hasTerminator())
+                falseBlock = builder_.startBbAndLink();
+            else {
+                builder_.finishBB();
+                falseBlock = builder_.startBB();
+            }
+        }
+
+        header->addInstr(builder_.createBrInstr(cond, trueBlock, falseBlock));
+    }
+
+    void visit(ast::WhileStmt& stmt) {
+        ir::BasicBlock* header = builder_.startBbAndLink();
+        auto cond = visit(stmt.cond.get());
+        builder_.finishBB();
+
+        ir::BasicBlock* body = builder_.startBB();
+        visit(stmt.body);
+        builder_.finishBB();
+
+        body->addInstr(builder_.createGotoInstr(header));
+
+        ir::BasicBlock* tailBlock = builder_.startBB();
+        header->addInstr(builder_.createBrInstr(cond, body, tailBlock));
+    }
 
     void visit(ast::DeclStmt& stmt) {
         visit(stmt.decl);
@@ -110,7 +231,9 @@ class Translator : private ast::DeclVisitor,
     }
 
     void visit(ast::AssignmentStmt& stmt) {
-        // TODO: somehow get exact target for `store`
+        auto dest = unrollRefToPtr(stmt.lhs.get());
+        auto src = visit(stmt.rhs.get());
+        builder_.addToCurBB(builder_.createStoreInstr(dest, src));
     }
 
     std::shared_ptr<ir::Value> visit(ast::UnaryExpr& expr) {
@@ -132,6 +255,10 @@ class Translator : private ast::DeclVisitor,
 
     std::shared_ptr<ir::Value> visit(ast::NumLitExpr& expr) {
         return builder_.createIntImm(expr.value.value);
+    }
+
+    std::shared_ptr<ir::Value> visit(ast::BoolLitExpr& expr) {
+        return builder_.createBoolImm(expr.value.value);
     }
 
     std::shared_ptr<ir::Value> visit(ast::BinaryExpr& expr) {
@@ -180,11 +307,23 @@ class Translator : private ast::DeclVisitor,
     }
 
     std::shared_ptr<ir::Value> visit(ast::VarRefExpr& expr) {
-        return namedValues_.lookup(expr.name.value).value();
+        auto val = namedValues_.lookup(expr.name.value).value();
+
+        auto argIdx = findArgIdx(expr.name.value);
+        if (argIdx.has_value()) {
+            return builder_.createFnArgRef(builder_.curFunction(), *argIdx);
+        } else
+            return builder_.addToCurBB(builder_.createLoadInstr(val));
     }
 
     std::shared_ptr<ir::Value> visit(ast::MemberRefExpr& expr) {
-        // TODO: same, somehow get exact target for `gfp`
+        auto src = unrollRefToPtr(expr);
+
+        assert(utils::isa<ir::PointerType>(src->type()));
+
+        auto res = builder_.createLoadInstr(src);
+        builder_.addToCurBB(res);
+        return res;
     }
 
     std::shared_ptr<ir::Value> visit(ast::CallExpr& expr) {
@@ -198,12 +337,33 @@ class Translator : private ast::DeclVisitor,
         auto i = builder_.createCallInstr(
             builder_.lookupSignature(callee.name.value).value(),
             std::move(args));
+
+        assert(i->callee());
+
         builder_.addToCurBB(i);
 
         return i;
     }
 
-    std::shared_ptr<ir::Value> visit(ast::StructInitExpr& expr) {}
+    std::shared_ptr<ir::Value> visit(ast::StructInitExpr& expr) {
+        auto res = builder_.createNewInstr(
+            dynamic_cast<ir::PointerType*>(translateType(expr.type.get()))
+                ->underlying());
+
+        builder_.addToCurBB(res);
+
+        for (auto& [name, initializer] : expr.fields) {
+            auto value = visit(initializer.get());
+
+            auto fieldPtr = builder_.addToCurBB(builder_.createGetFieldPtrInstr(
+                res,
+                findFieldIdx(dynamic_cast<StructType&>(*expr.type), name)
+                    .value()));
+            builder_.addToCurBB(builder_.createStoreInstr(fieldPtr, value));
+        }
+
+        return res;
+    }
 
 public:
     Translator(ir::Context& ctx) : builder_{ctx} {}
@@ -213,7 +373,7 @@ public:
 
         for (auto& [_, fn] : tu.functions) {
             builder_.addFunctionSignature(
-                std::make_shared<ir::FunctionSignature>(
+                std::make_unique<ir::FunctionSignature>(
                     fn->name.value,
                     translateType(fn->type())));
         }

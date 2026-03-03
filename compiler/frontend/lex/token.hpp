@@ -39,6 +39,8 @@ enum class Token {
     Else,         // `else`
     While,        // `while`
     Return,       // `return`
+    True,         // `true`
+    False,        // `false`
 };
 
 }  // namespace frontend::lex
@@ -121,6 +123,10 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`while`");
             case frontend::lex::Token::Return:
                 return std::format_to(ctx.out(), "`return`");
+            case frontend::lex::Token::True:
+                return std::format_to(ctx.out(), "`true`");
+            case frontend::lex::Token::False:
+                return std::format_to(ctx.out(), "`false`");
         }
     }
 };

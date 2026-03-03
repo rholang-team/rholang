@@ -67,6 +67,14 @@ struct NumLitExpr final : public Expr {
     lex::Span span() const override;
 };
 
+struct BoolLitExpr final : public Expr {
+    lex::WithSpan<bool> value;
+
+    explicit BoolLitExpr(lex::WithSpan<bool> value) : value{value} {}
+
+    lex::Span span() const override;
+};
+
 struct VarRefExpr final : public Expr {
     lex::WithSpan<std::string> name;
 

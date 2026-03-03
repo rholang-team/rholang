@@ -55,6 +55,8 @@ struct ExprVisitor {
             return visit(*unaryExpr);
         } else if (auto* numLitExpr = dynamic_cast<NumLitExpr*>(expr)) {
             return visit(*numLitExpr);
+        } else if (auto* boolLitExpr = dynamic_cast<BoolLitExpr*>(expr)) {
+            return visit(*boolLitExpr);
         } else if (auto* binaryExpr = dynamic_cast<BinaryExpr*>(expr)) {
             return visit(*binaryExpr);
         } else if (auto* varRefExpr = dynamic_cast<VarRefExpr*>(expr)) {
@@ -72,6 +74,7 @@ struct ExprVisitor {
 
     virtual RetTy visit(UnaryExpr&) {}
     virtual RetTy visit(NumLitExpr&) {}
+    virtual RetTy visit(BoolLitExpr&) {}
     virtual RetTy visit(BinaryExpr&) {}
     virtual RetTy visit(VarRefExpr&) {}
     virtual RetTy visit(MemberRefExpr&) {}

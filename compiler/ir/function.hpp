@@ -15,19 +15,22 @@ public:
     FunctionSignature(S&& s, FunctionType* type)
         : name_{std::forward<S>(s)}, type_{type} {}
 
-    const std::string& name() const;
-    const FunctionType* type() const;
+    const std::string& name() const {
+        return name_;
+    }
+    FunctionType* type() const {
+        return type_;
+    }
 };
 
 class Function {
-    std::shared_ptr<FunctionSignature> signature_;
+    FunctionSignature* signature_;
     std::list<std::unique_ptr<BasicBlock>> bbs_;
 
 public:
-    explicit Function(std::shared_ptr<FunctionSignature> signature)
-        : signature_{signature} {}
+    explicit Function(FunctionSignature* signature) : signature_{signature} {}
 
-    std::shared_ptr<FunctionSignature> signature() const {
+    const FunctionSignature* signature() const {
         return signature_;
     }
     auto& bbs() {

@@ -48,8 +48,6 @@ void PrettyPrinter::visit(VarDecl& decl) {
 }
 
 void PrettyPrinter::visit(FunctionDecl& decl) {
-    depth += 1;
-
     pad();
     os << "FunctionDecl " << decl.name.value << " (";
 
@@ -65,7 +63,6 @@ void PrettyPrinter::visit(FunctionDecl& decl) {
     }
     os << ") -> " << *decl.rettype.value << '\n';
     visit(&decl.body);
-    depth -= 1;
 }
 
 void PrettyPrinter::visit(StructDecl& decl) {
@@ -215,6 +212,13 @@ void PrettyPrinter::visit(BinaryExpr& expr) {
 void PrettyPrinter::visit(NumLitExpr& expr) {
     pad();
     os << "NumLitExpr " << expr.value.value << ' ';
+    showTyPtr(expr.type.get());
+    os << '\n';
+}
+
+void PrettyPrinter::visit(BoolLitExpr& expr) {
+    pad();
+    os << "BoolLitExpr " << std::boolalpha << expr.value.value << ' ';
     showTyPtr(expr.type.get());
     os << '\n';
 }

@@ -60,3 +60,17 @@ FunctionType* FunctionType::get(Context& ctx,
     return res;
 }
 }  // namespace ir
+
+#define IMPL_OSTREAM(T)                                        \
+    std::ostream& operator<<(std::ostream& os, const T& x) {   \
+        std::format_to(std::ostreambuf_iterator{os}, "{}", x); \
+        return os;                                             \
+    }
+
+IMPL_OSTREAM(ir::Type)
+IMPL_OSTREAM(ir::VoidType)
+IMPL_OSTREAM(ir::IntType)
+IMPL_OSTREAM(ir::BoolType)
+IMPL_OSTREAM(ir::PointerType)
+IMPL_OSTREAM(ir::StructType)
+IMPL_OSTREAM(ir::FunctionType)

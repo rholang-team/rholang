@@ -21,11 +21,12 @@ bool BoolImm::value() const {
     return value_;
 }
 
-std::shared_ptr<FnArgRef> FnArgRef::create(Function* fn, size_t idx) {
-    return std::shared_ptr<FnArgRef>{new FnArgRef{fn->type()->params()[idx], idx}};
+std::shared_ptr<FnArgRef> FnArgRef::create(Function* fn, unsigned idx) {
+    return std::shared_ptr<FnArgRef>{
+        new FnArgRef{fn->signature()->type()->params()[idx], idx}};
 }
 
-size_t FnArgRef::idx() const {
+unsigned FnArgRef::idx() const {
     return idx_;
 }
 }  // namespace ir

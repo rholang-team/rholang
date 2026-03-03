@@ -20,18 +20,31 @@ Type* AllocaInstr::itemType() const {
     return dynamic_cast<PointerType*>(type())->underlying();
 }
 
-CallInstr::CallInstr(std::shared_ptr<FunctionSignature> callee,
+NewInstr::NewInstr(Type* ty) : Instr{ty} {}
+
+std::shared_ptr<NewInstr> NewInstr::create(Context& ctx, Type* itemType) {
+    return std::shared_ptr<NewInstr>{
+        new NewInstr{PointerType::get(ctx, itemType)}};
+}
+
+Type* NewInstr::itemType() const {
+    return dynamic_cast<PointerType*>(type())->underlying();
+}
+
+CallInstr::CallInstr(const FunctionSignature* callee,
                      std::vector<std::shared_ptr<Value>> args)
     : Instr{dynamic_cast<const FunctionType*>(callee->type())->rettype()},
+      callee_{callee},
       args_{std::move(args)} {}
 
 std::shared_ptr<CallInstr> CallInstr::create(
-    std::shared_ptr<FunctionSignature> callee,
+    const FunctionSignature* callee,
     std::vector<std::shared_ptr<Value>> args) {
+    assert(callee);
     return std::shared_ptr<CallInstr>{new CallInstr{callee, std::move(args)}};
 }
 
-std::shared_ptr<FunctionSignature> CallInstr::callee() const {
+const FunctionSignature* CallInstr::callee() const {
     return callee_;
 }
 
@@ -52,6 +65,10 @@ std::shared_ptr<NotInstr> NotInstr::create(std::shared_ptr<Value> target) {
     return std::shared_ptr<NotInstr>{new NotInstr{target}};
 }
 
+std::shared_ptr<Value> NotInstr::target() const {
+    return target_;
+}
+
 NegInstr::NegInstr(std::shared_ptr<Value> target)
     : Instr{target->type()}, target_{target} {
     assert(utils::isa<IntType>(target->type()));
@@ -69,8 +86,7 @@ LoadInstr::LoadInstr(Type* ty, std::shared_ptr<Value> src)
     : Instr{ty}, src_{src} {}
 
 std::shared_ptr<LoadInstr> LoadInstr::create(std::shared_ptr<Value> src) {
-    PointerType* resTy = dynamic_cast<PointerType*>(src->type());
-
+    Type* resTy = dynamic_cast<PointerType*>(src->type())->underlying();
     return std::shared_ptr<LoadInstr>{new LoadInstr{resTy, src}};
 }
 
@@ -134,9 +150,16 @@ GetFieldPtrInstr::GetFieldPtrInstr(Type* ty,
     : Instr{ty}, target_{target}, fieldIdx_{idx} {}
 
 std::shared_ptr<GetFieldPtrInstr> GetFieldPtrInstr::create(
+    Context& ctx,
     std::shared_ptr<Value> target,
     unsigned idx) {
-    Type* resTy = dynamic_cast<StructType*>(target->type())->fields()[idx];
+    auto structPtrTy = dynamic_cast<PointerType*>(target->type());
+    assert(structPtrTy);
+
+    auto structTy = dynamic_cast<StructType*>(structPtrTy->underlying());
+    assert(structTy);
+
+    PointerType* resTy = PointerType::get(ctx, structTy->fields()[idx]);
 
     return std::shared_ptr<GetFieldPtrInstr>{
         new GetFieldPtrInstr{resTy, target, idx}};

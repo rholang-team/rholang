@@ -93,6 +93,10 @@ class Sema : private ast::DeclVisitor,
         expr.type = PrimitiveType::intType;
     }
 
+    void visit(ast::BoolLitExpr& expr) {
+        expr.type = PrimitiveType::boolType;
+    }
+
     bool isAssignable(const ast::Expr* expr) {
         bool assignableExpr =
             utils::isa<ast::VarRefExpr>(expr) ||
