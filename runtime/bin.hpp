@@ -22,14 +22,14 @@ public:
     void* allocate();
     void deallocate(void* p);
 
-private:
-    void extend();
-    void init_mapping(void* page);
-
     template <typename F>
     void foreach_cell(F&& visitor);
     template <typename F>
     void foreach_allocated(F&& visitor);
+
+private:
+    void extend();
+    void init_mapping(void* page);
 };
 
 }  // namespace memory_manager::alloc

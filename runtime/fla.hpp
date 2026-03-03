@@ -16,17 +16,17 @@ public:
     void* allocate(size_t size);
     void deallocate(void* p);
 
+    template <typename F>
+    void foreach_cell(F&& visitor);
+    template <typename F>
+    void foreach_allocated(F&& visitor);
+
 private:
     void extend(size_t required_size);
     Header* find(size_t size, Header** prev) const;
     void split_if_possible(Header* cell, size_t needed_size);
     Header* insert(Header* cell);
     void coalesce_with_next(Header* cell);
-
-    template <typename F>
-    void foreach_cell(F&& visitor);
-    template <typename F>
-    void foreach_allocated(F&& visitor);
 };
 
 }  // namespace memory_manager::alloc
