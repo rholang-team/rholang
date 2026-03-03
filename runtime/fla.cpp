@@ -143,7 +143,7 @@ void FreeListAllocator::foreach_cell(F&& visitor) {
         while (cur < end) {
             Header* cell = (Header*)cur;
             if (cell->allocated) {
-                visitor((Header*)((char*)cur + sizeof(Header)));
+                visitor(cell);
             }
             cur = (char*)cur + sizeof(Header) + cell->size;
         }
