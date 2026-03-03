@@ -1,7 +1,7 @@
 builddir := "./build"
 
-run FILE: build
-    {{builddir}}/compiler {{FILE}}
+run *ARGS: build
+    {{builddir}}/compiler {{ARGS}}
 
 test:
     meson test -C {{builddir}}

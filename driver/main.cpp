@@ -10,22 +10,9 @@
 #include "compiler/ir/context.hpp"
 #include "compiler/ir/prettyprint.hpp"
 
-namespace {
-void printAst(frontend::ast::File& file) {
-    for (auto& [name, decl] : file.structs) {
-        frontend::ast::PrettyPrinter{std::cout}.visit(decl);
-        std::cout << '\n';
-    }
-    for (auto& [name, decl] : file.globals) {
-        frontend::ast::PrettyPrinter{std::cout}.visit(decl);
-        std::cout << '\n';
-    }
-    for (auto& [name, decl] : file.functions) {
-        frontend::ast::PrettyPrinter{std::cout}.visit(*decl);
-        std::cout << '\n';
-    }
-}
+using namespace std::string_view_literals;
 
+namespace {
 void printTranslationUnit(frontend::TranslationUnit& tu) {
     for (auto& [name, s] : tu.structs) {
         std::println("{}\n", s);
@@ -53,6 +40,18 @@ int main(int argc, char** argv) {
         input = std::string{std::istreambuf_iterator{file}, {}};
     }
 
+    bool dumpAst = false;
+    bool dumpIr = false;
+    for (int i = 2; i < argc; ++i) {
+        if (argv[i] == "--dump-ast"sv) {
+            dumpAst = true;
+        } else if (argv[i] == "--dump-ir"sv) {
+            dumpIr = true;
+        } else {
+            std::println(stderr, "unknown option {}", argv[i]);
+        }
+    }
+
     frontend::lex::Lexer lexer{std::move(input)};
     frontend::lex::Lexemes lexemes{lexer.lex()};
     frontend::parse::Parser parser{std::move(lexemes)};
@@ -64,8 +63,6 @@ int main(int argc, char** argv) {
         std::print(stderr, "syntax error: {}", e.pretty());
     }
 
-    printAst(file);
-
     frontend::TranslationUnit tu;
     try {
         tu = frontend::runSema(std::move(file));
@@ -73,11 +70,14 @@ int main(int argc, char** argv) {
         std::print(stderr, "error: {}", e.pretty());
     }
 
-    printTranslationUnit(tu);
+    if (dumpAst)
+        printTranslationUnit(tu);
 
     ir::Context ctx;
     ir::Module module = frontend::ast2ir::translate(ctx, tu);
 
-    ir::PrettyPrinter irPretty{std::cout};
-    irPretty.visit(module);
+    if (dumpIr) {
+        ir::PrettyPrinter irPretty{std::cout};
+        irPretty.visit(module);
+    }
 }
