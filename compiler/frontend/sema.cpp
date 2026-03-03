@@ -121,6 +121,19 @@ class Sema : private ast::DeclVisitor,
         switch (expr.op.value) {
             case ast::BinaryExpr::Op::Eq:
             case ast::BinaryExpr::Op::Ne:
+                if (utils::isa<ast::NullExpr>(expr.lhs.get()) ||
+                    utils::isa<ast::NullExpr>(expr.rhs.get())) {
+                    checkValidity((utils::isa<ast::NullExpr>(expr.lhs.get()) ||
+                                   utils::isa<TypeRef>(expr.lhs->type.get())) &&
+                                  (utils::isa<ast::NullExpr>(expr.rhs.get()) ||
+                                   utils::isa<TypeRef>(expr.rhs->type.get())));
+                } else {
+                    checkValidity(typeIsComparable(*expr.lhs->type) &&
+                                  typeIsComparable(*expr.rhs->type) &&
+                                  *lhsType == *rhsType);
+                }
+                expr.type = PrimitiveType::boolType;
+                break;
             case ast::BinaryExpr::Op::Lt:
             case ast::BinaryExpr::Op::Gt:
             case ast::BinaryExpr::Op::Le:

@@ -129,7 +129,7 @@ void PrettyPrinter::visitNegInstr(NegInstr& i) {
 void PrettyPrinter::visitLoadInstr(LoadInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
     printTmp(i);
-    os_ << " = load ";
+    os_ << " = load " << *i.type() << ' ';
     printTmp(i.src().get());
     os_ << '\n';
 }
