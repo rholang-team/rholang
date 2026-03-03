@@ -11,29 +11,6 @@ size_t ptrHash(const T* p) {
 }  // namespace
 
 namespace ir::internal {
-size_t PointerTypeHash::operator()(const PointerType* ty) const {
-    return operator()(*ty);
-}
-size_t PointerTypeHash::operator()(const PointerType& ty) const {
-    return ptrHash(ty.underlying());
-}
-size_t PointerTypeEq::operator()(const PointerType& a,
-                                 const PointerType& b) const {
-    return a.underlying() == b.underlying();
-}
-size_t PointerTypeEq::operator()(const PointerType* a,
-                                 const PointerType& b) const {
-    return operator()(*a, b);
-}
-size_t PointerTypeEq::operator()(const PointerType& a,
-                                 const PointerType* b) const {
-    return operator()(a, *b);
-}
-size_t PointerTypeEq::operator()(const PointerType* a,
-                                 const PointerType* b) const {
-    return operator()(*a, *b);
-}
-
 size_t StructTypeHash::operator()(const StructType* ty) const {
     return operator()(*ty);
 }

@@ -34,36 +34,29 @@ class Sema : private ast::DeclVisitor,
     ast::FunctionDecl* curFunction_ = nullptr;
     ast::StructDecl* curStruct_ = nullptr;
 
-    std::optional<std::shared_ptr<StructType>> lookupType(
-        const std::string& name) const {
+    StructType lookupType(const std::string& name, lex::Span span) const {
         auto it = file_.structs.find(name);
         if (it == file_.structs.end()) {
-            return std::nullopt;
+            throw Error(file_.input,
+                        span,
+                        std::format("undefined type {}", name));
         }
 
-        return std::make_shared<StructType>(it->second.type());
+        return it->second.type();
     }
 
-    std::shared_ptr<Type> derefTypeUnchecked(std::shared_ptr<Type> type) const {
-        if (const auto* typeRef = dynamic_cast<const TypeRef*>(type.get())) {
-            return lookupType(typeRef->name).value();
-        }
-        return type;
-    }
-
-    std::shared_ptr<Type> derefType(
-        const lex::WithSpan<std::shared_ptr<Type>>& type) const {
-        if (const auto* typeRef = dynamic_cast<TypeRef*>(type.value.get())) {
-            auto actualType = lookupType(typeRef->name);
-            if (!actualType.has_value()) {
+    bool inferTypeIfNull(ast::Expr* expr, std::shared_ptr<Type> expectedType) {
+        if (ast::NullExpr* null = dynamic_cast<ast::NullExpr*>(expr)) {
+            if (!utils::isa<TypeRef>(expectedType.get())) {
                 throw Error(file_.input,
-                            type.span,
-                            std::format("undefined type {}", typeRef->name));
+                            null->span(),
+                            "`null` cannot have a non-structure type");
             }
 
-            return *actualType;
+            null->type = expectedType;
+            return true;
         }
-        return type.value;
+        return false;
     }
 
     void visit(ast::UnaryExpr& expr) {
@@ -168,14 +161,15 @@ class Sema : private ast::DeclVisitor,
     void visit(ast::MemberRefExpr& expr) {
         visit(expr.target.get());
 
-        if (!utils::isa<StructType>(expr.target->type.get())) {
+        if (!utils::isa<TypeRef>(expr.target->type.get())) {
             throw Error(file_.input,
                         expr.target->span(),
                         "value is not a struct");
         }
 
-        StructType& targetStruct =
-            dynamic_cast<StructType&>(*expr.target->type);
+        StructType targetStruct =
+            lookupType(dynamic_cast<TypeRef&>(*expr.target->type).name,
+                       expr.target->span());
 
         auto fieldIt =
             std::ranges::find_if(targetStruct.fields,
@@ -206,9 +200,6 @@ class Sema : private ast::DeclVisitor,
     void visit(ast::CallExpr& expr) {
         visit(expr.callee.get());
 
-        for (auto& arg : expr.args)
-            visit(arg.get());
-
         FunctionType* fntypePtr =
             dynamic_cast<FunctionType*>(expr.callee->type.get());
 
@@ -226,7 +217,7 @@ class Sema : private ast::DeclVisitor,
             expr.args.emplace(expr.args.begin(), memberRef->target);
 
             auto& structDecl = file_.structs.at(
-                dynamic_cast<StructType&>(*memberRef->target->type).name);
+                dynamic_cast<TypeRef&>(*memberRef->target->type).name);
 
             auto method = structDecl.methods.at(memberRef->member.value);
 
@@ -254,6 +245,11 @@ class Sema : private ast::DeclVisitor,
 
         for (const auto& [param, arg] :
              std::ranges::zip_view{fntype.params, expr.args}) {
+            if (inferTypeIfNull(arg.get(), param)) {
+                continue;
+            }
+
+            visit(arg.get());
             if (*param != *arg->type) {
                 throw Error(
                     file_.input,
@@ -268,22 +264,25 @@ class Sema : private ast::DeclVisitor,
         expr.type = fntype.rettype;
     }
 
-    void visit(ast::StructInitExpr& expr) {
-        expr.type = derefType(lex::WithSpan{expr.type, expr.tySpan});
+    void visit(ast::NullExpr&) {}
 
-        StructType* structType = dynamic_cast<StructType*>(expr.type.get());
-        if (!structType) {
+    void visit(ast::StructInitExpr& expr) {
+        TypeRef* ref = dynamic_cast<TypeRef*>(expr.type.get());
+
+        if (!ref) {
             throw Error(file_.input,
                         expr.tySpan,
                         std::format("{} is not a struct type", *expr.type));
         }
 
+        StructType structType = file_.structs.at(ref->name).type();
+
         for (const auto& [n, _] : expr.fields) {
             bool nIsExtraField =
-                std::ranges::find_if(structType->fields,
+                std::ranges::find_if(structType.fields,
                                      [&n](const StructType::Field& f) {
                                          return f.name == n;
-                                     }) == structType->fields.end();
+                                     }) == structType.fields.end();
 
             if (nIsExtraField) {
                 throw Error(
@@ -293,7 +292,7 @@ class Sema : private ast::DeclVisitor,
             }
         }
 
-        for (const StructType::Field& f : structType->fields) {
+        for (const StructType::Field& f : structType.fields) {
             if (!expr.fields.contains(f.name)) {
                 throw Error(file_.input,
                             expr.span(),
@@ -303,6 +302,11 @@ class Sema : private ast::DeclVisitor,
 
             std::shared_ptr<ast::Expr> fieldInitializer =
                 expr.fields.at(f.name);
+
+            if (inferTypeIfNull(fieldInitializer.get(), f.type)) {
+                continue;
+            }
+
             visit(fieldInitializer.get());
 
             if (*f.type != *fieldInitializer->type) {
@@ -397,20 +401,23 @@ class Sema : private ast::DeclVisitor,
     }
 
     void visit(ast::VarDecl& decl) {
-        auto actualType = derefType(decl.type);
-
         ast::Expr* value = decl.value.get();
+
+        if (inferTypeIfNull(value, decl.type.value)) {
+            return;
+        }
+
         visit(value);
-        if (*value->type != *actualType) {
+        if (*value->type != *decl.type.value) {
             throw Error(file_.input,
                         value->span(),
                         std::format("value type does not match declared "
                                     "variable type: expected {}, got {}",
-                                    *actualType,
+                                    *decl.type.value,
                                     *value->type));
         }
 
-        scopes_.addOrShadow(decl.name.value, actualType);
+        scopes_.addOrShadow(decl.name.value, decl.type.value);
     }
 
     void visit(ast::FunctionDecl& decl) {
@@ -422,7 +429,7 @@ class Sema : private ast::DeclVisitor,
             }
 
             decl.paramTypes[0].value =
-                std::make_shared<StructType>(curStruct_->type());
+                std::make_shared<TypeRef>(curStruct_->name.value);
         }
 
         curFunction_ = &decl;
@@ -432,40 +439,11 @@ class Sema : private ast::DeclVisitor,
         scopes_.pushScope();
         for (const auto& [name, type] :
              std::ranges::zip_view{decl.paramNames, decl.paramTypes}) {
-            scopes_.addOrShadow(name, derefType(type));
+            scopes_.addOrShadow(name, type.value);
         }
         visit(decl.body);
         scopes_.popScope();
         curFunction_ = nullptr;
-    }
-
-    void derefStructMemberTypes() {
-        for (auto& [name, s] : file_.structs) {
-            for (auto& field : s.fields) {
-                field.type.value = derefType(field.type);
-            }
-
-            for (auto& [name, decl] : file_.structs.at(name).methods) {
-                for (auto& type : decl->paramTypes) {
-                    type.value = derefType(type);
-                }
-                decl->rettype.value = derefType(decl->rettype);
-            }
-        }
-    }
-
-    void derefGlobalTypes() {
-        for (auto& [name, decl] : file_.globals) {
-            decl.type.value = derefType(decl.type);
-        }
-
-        for (auto& [name, decl] : file_.functions) {
-            for (const auto& [name, type] :
-                 std::ranges::zip_view{decl->paramNames, decl->paramTypes}) {
-                type.value = derefType(type);
-            }
-            decl->rettype.value = derefType(decl->rettype);
-        }
     }
 
     void fillTopLevelScope() {
@@ -476,7 +454,7 @@ class Sema : private ast::DeclVisitor,
                                 std::make_shared<FunctionType>(decl->type()));
         }
         for (const auto& [name, decl] : file_.globals) {
-            scopes_.addOrShadow(name, derefType(decl.type));
+            scopes_.addOrShadow(name, decl.type.value);
         }
     }
 
@@ -484,8 +462,6 @@ public:
     Sema(ast::File file) : file_{std::move(file)} {}
 
     TranslationUnit run() {
-        derefStructMemberTypes();
-        derefGlobalTypes();
         fillTopLevelScope();
 
         for (auto& [name, s] : file_.structs) {
@@ -515,10 +491,10 @@ public:
 
         std::unordered_map<std::string, std::shared_ptr<ast::FunctionDecl>>
             functions = file_.functions;
-        std::unordered_map<std::string, StructType> structs;
+        std::unordered_map<std::string, std::shared_ptr<StructType>> structs;
 
         for (auto& [name, s] : file_.structs) {
-            structs.emplace(name, s.type());
+            structs.emplace(name, std::make_shared<StructType>(s.type()));
 
             for (auto& [methodName, method] : s.methods) {
                 functions.emplace(method->name.value, method);

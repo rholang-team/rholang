@@ -113,7 +113,7 @@ std::optional<Lexeme> Lexer::nextLexeme() {
         std::string_view ident =
             std::string_view{input}.substr(span.begin, span.length());
 
-        constexpr std::array<std::pair<std::string_view, Token>, 10> KEYWORDS{
+        constexpr std::array<std::pair<std::string_view, Token>, 11> KEYWORDS{
             std::pair{"var", Token::Var},
             std::pair{"fun", Token::Fun},
             std::pair{"struct", Token::Struct},
@@ -124,6 +124,7 @@ std::optional<Lexeme> Lexer::nextLexeme() {
             std::pair{"while", Token::While},
             std::pair{"true", Token::True},
             std::pair{"false", Token::False},
+            std::pair{"null", Token::Null},
         };
         for (const auto& [s, t] : KEYWORDS) {
             if (s == ident) {

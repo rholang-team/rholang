@@ -23,8 +23,8 @@ public:
     VoidType* getVoidTy();
     BoolType* getBoolTy();
     IntType* getIntTy();
+    PointerType* getPointerTy();
 
-    PointerType* getPointerTy(Type* underlying);
     FunctionType* getFunctionTy(Type* rettype, std::span<Type*> params);
     StructType* getStructTy(std::span<Type*> fields);
 
@@ -47,6 +47,7 @@ public:
     std::shared_ptr<IntImm> createIntImm(int value);
     std::shared_ptr<BoolImm> createBoolImm(bool value);
     std::shared_ptr<FnArgRef> createFnArgRef(Function* fn, unsigned idx);
+    std::shared_ptr<NullPtr> createNullPtr();
 
     std::shared_ptr<AllocaInstr> createAllocaInstr(Type* itemType);
     std::shared_ptr<NewInstr> createNewInstr(Type* itemType);
@@ -55,8 +56,10 @@ public:
         std::vector<std::shared_ptr<Value>> args);
     std::shared_ptr<NotInstr> createNotInstr(std::shared_ptr<Value> target);
     std::shared_ptr<NegInstr> createNegInstr(std::shared_ptr<Value> target);
-    std::shared_ptr<LoadInstr> createLoadInstr(std::shared_ptr<Value> src);
-    std::shared_ptr<StoreInstr> createStoreInstr(std::shared_ptr<Value> dest,
+    std::shared_ptr<LoadInstr> createLoadInstr(Type* ty,
+                                               std::shared_ptr<Value> src);
+    std::shared_ptr<StoreInstr> createStoreInstr(Type* ty,
+                                                 std::shared_ptr<Value> dest,
                                                  std::shared_ptr<Value> src);
     std::shared_ptr<AddInstr> createAddInstr(std::shared_ptr<Value> lhs,
                                              std::shared_ptr<Value> rhs);
@@ -68,6 +71,7 @@ public:
                                              std::shared_ptr<Value> lhs,
                                              std::shared_ptr<Value> rhs);
     std::shared_ptr<GetFieldPtrInstr> createGetFieldPtrInstr(
+        StructType* structType,
         std::shared_ptr<Value> target,
         unsigned fieldIdx);
     std::shared_ptr<GotoInstr> createGotoInstr(BasicBlock* dest);

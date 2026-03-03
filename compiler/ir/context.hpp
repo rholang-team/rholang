@@ -13,8 +13,8 @@ class Context {
     VoidType voidTy_;
     BoolType boolTy_;
     IntType intTy_;
+    PointerType pointerTy_;
 
-    PointerTypeSet pointerTypes_;
     StructTypeSet structTypes_;
     FunctionTypeSet functionTypes_;
 
@@ -40,12 +40,11 @@ public:
     VoidType* getVoidTy();
     BoolType* getBoolTy();
     IntType* getIntTy();
+    PointerType* getPointerTy();
 
-    PointerType* findPointerType(const PointerType& ty);
     StructType* findStructType(const StructType& ty);
     FunctionType* findFunctionType(const FunctionType& ty);
 
-    void insertPointerType(PointerType* ptrTy);
     void insertStructType(StructType* structTy);
     void insertFunctionType(FunctionType* fnTy);
 };

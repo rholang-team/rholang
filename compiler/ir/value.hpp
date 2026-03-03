@@ -16,7 +16,9 @@ protected:
 public:
     virtual ~Value() = default;
 
-    Type* type() const;
+    Type* type() const {
+        return type_;
+    }
 };
 
 class IntImm final : public Value {
@@ -27,7 +29,9 @@ class IntImm final : public Value {
 public:
     static std::shared_ptr<IntImm> create(Context& ctx, int value);
 
-    int value() const;
+    int value() const {
+        return value_;
+    }
 };
 
 class BoolImm final : public Value {
@@ -38,7 +42,9 @@ class BoolImm final : public Value {
 public:
     static std::shared_ptr<BoolImm> create(Context& ctx, bool value);
 
-    bool value() const;
+    bool value() const {
+        return value_;
+    }
 };
 
 class FnArgRef final : public Value {
@@ -49,6 +55,15 @@ class FnArgRef final : public Value {
 public:
     static std::shared_ptr<FnArgRef> create(Function* fn, unsigned idx);
 
-    unsigned idx() const;
+    unsigned idx() const {
+        return idx_;
+    }
+};
+
+class NullPtr final : public Value {
+    explicit NullPtr(PointerType* ty) : Value{ty} {}
+
+public:
+    static std::shared_ptr<NullPtr> create(Context& ctx);
 };
 }  // namespace ir

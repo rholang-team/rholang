@@ -13,9 +13,8 @@ IntType* Context::getIntTy() {
     return &intTy_;
 }
 
-PointerType* Context::findPointerType(const PointerType& ty) {
-    auto it = pointerTypes_.find(ty);
-    return it == pointerTypes_.end() ? nullptr : *it;
+PointerType* Context::getPointerTy() {
+    return &pointerTy_;
 }
 
 StructType* Context::findStructType(const StructType& ty) {
@@ -26,10 +25,6 @@ StructType* Context::findStructType(const StructType& ty) {
 FunctionType* Context::findFunctionType(const FunctionType& ty) {
     auto it = functionTypes_.find(ty);
     return it == functionTypes_.end() ? nullptr : *it;
-}
-
-void Context::insertPointerType(PointerType* ptrTy) {
-    pointerTypes_.insert(ptrTy);
 }
 
 void Context::insertStructType(StructType* structTy) {

@@ -7,22 +7,6 @@
 #include "compiler/ir/type.hpp"
 namespace ir {
 namespace internal {
-struct PointerTypeHash {
-    using is_transparent = std::true_type;
-
-    size_t operator()(const PointerType*) const;
-    size_t operator()(const PointerType&) const;
-};
-
-struct PointerTypeEq {
-    using is_transparent = std::true_type;
-
-    size_t operator()(const PointerType&, const PointerType&) const;
-    size_t operator()(const PointerType*, const PointerType&) const;
-    size_t operator()(const PointerType&, const PointerType*) const;
-    size_t operator()(const PointerType*, const PointerType*) const;
-};
-
 struct StructTypeHash {
     using is_transparent = std::true_type;
 
@@ -55,10 +39,6 @@ struct FunctionTypeEq {
     size_t operator()(const FunctionType*, const FunctionType*) const;
 };
 }  // namespace internal
-
-using PointerTypeSet = std::unordered_set<PointerType*,
-                                          internal::PointerTypeHash,
-                                          internal::PointerTypeEq>;
 
 using StructTypeSet = std::unordered_set<StructType*,
                                          internal::StructTypeHash,

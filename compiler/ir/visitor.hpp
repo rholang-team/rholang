@@ -43,6 +43,8 @@ struct Visitor {
             visitBoolImm(*boolImm);
         else if (FnArgRef* fnArgRef = dynamic_cast<FnArgRef*>(v))
             visitFnArgRef(*fnArgRef);
+        else if (NullPtr* nullPtr = dynamic_cast<NullPtr*>(v))
+            visitNullPtr(*nullPtr);
         else if (Instr* instr = dynamic_cast<Instr*>(v))
             visitInstr(instr);
         else
@@ -88,6 +90,7 @@ struct Visitor {
     virtual RetTy visitIntImm([[maybe_unused]] IntImm& imm) {}
     virtual RetTy visitBoolImm([[maybe_unused]] BoolImm& imm) {}
     virtual RetTy visitFnArgRef([[maybe_unused]] FnArgRef& argRef) {}
+    virtual RetTy visitNullPtr([[maybe_unused]] NullPtr& nullPtr) {}
 
     virtual RetTy visitAllocaInstr([[maybe_unused]] AllocaInstr& i) {}
     virtual RetTy visitNewInstr([[maybe_unused]] NewInstr& i) {}

@@ -19,11 +19,13 @@ public:
     }
 
     template <typename T>
+        requires std::convertible_to<T, V>
     void addOrShadow(const K& k, T&& v) {
         scopes_.front().insert_or_assign(k, std::forward<T>(v));
     }
 
     template <typename T>
+        requires std::convertible_to<T, V>
     void addOrShadow(K&& k, T&& v) {
         scopes_.front().insert_or_assign(std::move(k), std::forward<T>(v));
     }

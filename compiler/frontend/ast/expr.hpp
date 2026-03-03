@@ -64,7 +64,9 @@ struct NumLitExpr final : public Expr {
 
     explicit NumLitExpr(lex::WithSpan<unsigned> value) : value{value} {}
 
-    lex::Span span() const override;
+    lex::Span span() const override {
+        return value.span;
+    }
 };
 
 struct BoolLitExpr final : public Expr {
@@ -72,7 +74,19 @@ struct BoolLitExpr final : public Expr {
 
     explicit BoolLitExpr(lex::WithSpan<bool> value) : value{value} {}
 
-    lex::Span span() const override;
+    lex::Span span() const override {
+        return value.span;
+    }
+};
+
+struct NullExpr final : public Expr {
+    lex::Span kwSpan;
+
+    explicit NullExpr(lex::Span span) : kwSpan{span} {}
+
+    lex::Span span() const override {
+        return kwSpan;
+    }
 };
 
 struct VarRefExpr final : public Expr {
@@ -81,7 +95,9 @@ struct VarRefExpr final : public Expr {
     explicit VarRefExpr(lex::WithSpan<std::string> name)
         : name{std::move(name)} {}
 
-    lex::Span span() const override;
+    lex::Span span() const override {
+        return name.span;
+    }
 };
 
 struct MemberRefExpr final : public Expr {

@@ -15,16 +15,8 @@ IntType* Type::getIntTy(Context& c) {
     return c.getIntTy();
 }
 
-PointerType* PointerType::get(Context& ctx, Type* underlying) {
-    if (PointerType* found = ctx.findPointerType(PointerType{underlying})) {
-        return found;
-    }
-
-    PointerType* res = ctx.allocate<PointerType>();
-    new (res) PointerType{underlying};
-
-    ctx.insertPointerType(res);
-    return res;
+PointerType* Type::getPointerTy(Context& c) {
+    return c.getPointerTy();
 }
 
 StructType* StructType::get(Context& ctx, std::span<Type*> fields) {

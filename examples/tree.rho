@@ -1,24 +1,17 @@
-struct A {
-    var l B;
-    var r B;
-
-    fun verify(self) bool {
-        if (self.l.r.x <= self.r.l.x) {
-            if (self.l.l.x <= self.l.r.x) {
-                if (self.r.l.x <= self.r.r.x) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-
-struct B {
-    var l C;
-    var r C;
-}
-
-struct C {
+struct Node {
+    var l Node;
+    var r Node;
     var x int;
+}
+
+fun leafNode(x int) Node {
+    return Node{.l = null, .r = null, .x = x};
+}
+
+fun get(n Node) int {
+    return n.x;
+}
+
+fun foo() int {
+    return get(null);
 }

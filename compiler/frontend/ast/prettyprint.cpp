@@ -223,6 +223,13 @@ void PrettyPrinter::visit(BoolLitExpr& expr) {
     os << '\n';
 }
 
+void PrettyPrinter::visit(NullExpr& expr) {
+    pad();
+    os << "NullExpr ";
+    showTyPtr(expr.type.get());
+    os << '\n';
+}
+
 void PrettyPrinter::visit(VarRefExpr& expr) {
     pad();
     os << "VarRefExpr " << expr.name.value << ' ';

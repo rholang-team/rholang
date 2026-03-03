@@ -60,6 +60,10 @@ void PrettyPrinter::visitFnArgRef(FnArgRef& argRef) {
     os_ << 'a' << argRef.idx();
 }
 
+void PrettyPrinter::visitNullPtr(NullPtr&) {
+    os_ << "null";
+}
+
 void PrettyPrinter::printTmp(Value& v) {
     printTmp(&v);
 }
@@ -71,6 +75,8 @@ void PrettyPrinter::printTmp(Value* v) {
         visitBoolImm(*boolImm);
     else if (FnArgRef* fnArgRef = dynamic_cast<FnArgRef*>(v))
         visitFnArgRef(*fnArgRef);
+    else if (NullPtr* nullPtr = dynamic_cast<NullPtr*>(v))
+        visitNullPtr(*nullPtr);
     else if (Instr* instr = dynamic_cast<Instr*>(v))
         os_ << 'x' << valueNames_.at(instr);
     else
@@ -129,7 +135,7 @@ void PrettyPrinter::visitLoadInstr(LoadInstr& i) {
 }
 
 void PrettyPrinter::visitStoreInstr(StoreInstr& i) {
-    os_ << "store ";
+    os_ << "store " << *i.storedValueType() << ' ';
     printTmp(i.dest().get());
     os_ << ' ';
     printTmp(i.src().get());
@@ -202,7 +208,7 @@ void PrettyPrinter::visitCmpInstr(CmpInstr& i) {
 void PrettyPrinter::visitGetFieldPtrInstr(GetFieldPtrInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
     printTmp(i);
-    os_ << " = gfp ";
+    os_ << " = gfp " << *i.structType() << ' ';
     printTmp(i.target().get());
     os_ << ' ' << i.fieldIdx() << '\n';
 }

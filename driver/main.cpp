@@ -15,7 +15,7 @@ using namespace std::string_view_literals;
 namespace {
 void printTranslationUnit(frontend::TranslationUnit& tu) {
     for (auto& [name, s] : tu.structs) {
-        std::println("{}\n", s);
+        std::println("{}\n", *s);
     }
     for (auto& [name, decl] : tu.globals) {
         frontend::ast::PrettyPrinter{std::cout}.visit(decl);

@@ -38,6 +38,7 @@ public:
     void visit(UnaryExpr& expr) override;
     void visit(NumLitExpr& expr) override;
     void visit(BoolLitExpr& expr) override;
+    void visit(NullExpr& expr) override;
     void visit(BinaryExpr& expr) override;
     void visit(VarRefExpr& expr) override;
     void visit(MemberRefExpr& expr) override;

@@ -27,6 +27,7 @@ public:
     void visitIntImm(IntImm& imm) override;
     void visitBoolImm(BoolImm& imm) override;
     void visitFnArgRef(FnArgRef& argRef) override;
+    void visitNullPtr(NullPtr& argRef) override;
 
     void visitAllocaInstr(AllocaInstr& i) override;
     void visitNewInstr(NewInstr& i) override;

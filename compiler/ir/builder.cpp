@@ -15,9 +15,8 @@ BoolType* Builder::getBoolTy() {
 IntType* Builder::getIntTy() {
     return ctx_.getIntTy();
 }
-
-PointerType* Builder::getPointerTy(Type* underlying) {
-    return PointerType::get(ctx_, underlying);
+PointerType* Builder::getPointerTy() {
+    return ctx_.getPointerTy();
 }
 
 FunctionType* Builder::getFunctionTy(Type* rettype, std::span<Type*> params) {
@@ -114,6 +113,10 @@ std::shared_ptr<FnArgRef> Builder::createFnArgRef(Function* fn, unsigned idx) {
     return FnArgRef::create(fn, idx);
 }
 
+std::shared_ptr<NullPtr> Builder::createNullPtr() {
+    return NullPtr::create(ctx_);
+}
+
 std::shared_ptr<AllocaInstr> Builder::createAllocaInstr(Type* itemType) {
     return AllocaInstr::create(ctx_, itemType);
 }
@@ -139,14 +142,16 @@ std::shared_ptr<NegInstr> Builder::createNegInstr(
 }
 
 std::shared_ptr<LoadInstr> Builder::createLoadInstr(
+    Type* ty,
     std::shared_ptr<Value> src) {
-    return LoadInstr::create(src);
+    return LoadInstr::create(ty, src);
 }
 
 std::shared_ptr<StoreInstr> Builder::createStoreInstr(
+    Type* ty,
     std::shared_ptr<Value> dest,
     std::shared_ptr<Value> src) {
-    return StoreInstr::create(ctx_, dest, src);
+    return StoreInstr::create(ctx_, ty, dest, src);
 }
 
 std::shared_ptr<AddInstr> Builder::createAddInstr(std::shared_ptr<Value> lhs,
@@ -171,9 +176,10 @@ std::shared_ptr<CmpInstr> Builder::createCmpInstr(CmpInstr::Cond cond,
 }
 
 std::shared_ptr<GetFieldPtrInstr> Builder::createGetFieldPtrInstr(
+    StructType* structType,
     std::shared_ptr<Value> target,
     unsigned idx) {
-    return GetFieldPtrInstr::create(ctx_, target, idx);
+    return GetFieldPtrInstr::create(ctx_, structType, target, idx);
 }
 
 std::shared_ptr<GotoInstr> Builder::createGotoInstr(BasicBlock* dest) {

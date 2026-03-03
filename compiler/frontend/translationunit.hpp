@@ -10,6 +10,6 @@ struct TranslationUnit {
     std::unordered_map<std::string, ast::VarDecl> globals;
     std::unordered_map<std::string, std::shared_ptr<ast::FunctionDecl>>
         functions;
-    std::unordered_map<std::string, StructType> structs;
+    std::unordered_map<std::string, std::shared_ptr<StructType>> structs;
 };
 }  // namespace frontend

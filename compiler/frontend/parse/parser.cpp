@@ -607,6 +607,10 @@ std::shared_ptr<ast::Expr> Parser::parseTerm() {
             term = std::make_shared<ast::BoolLitExpr>(
                 lex::WithSpan{false, l.span});
             break;
+        case lex::Token::Null:
+            lexemes.next();
+            term = std::make_shared<ast::NullExpr>(l.span);
+            break;
         case lex::Token::LParen: {
             lexemes.next();
             auto subexpr = parseExpr();

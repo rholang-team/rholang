@@ -41,6 +41,7 @@ enum class Token {
     Return,       // `return`
     True,         // `true`
     False,        // `false`
+    Null,         // `null`
 };
 
 }  // namespace frontend::lex
@@ -127,6 +128,8 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`true`");
             case frontend::lex::Token::False:
                 return std::format_to(ctx.out(), "`false`");
+            case frontend::lex::Token::Null:
+                return std::format_to(ctx.out(), "`null`");
         }
     }
 };

@@ -11,11 +11,13 @@ class Context;
 struct VoidType;
 struct BoolType;
 struct IntType;
+struct PointerType;
 
 struct Type {
     static VoidType* getVoidTy(Context& c);
     static BoolType* getBoolTy(Context& c);
     static IntType* getIntTy(Context& c);
+    static PointerType* getPointerTy(Context& c);
 
     virtual ~Type() = default;
 };
@@ -23,19 +25,7 @@ struct Type {
 struct VoidType final : public Type {};
 struct BoolType final : public Type {};
 struct IntType final : public Type {};
-
-class PointerType final : public Type {
-    Type* underlying_;
-
-    explicit PointerType(Type* underlying) : underlying_{underlying} {}
-
-public:
-    static PointerType* get(Context& ctx, Type* underlying);
-
-    Type* underlying() const {
-        return underlying_;
-    }
-};
+struct PointerType final : public Type {};
 
 class StructType final : public Type {
     std::span<Type*> fields_;
@@ -110,7 +100,7 @@ IMPL_FORMAT(ir::BoolType) {
 
 DECL_FORMAT(ir::PointerType)
 IMPL_FORMAT(ir::PointerType) {
-    return std::format_to(ctx.out(), "*{}", *type.underlying());
+    return std::format_to(ctx.out(), "ptr");
 }
 
 DECL_FORMAT(ir::StructType)
