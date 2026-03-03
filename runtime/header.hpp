@@ -9,6 +9,13 @@ struct alignas(std::max_align_t) Header {
     bool mark;
     bool allocated;
 };
+
+struct alignas(std::max_align_t) MapHeader {
+    void* start;
+    void* end;
+    MapHeader* next;
+};
+
 }  // namespace memory_manager::alloc
 
 static constexpr size_t MIN_ALLOCATION_SIZE = sizeof(void*);

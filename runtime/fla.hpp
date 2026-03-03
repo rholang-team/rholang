@@ -7,12 +7,6 @@
 namespace memory_manager::alloc {
 
 class FreeListAllocator {
-    struct MapHeader {
-        void* start;
-        void* end;
-        MapHeader* next;
-    };
-
     Header* free_head;
     MapHeader* map_head;
 
