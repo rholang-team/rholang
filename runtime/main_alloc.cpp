@@ -60,21 +60,4 @@ void MainAllocator::deallocate(void* p) {
     }
     return bins[idx].deallocate(p);
 }
-
-template <typename F>
-void MainAllocator::foreach_cell(F&& visitor) {
-    for (auto& bin : bins) {
-        bin.foreach_cell(visitor);
-    }
-    large_bin.foreach_cell(visitor);
-}
-
-template <typename F>
-void MainAllocator::foreach_allocated(F&& visitor) {
-    for (auto& bin : bins) {
-        bin.foreach_allocated(visitor);
-    }
-    large_bin.foreach_allocated(visitor);
-}
-
 }  // namespace memory_manager::alloc

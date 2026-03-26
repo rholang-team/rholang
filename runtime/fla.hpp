@@ -17,9 +17,27 @@ public:
     void deallocate(void* p);
 
     template <typename F>
-    void foreach_cell(F&& visitor);
+    void foreach_cell(F&& visitor) {
+        for (MapHeader* r = map_head; r != nullptr; r = r->next) {
+            void* cur = r->start;
+            void* end = r->end;
+
+            while (cur < end) {
+                Header* cell = (Header*)cur;
+                visitor(cell);
+                cur = (char*)cur + sizeof(Header) + cell->size;
+            }
+        }
+    }
+
     template <typename F>
-    void foreach_allocated(F&& visitor);
+    void foreach_allocated(F&& visitor) {
+        foreach_cell([&visitor](Header* cell) {
+            if (cell->allocated) {
+                visitor(cell);
+            }
+        });
+    }
 
 private:
     void extend(size_t required_size);

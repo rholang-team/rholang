@@ -6,6 +6,7 @@
 #include <cstddef>
 
 #include "header.hpp"
+#include "page_size.hpp"
 
 namespace memory_manager::alloc {
 
@@ -23,9 +24,24 @@ public:
     void deallocate(void* p);
 
     template <typename F>
-    void foreach_cell(F&& visitor);
+    void foreach_cell(F&& visitor) {
+        for (MapHeader* r = map_head; r != nullptr; r = r->next) {
+            void* cur = r->start;
+            while (cur != (char*)r + PAGE_SIZE) {
+                visitor((Header*)cur);
+                cur = (char*)cur + sizeof(Header) + class_size;
+            }
+        }
+    }
+
     template <typename F>
-    void foreach_allocated(F&& visitor);
+    void foreach_allocated(F&& visitor) {
+        foreach_cell([&visitor](Header* cell) {
+            if (cell->allocated) {
+                visitor(cell);
+            }
+        });
+    }
 
 private:
     void extend();

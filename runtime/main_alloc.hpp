@@ -23,9 +23,20 @@ public:
     void deallocate(void* p);
 
     template <typename F>
-    void foreach_cell(F&& visitor);
+    void foreach_cell(F&& visitor) {
+        for (auto& bin : bins) {
+            bin.foreach_cell(visitor);
+        }
+        large_bin.foreach_cell(visitor);
+    }
+
     template <typename F>
-    void foreach_allocated(F&& visitor);
+    void foreach_allocated(F&& visitor) {
+        for (auto& bin : bins) {
+            bin.foreach_allocated(visitor);
+        }
+        large_bin.foreach_allocated(visitor);
+    }
 
 private:
     /// returns an appropriate bin index for the size, LARGE_BIN if there is no appropriate bins.

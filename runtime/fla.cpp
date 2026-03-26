@@ -133,27 +133,4 @@ void FreeListAllocator::coalesce_with_next(Header* cell) {
         }
     }
 }
-
-template <typename F>
-void FreeListAllocator::foreach_cell(F&& visitor) {
-    for (MapHeader* r = map_head; r != nullptr; r = r->next) {
-        void* cur = r->start;
-        void* end = r->end;
-
-        while (cur < end) {
-            Header* cell = (Header*)cur;
-            visitor(cell);
-            cur = (char*)cur + sizeof(Header) + cell->size;
-        }
-    }
-}
-
-template <typename F>
-void FreeListAllocator::foreach_allocated(F&& visitor) {
-    foreach_cell([&visitor](Header* cell) {
-        if (cell->allocated) {
-            visitor(cell);
-        }
-    });
-}
 }  // namespace memory_manager::alloc

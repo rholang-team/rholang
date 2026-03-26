@@ -62,25 +62,4 @@ void Bin::deallocate(void* p) {
     cell->next = free_head;
     free_head = cell;
 }
-
-template <typename F>
-void Bin::foreach_cell(F&& visitor) {
-    for (MapHeader* r = map_head; r != nullptr; r = r->next) {
-        void* cur = r->start;
-        while (cur != (char*)r + PAGE_SIZE) {
-            visitor((Header*)cur);
-            cur = (char*)cur + sizeof(Header) + class_size;
-        }
-    }
-}
-
-template <typename F>
-void Bin::foreach_allocated(F&& visitor) {
-    foreach_cell([&visitor](Header* cell) {
-        if (cell->allocated) {
-            visitor(cell);
-        }
-    });
-}
-
 }  // namespace memory_manager::alloc
