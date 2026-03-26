@@ -11,11 +11,12 @@ class GC {
     std::stack<void*> mark_stack;
 
 public:
+    GC() {}
     void* allocate(size_t size, void* ref_map);
-    void safepoint();
+    void collect();
 
 private:
-    void mark_from_roots();
+    void scan_roots();
     void mark();
     void sweep();
 };
