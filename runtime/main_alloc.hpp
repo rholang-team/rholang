@@ -22,6 +22,11 @@ public:
     void* allocate(size_t size);
     void deallocate(void* p);
 
+    template <typename F>
+    void foreach_cell(F&& visitor);
+    template <typename F>
+    void foreach_allocated(F&& visitor);
+
 private:
     /// returns an appropriate bin index for the size, LARGE_BIN if there is no appropriate bins.
     inline static size_t get_bin(size_t size);
