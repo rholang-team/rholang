@@ -7,7 +7,7 @@ gtest_dep = dependency('gtest_main')
 
 runtime_src = [
   'runtime/main_alloc.cpp',
-  'runtime/gc.hpp',
+  'runtime/gc.cpp',
   'runtime/bin.cpp',
   'runtime/fla.cpp'
 ]
