@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace memory_manager::alloc {
+namespace memory_manager {
 struct alignas(std::max_align_t) Header {
     Header* next;
     size_t size;  // cell size of a bin or 0 for large bin.
@@ -16,6 +16,6 @@ struct alignas(std::max_align_t) MapHeader {
     MapHeader* next;
 };
 
-}  // namespace memory_manager::alloc
+}  // namespace memory_manager
 
 static constexpr size_t MIN_ALLOCATION_SIZE = sizeof(void*);
