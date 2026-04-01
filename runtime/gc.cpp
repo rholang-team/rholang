@@ -3,9 +3,18 @@
 #include "header.hpp"
 
 namespace memory_manager {
+void* GC::allocate(size_t size, void* ref_map) {
+    auto p = allocator.allocate(size);
+    Header* h = (Header*)((char*)p - sizeof(Header));
+    h->ref_map = ref_map;
+    h->mark = false;
+
+    return p;
+}
+
 void GC::collect() {
-    scan_roots();
-    mark();
+    // scan_roots();
+    // mark();
     sweep();
 }
 
@@ -30,7 +39,7 @@ void GC::mark() {
 void GC::sweep() {
     allocator.foreach_cell([this](Header* cell) {
         if (!cell->mark) {
-            allocator.deallocate(cell);
+            allocator.deallocate((char*)cell + sizeof(Header));
         } else {
             cell->mark = false;
         }
