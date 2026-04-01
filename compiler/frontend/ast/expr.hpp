@@ -43,6 +43,7 @@ struct BinaryExpr final : public Expr {
         Plus,
         Minus,
         Mul,
+        Div,
         And,
         Or,
     };

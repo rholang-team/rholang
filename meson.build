@@ -44,7 +44,19 @@ ir_src = [
 backend_src = []
 
 compiler_src = frontend_src + ir_src + backend_src
+
+compiler_tests_src = [
+    'compiler/tests/frontend.cpp',
+]
+
 compiler = static_library('compiler', compiler_src)
+
+test('compiler tests', executable(
+  'compilertests',
+  compiler_tests_src,
+  dependencies: [gtest_dep],
+  link_with: [compiler],
+))
 
 driver_src = [
     'driver/main.cpp',

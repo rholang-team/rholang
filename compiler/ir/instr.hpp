@@ -177,6 +177,7 @@ public:
 MAKE_BINARY_INSTR(AddInstr, Int);
 MAKE_BINARY_INSTR(SubInstr, Int);
 MAKE_BINARY_INSTR(MulInstr, Int);
+MAKE_BINARY_INSTR(DivInstr, Int);
 
 #undef MAKE_BINARY_INSTR
 

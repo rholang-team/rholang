@@ -37,13 +37,41 @@ struct StmtVisitor {
         std::unreachable();
     }
 
-    virtual RetTy visit(CompoundStmt&) {}
-    virtual RetTy visit(CondStmt&) {}
-    virtual RetTy visit(WhileStmt&) {}
-    virtual RetTy visit(DeclStmt&) {}
-    virtual RetTy visit(RetStmt&) {}
-    virtual RetTy visit(ExprStmt&) {}
-    virtual RetTy visit(AssignmentStmt&) {}
+    virtual RetTy visit(CompoundStmt&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(CondStmt&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(WhileStmt&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(DeclStmt&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(RetStmt&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(ExprStmt&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(AssignmentStmt&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
 };
 
 template <typename RetTy>
@@ -74,14 +102,50 @@ struct ExprVisitor {
         std::unreachable();
     }
 
-    virtual RetTy visit(UnaryExpr&) {}
-    virtual RetTy visit(NumLitExpr&) {}
-    virtual RetTy visit(BoolLitExpr&) {}
-    virtual RetTy visit(NullExpr&) {}
-    virtual RetTy visit(BinaryExpr&) {}
-    virtual RetTy visit(VarRefExpr&) {}
-    virtual RetTy visit(MemberRefExpr&) {}
-    virtual RetTy visit(CallExpr&) {}
-    virtual RetTy visit(StructInitExpr&) {}
+    virtual RetTy visit(UnaryExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(NumLitExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(BoolLitExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(NullExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(BinaryExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(VarRefExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(MemberRefExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(CallExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visit(StructInitExpr&) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
 };
 }  // namespace frontend::ast

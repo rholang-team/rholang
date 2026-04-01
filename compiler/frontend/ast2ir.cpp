@@ -144,7 +144,7 @@ class Translator : private ast::DeclVisitor,
         for (size_t i = 0; i < decl.paramNames.size(); ++i) {
             namedValues_.addOrShadow(
                 decl.paramNames[i],
-                std::pair{builder_.createFnArgRef(res, i),
+                std::pair{builder_.createFnArgRef(res->signature(), i),
                           res->signature()->type()->params()[i]});
         }
 
@@ -313,6 +313,9 @@ class Translator : private ast::DeclVisitor,
             case ast::BinaryExpr::Op::Mul:
                 i = builder_.createMulInstr(lhs, rhs);
                 break;
+            case ast::BinaryExpr::Op::Div:
+                i = builder_.createDivInstr(lhs, rhs);
+                break;
             case ast::BinaryExpr::Op::And:
                 // TODO
                 break;
@@ -328,7 +331,8 @@ class Translator : private ast::DeclVisitor,
     std::shared_ptr<ir::Value> visit(ast::VarRefExpr& expr) {
         auto argIdx = findArgIdx(expr.name.value);
         if (argIdx.has_value()) {
-            return builder_.createFnArgRef(builder_.curFunction(), *argIdx);
+            return builder_.createFnArgRef(builder_.curFunction()->signature(),
+                                           *argIdx);
         } else {
             auto& [ptr, valTy] =
                 namedValues_.lookup(expr.name.value).value().get();

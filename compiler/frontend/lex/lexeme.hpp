@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <string_view>
 #include <vector>
 
 #include "compiler/frontend/lex/span.hpp"
@@ -13,13 +13,13 @@ struct Lexeme {
 };
 
 class Lexemes {
-    std::string input;
+    std::string_view input;
     std::vector<Lexeme> lexemes;
     Span eofSpan;
     size_t offset = 0;
 
 public:
-    Lexemes(std::string input, std::vector<Lexeme> lexemes, Span eofSpan)
+    Lexemes(std::string_view input, std::vector<Lexeme> lexemes, Span eofSpan)
         : input{std::move(input)},
           lexemes{std::move(lexemes)},
           eofSpan{eofSpan} {}

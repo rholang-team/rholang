@@ -11,9 +11,11 @@ enum class Token {
     Plus,         // +
     Minus,        // -
     Asterisk,     // *
+    Slash,        // /
     PlusAssign,   // +=
     MinusAssign,  // -=
     MulAssign,    // *=
+    DivAssign,    // *=
     Bang,         // !
     Eq,           // ==
     Ne,           // !=
@@ -68,12 +70,16 @@ struct std::formatter<frontend::lex::Token> {
                 return std::format_to(ctx.out(), "`-`");
             case frontend::lex::Token::Asterisk:
                 return std::format_to(ctx.out(), "`*`");
+            case frontend::lex::Token::Slash:
+                return std::format_to(ctx.out(), "`/`");
             case frontend::lex::Token::PlusAssign:
                 return std::format_to(ctx.out(), "`+=`");
             case frontend::lex::Token::MinusAssign:
                 return std::format_to(ctx.out(), "`-=`");
             case frontend::lex::Token::MulAssign:
                 return std::format_to(ctx.out(), "`*=`");
+            case frontend::lex::Token::DivAssign:
+                return std::format_to(ctx.out(), "`/=`");
             case frontend::lex::Token::Bang:
                 return std::format_to(ctx.out(), "`!`");
             case frontend::lex::Token::Eq:

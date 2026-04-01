@@ -46,7 +46,8 @@ public:
 
     std::shared_ptr<IntImm> createIntImm(int value);
     std::shared_ptr<BoolImm> createBoolImm(bool value);
-    std::shared_ptr<FnArgRef> createFnArgRef(Function* fn, unsigned idx);
+    std::shared_ptr<FnArgRef> createFnArgRef(const FunctionSignature* fn,
+                                             unsigned idx);
     std::shared_ptr<NullPtr> createNullPtr();
 
     std::shared_ptr<AllocaInstr> createAllocaInstr(Type* itemType);
@@ -66,6 +67,8 @@ public:
     std::shared_ptr<SubInstr> createSubInstr(std::shared_ptr<Value> lhs,
                                              std::shared_ptr<Value> rhs);
     std::shared_ptr<MulInstr> createMulInstr(std::shared_ptr<Value> lhs,
+                                             std::shared_ptr<Value> rhs);
+    std::shared_ptr<DivInstr> createDivInstr(std::shared_ptr<Value> lhs,
                                              std::shared_ptr<Value> rhs);
     std::shared_ptr<CmpInstr> createCmpInstr(CmpInstr::Cond cond,
                                              std::shared_ptr<Value> lhs,

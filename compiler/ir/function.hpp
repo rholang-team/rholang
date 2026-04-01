@@ -24,20 +24,42 @@ public:
 };
 
 class Function {
+public:
+    using BBs = std::list<std::unique_ptr<BasicBlock>>;
+
+private:
     FunctionSignature* signature_;
-    std::list<std::unique_ptr<BasicBlock>> bbs_;
+    BBs bbs_;
 
 public:
     explicit Function(FunctionSignature* signature) : signature_{signature} {}
 
+    void addBB(std::unique_ptr<BasicBlock> bb) {
+        bbs_.push_back(std::move(bb));
+    }
+
     const FunctionSignature* signature() const {
         return signature_;
     }
-    auto& bbs() {
-        return bbs_;
+
+    BBs::iterator begin() {
+        return bbs_.begin();
     }
-    const auto& bbs() const {
-        return bbs_;
+    BBs::const_iterator begin() const {
+        return bbs_.begin();
+    }
+    BBs::const_iterator cbegin() const {
+        return bbs_.cbegin();
+    }
+
+    BBs::iterator end() {
+        return bbs_.end();
+    }
+    BBs::const_iterator end() const {
+        return bbs_.end();
+    }
+    BBs::const_iterator cend() const {
+        return bbs_.cend();
     }
 };
 }  // namespace ir

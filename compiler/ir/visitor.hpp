@@ -17,13 +17,13 @@ struct Visitor {
     }
 
     virtual void visit(Function& fn) {
-        for (auto& bb : fn.bbs()) {
+        for (auto& bb : fn) {
             visit(*bb);
         }
     }
 
     virtual void visit(BasicBlock& bb) {
-        for (auto& i : bb.instrs()) {
+        for (auto& i : bb) {
             visit(i.get());
         }
     }
@@ -87,25 +87,101 @@ struct Visitor {
         std::unreachable();
     }
 
-    virtual RetTy visitIntImm([[maybe_unused]] IntImm& imm) {}
-    virtual RetTy visitBoolImm([[maybe_unused]] BoolImm& imm) {}
-    virtual RetTy visitFnArgRef([[maybe_unused]] FnArgRef& argRef) {}
-    virtual RetTy visitNullPtr([[maybe_unused]] NullPtr& nullPtr) {}
+    virtual RetTy visitIntImm([[maybe_unused]] IntImm& imm) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitBoolImm([[maybe_unused]] BoolImm& imm) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitFnArgRef([[maybe_unused]] FnArgRef& argRef) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitNullPtr([[maybe_unused]] NullPtr& nullPtr) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
 
-    virtual RetTy visitAllocaInstr([[maybe_unused]] AllocaInstr& i) {}
-    virtual RetTy visitNewInstr([[maybe_unused]] NewInstr& i) {}
-    virtual RetTy visitCallInstr([[maybe_unused]] CallInstr& i) {}
-    virtual RetTy visitNotInstr([[maybe_unused]] NotInstr& i) {}
-    virtual RetTy visitNegInstr([[maybe_unused]] NegInstr& i) {}
-    virtual RetTy visitLoadInstr([[maybe_unused]] LoadInstr& i) {}
-    virtual RetTy visitStoreInstr([[maybe_unused]] StoreInstr& i) {}
-    virtual RetTy visitAddInstr([[maybe_unused]] AddInstr& i) {}
-    virtual RetTy visitSubInstr([[maybe_unused]] SubInstr& i) {}
-    virtual RetTy visitMulInstr([[maybe_unused]] MulInstr& i) {}
-    virtual RetTy visitCmpInstr([[maybe_unused]] CmpInstr& i) {}
-    virtual RetTy visitGetFieldPtrInstr([[maybe_unused]] GetFieldPtrInstr& i) {}
-    virtual RetTy visitGotoInstr([[maybe_unused]] GotoInstr& i) {}
-    virtual RetTy visitBrInstr([[maybe_unused]] BrInstr& i) {}
-    virtual RetTy visitRetInstr([[maybe_unused]] RetInstr& i) {}
+    virtual RetTy visitAllocaInstr([[maybe_unused]] AllocaInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitNewInstr([[maybe_unused]] NewInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitCallInstr([[maybe_unused]] CallInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitNotInstr([[maybe_unused]] NotInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitNegInstr([[maybe_unused]] NegInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitLoadInstr([[maybe_unused]] LoadInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitStoreInstr([[maybe_unused]] StoreInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitAddInstr([[maybe_unused]] AddInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitSubInstr([[maybe_unused]] SubInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitMulInstr([[maybe_unused]] MulInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitCmpInstr([[maybe_unused]] CmpInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitGetFieldPtrInstr([[maybe_unused]] GetFieldPtrInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitGotoInstr([[maybe_unused]] GotoInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitBrInstr([[maybe_unused]] BrInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitRetInstr([[maybe_unused]] RetInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
 };
 }  // namespace ir

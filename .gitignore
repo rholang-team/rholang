@@ -1,2 +1,7 @@
 build/
 .cache/
+.bsp/
+.bloop/
+.metals/
+.scala-build/
+target/

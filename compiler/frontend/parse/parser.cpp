@@ -43,6 +43,8 @@ std::optional<ast::BinaryExpr::Op> binaryOpFromToken(lex::Token tok) {
             return ast::BinaryExpr::Op::Minus;
         case lex::Token::Asterisk:
             return ast::BinaryExpr::Op::Mul;
+        case lex::Token::Slash:
+            return ast::BinaryExpr::Op::Div;
         case lex::Token::Eq:
             return ast::BinaryExpr::Op::Eq;
         case lex::Token::Ne:
@@ -85,6 +87,7 @@ std::pair<unsigned, bool> binaryOpInfo(ast::BinaryExpr::Op op) {
             prec = 5;
             break;
         case ast::BinaryExpr::Op::Mul:
+        case ast::BinaryExpr::Op::Div:
             prec = 6;
             break;
     }

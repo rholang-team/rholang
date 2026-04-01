@@ -31,7 +31,7 @@ void PrettyPrinter::visit(Function& fn) {
     bbs_.clear();
 
     size_t bbIndex = 0;
-    for (auto& bb : fn.bbs()) {
+    for (auto& bb : fn) {
         bbs_.emplace(bb.get(), bbIndex++);
     }
 
@@ -179,22 +179,22 @@ void PrettyPrinter::visitCmpInstr(CmpInstr& i) {
 
     switch (i.cond()) {
         case CmpInstr::Cond::Eq:
-            os_ << "==";
+            os_ << "eq";
             break;
         case CmpInstr::Cond::Ne:
-            os_ << "!=";
+            os_ << "ne";
             break;
         case CmpInstr::Cond::Lt:
-            os_ << "<";
+            os_ << "lt";
             break;
         case CmpInstr::Cond::Gt:
-            os_ << ">";
+            os_ << "gt";
             break;
         case CmpInstr::Cond::Le:
-            os_ << "<=";
+            os_ << "le";
             break;
         case CmpInstr::Cond::Ge:
-            os_ << ">=";
+            os_ << "ge";
             break;
     }
 

@@ -66,9 +66,7 @@ Lexemes Lexer::lex() {
         lexemes.push_back(*lexeme);
     }
 
-    return Lexemes{std::move(input),
-                   std::move(lexemes),
-                   Span(input.size() - 1)};
+    return Lexemes{input, std::move(lexemes), Span(input.size() - 1)};
 }
 
 std::optional<Lexeme> Lexer::nextLexeme() {
@@ -94,6 +92,7 @@ std::optional<Lexeme> Lexer::nextLexeme() {
     TWO_CHAR_TOKEN('+', '=', Token::Plus, Token::PlusAssign);
     TWO_CHAR_TOKEN('-', '=', Token::Minus, Token::MinusAssign);
     TWO_CHAR_TOKEN('*', '=', Token::Asterisk, Token::MulAssign);
+    TWO_CHAR_TOKEN('/', '=', Token::Slash, Token::DivAssign);
 
     STRICTLY_TWO_CHAR_TOKEN('&', '&', Token::And);
     STRICTLY_TWO_CHAR_TOKEN('|', '|', Token::Or);

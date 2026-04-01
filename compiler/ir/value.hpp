@@ -3,10 +3,11 @@
 #include <memory>
 
 #include "compiler/ir/context.hpp"
-#include "compiler/ir/function.hpp"
 #include "compiler/ir/type.hpp"
 
 namespace ir {
+class FunctionSignature;
+
 class Value {
     Type* type_;
 
@@ -53,7 +54,8 @@ class FnArgRef final : public Value {
     FnArgRef(Type* ty, unsigned idx) : Value{ty}, idx_{idx} {}
 
 public:
-    static std::shared_ptr<FnArgRef> create(Function* fn, unsigned idx);
+    static std::shared_ptr<FnArgRef> create(const FunctionSignature* fn,
+                                            unsigned idx);
 
     unsigned idx() const {
         return idx_;

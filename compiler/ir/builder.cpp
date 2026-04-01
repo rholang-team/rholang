@@ -81,8 +81,7 @@ BasicBlock* Builder::finishBB() {
 
     BasicBlock* res = bb_.get();
 
-    function_->bbs().emplace_back(
-        std::exchange(bb_, std::unique_ptr<BasicBlock>{nullptr}));
+    function_->addBB(std::exchange(bb_, std::unique_ptr<BasicBlock>{nullptr}));
 
     return res;
 }
@@ -109,7 +108,8 @@ std::shared_ptr<BoolImm> Builder::createBoolImm(bool value) {
     return BoolImm::create(ctx_, value);
 }
 
-std::shared_ptr<FnArgRef> Builder::createFnArgRef(Function* fn, unsigned idx) {
+std::shared_ptr<FnArgRef> Builder::createFnArgRef(const FunctionSignature* fn,
+                                                  unsigned idx) {
     return FnArgRef::create(fn, idx);
 }
 
@@ -167,6 +167,11 @@ std::shared_ptr<SubInstr> Builder::createSubInstr(std::shared_ptr<Value> lhs,
 std::shared_ptr<MulInstr> Builder::createMulInstr(std::shared_ptr<Value> lhs,
                                                   std::shared_ptr<Value> rhs) {
     return MulInstr::create(lhs, rhs);
+}
+
+std::shared_ptr<DivInstr> Builder::createDivInstr(std::shared_ptr<Value> lhs,
+                                                  std::shared_ptr<Value> rhs) {
+    return DivInstr::create(lhs, rhs);
 }
 
 std::shared_ptr<CmpInstr> Builder::createCmpInstr(CmpInstr::Cond cond,

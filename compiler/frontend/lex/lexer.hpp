@@ -7,7 +7,7 @@
 
 namespace frontend::lex {
 class Lexer {
-    std::string input;
+    std::string_view input;
     size_t offset = 0;
 
     std::optional<char> peekChar() const;

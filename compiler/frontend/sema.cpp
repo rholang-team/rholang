@@ -22,6 +22,10 @@ bool typeIsComparable(const Type& ty) {
     return ty == *PrimitiveType::boolType || ty == *PrimitiveType::intType;
 }
 
+bool typeIsOrdered(const Type& ty) {
+    return ty == *PrimitiveType::intType;
+}
+
 class Sema : private ast::DeclVisitor,
              ast::StmtVisitor<void>,
              ast::ExprVisitor<void> {
@@ -138,14 +142,15 @@ class Sema : private ast::DeclVisitor,
             case ast::BinaryExpr::Op::Gt:
             case ast::BinaryExpr::Op::Le:
             case ast::BinaryExpr::Op::Ge:
-                checkValidity(typeIsComparable(*expr.lhs->type) &&
-                              typeIsComparable(*expr.rhs->type) &&
+                checkValidity(typeIsOrdered(*expr.lhs->type) &&
+                              typeIsOrdered(*expr.rhs->type) &&
                               *lhsType == *rhsType);
                 expr.type = PrimitiveType::boolType;
                 break;
             case ast::BinaryExpr::Op::Plus:
             case ast::BinaryExpr::Op::Minus:
             case ast::BinaryExpr::Op::Mul:
+            case ast::BinaryExpr::Op::Div:
                 checkValidity(*lhsType == *PrimitiveType::intType &&
                               *rhsType == *PrimitiveType::intType);
                 expr.type = PrimitiveType::intType;

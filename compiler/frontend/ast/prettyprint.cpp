@@ -195,6 +195,9 @@ void PrettyPrinter::visit(BinaryExpr& expr) {
         case BinaryExpr::Op::Mul:
             os << '*';
             break;
+        case BinaryExpr::Op::Div:
+            os << '/';
+            break;
         case BinaryExpr::Op::And:
             os << "&&";
             break;
