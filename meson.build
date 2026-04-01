@@ -15,7 +15,8 @@ runtime_src = [
 runtime_tests_src = [
   'runtime/bin_test.cpp',
   'runtime/fla_test.cpp',
-  'runtime/main_alloc_test.cpp'
+  'runtime/main_alloc_test.cpp',
+  'runtime/gc_test.cpp'
 ]
 
 runtime = static_library('runtime', runtime_src)
