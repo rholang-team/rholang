@@ -15,13 +15,13 @@ inline size_t align_up(size_t n) {
 }
 
 void FreeListAllocator::extend(size_t required_size) {
-    size_t map_off = align_up(sizeof(MapHeader));
-    size_t pages = (required_size + map_off + PAGE_SIZE - 1) / PAGE_SIZE;
+    size_t map_head_off = align_up(sizeof(MapHeader));
+    size_t pages = (required_size + map_head_off + PAGE_SIZE - 1) / PAGE_SIZE;
     size_t total = pages * PAGE_SIZE;
     auto new_page =
         mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     auto map = (MapHeader*)new_page;
-    auto node = (Header*)((char*)new_page + map_off);
+    auto node = (Header*)((char*)new_page + map_head_off);
     map->start = node;
     map->end = (char*)map + total;
 
@@ -31,7 +31,7 @@ void FreeListAllocator::extend(size_t required_size) {
 
     map_head = map;
 
-    node->size = total - sizeof(Header);
+    node->size = total - map_head_off - sizeof(Header);
     node->allocated = false;
     node->mark = false;
     node->next = free_head;
