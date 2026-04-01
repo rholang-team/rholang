@@ -6,7 +6,6 @@
 #include <cstddef>
 
 #include "header.hpp"
-#include "page_size.hpp"
 
 namespace memory_manager::alloc {
 
@@ -27,9 +26,9 @@ public:
     void foreach_cell(F&& visitor) {
         for (MapHeader* r = map_head; r != nullptr; r = r->next) {
             void* cur = r->start;
-            while (cur != (char*)r + PAGE_SIZE) {
+            while ((char*)cur + entry_size <= (char*)r->end) {
                 visitor((Header*)cur);
-                cur = (char*)cur + sizeof(Header) + class_size;
+                cur = (char*)cur + entry_size;
             }
         }
     }
