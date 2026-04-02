@@ -16,7 +16,7 @@ public:
     void collect();
 
 private:
-    void scan_roots();
+    void scan();
     void mark();
     void sweep();
 };

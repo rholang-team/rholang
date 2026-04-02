@@ -13,13 +13,13 @@ void* GC::allocate(size_t size, void* ref_map) {
 }
 
 void GC::collect() {
-    // scan_roots();
-    // mark();
+    scan();
+    mark();
     sweep();
 }
 
 // scans the roots and pushes them onto mark stack.
-void GC::scan_roots() {
+void GC::scan() {
     // TODO #3. also, to be discussed in #4
 }
 
