@@ -23,7 +23,7 @@ void GC::scan() {
     for (auto frame : shadow_stack) {
         auto n = frame->n_roots;
         auto roots = (void**)((char*)frame + sizeof(unsigned short));
-        for (int i = 0; i < n; ++i) {
+        for (size_t i = 0; i < n; ++i) {
             mark_stack.push_back(roots[i]);
         }
     }
@@ -40,9 +40,9 @@ void GC::mark() {
             auto base = (void**)((char*)obj + sizeof(Header));
             auto rmap = (RefMap*)obj->ref_map;
             auto slots = rmap->n_slots;
-            auto bmap = (unsigned char*)rmap + sizeof(unsigned short);
+            auto bmap = (unsigned char*)rmap + sizeof(size_t);
 
-            for (int slot = 0; slot < slots; ++slot) {
+            for (size_t slot = 0; slot < slots; ++slot) {
                 auto byte = bmap[slot / sizeof(void*)];
                 if ((byte >> (slot % sizeof(unsigned char))) & 1) {
                     mark_stack.push_back(base + slot);

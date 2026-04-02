@@ -8,12 +8,12 @@ namespace memory_manager {
 
 class GC {
     struct FrameMap {
-        unsigned short n_roots;
+        size_t n_roots;
         // there lie flat n_roots pointers to roots
     };
 
     struct RefMap {
-        unsigned short n_slots;
+        size_t n_slots;
         // there lie flat n_slots unsigned chars of (ptr size aligned) bitmap
     };
 
