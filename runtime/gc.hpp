@@ -1,14 +1,25 @@
 #pragma once
 
-#include <stack>
+#include <deque>
 
 #include "main_alloc.hpp"
 
 namespace memory_manager {
 
 class GC {
+    struct FrameMap {
+        unsigned short n_roots;
+        // there lie flat n_roots pointers to roots
+    };
+
+    struct RefMap {
+        unsigned short n_slots;
+        // there lie flat n_slots unsigned chars of (ptr size aligned) bitmap
+    };
+
     alloc::MainAllocator allocator;
-    std::stack<void*> mark_stack;
+    std::deque<void*> mark_stack;
+    std::deque<FrameMap*> shadow_stack;
 
 public:
     GC() {}

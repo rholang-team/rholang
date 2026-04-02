@@ -20,18 +20,34 @@ void GC::collect() {
 
 // scans the roots and pushes them onto mark stack.
 void GC::scan() {
-    // TODO #3. also, to be discussed in #4
+    for (auto frame : shadow_stack) {
+        auto n = frame->n_roots;
+        auto roots = (void**)((char*)frame + sizeof(unsigned short));
+        for (int i = 0; i < n; ++i) {
+            mark_stack.push_back(roots[i]);
+        }
+    }
 }
 
 void GC::mark() {
     while (!mark_stack.empty()) {
-        Header* obj = static_cast<Header*>(mark_stack.top());
+        Header* obj = static_cast<Header*>(mark_stack.back());
+        mark_stack.pop_back();
         if (obj->mark) {
             continue;
         } else {
             obj->mark = true;
-            // TODO get ref fields, push each into mark stack.
-            // to be discussed in #4
+            auto base = (void**)((char*)obj + sizeof(Header));
+            auto rmap = (RefMap*)obj->ref_map;
+            auto slots = rmap->n_slots;
+            auto bmap = (unsigned char*)rmap + sizeof(unsigned short);
+
+            for (int slot = 0; slot < slots; ++slot) {
+                auto byte = bmap[slot / sizeof(void*)];
+                if ((byte >> (slot % sizeof(unsigned char))) & 1) {
+                    mark_stack.push_back(base + slot);
+                }
+            }
         }
     }
 }
