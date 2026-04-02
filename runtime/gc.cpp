@@ -18,11 +18,19 @@ void GC::collect() {
     sweep();
 }
 
+void GC::push_frame(FrameMap* frame) {
+    shadow_stack.push_back(frame);
+}
+
+void GC::pop_frame() {
+    shadow_stack.pop_back();
+}
+
 // scans the roots and pushes them onto mark stack.
 void GC::scan() {
     for (auto frame : shadow_stack) {
         auto n = frame->n_roots;
-        auto roots = (void**)((char*)frame + sizeof(unsigned short));
+        auto roots = (void**)((char*)frame + sizeof(size_t));
         for (size_t i = 0; i < n; ++i) {
             mark_stack.push_back(roots[i]);
         }
@@ -43,9 +51,12 @@ void GC::mark() {
             auto bmap = (unsigned char*)rmap + sizeof(size_t);
 
             for (size_t slot = 0; slot < slots; ++slot) {
-                auto byte = bmap[slot / sizeof(void*)];
-                if ((byte >> (slot % sizeof(unsigned char))) & 1) {
-                    mark_stack.push_back(base + slot);
+                auto byte = bmap[slot / 8];
+                if ((byte >> (slot % 8)) & 1) {
+                    void* p = *(base + slot);
+                    if (p) {
+                        mark_stack.push_back(p);
+                    }
                 }
             }
         }

@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <deque>
 #include <random>
 #include <vector>
 
@@ -68,24 +69,53 @@ double pareto(double xm, double alpha, std::mt19937& gen) {
     return xm / std::pow(dist(gen), 1.0 / alpha);
 }
 
-TEST(AllocMainTest, FuzzAllocDeallocOrder) {
-    constexpr size_t size_threshold = 9000;
-    constexpr size_t heap_limit = 1 << 25;
+TEST(DELIVERABLES__MainAlloc, Linear) {
+    constexpr size_t size_threshold = 2048;
+    constexpr size_t obj_limit = 10000;
 
     MainAllocator gpa;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::vector<void*> objs;
 
-    for (size_t total = 0; total < heap_limit;) {
+    for (size_t i = 0; i < obj_limit; ++i) {
         auto size = size_threshold * pareto(1.0, 2.0, gen);
-        total += size;
         objs.push_back(gpa.allocate(size));
     }
 
-    std::shuffle(objs.begin(), objs.end(), gen);
-
     for (auto p : objs) {
+        gpa.deallocate(p);
+    }
+}
+
+TEST(DELIVERABLES__MainAlloc, FuzzAllocDeallocOrder) {
+    constexpr size_t size_threshold = 2048;
+    constexpr size_t max_op = 20000;
+    constexpr size_t max_pop = 10000;
+
+    MainAllocator gpa;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> sized(0, size_threshold);
+    std::uniform_int_distribution<int> op(0, 1);
+    std::vector<void*> living;
+    living.reserve(max_pop);
+
+    for (size_t i = 0; i < max_op; ++i) {
+        if (!living.empty() && op(gen)) {
+            std::uniform_int_distribution<size_t> idx(0, living.size() - 1);
+            auto i = idx(gen);
+            gpa.deallocate(living[i]);
+            living[i] = living.back();
+            living.pop_back();
+        } else {
+            if (living.size() < max_pop) {
+                living.push_back(gpa.allocate(sized(gen)));
+            }
+        }
+    }
+
+    for (auto p : living) {
         gpa.deallocate(p);
     }
 }

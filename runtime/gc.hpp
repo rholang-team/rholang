@@ -6,12 +6,12 @@
 
 namespace memory_manager {
 
-class GC {
-    struct FrameMap {
-        size_t n_roots;
-        // there lie flat n_roots pointers to roots
-    };
+struct FrameMap {
+    size_t n_roots;
+    // there lie flat n_roots pointers to roots
+};
 
+class GC {
     struct RefMap {
         size_t n_slots;
         // there lie flat n_slots unsigned chars of (ptr size aligned) bitmap
@@ -25,8 +25,8 @@ public:
     GC() {}
     void* allocate(size_t size, void* ref_map);
     void collect();
-
-private:
+    void push_frame(FrameMap* frame);
+    void pop_frame();
     void scan();
     void mark();
     void sweep();

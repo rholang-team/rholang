@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
+#include <sys/mman.h>
 
 #include <cstddef>
 #include <random>
@@ -69,5 +70,44 @@ TEST(GCTest, FuzzAllocCollect) {
     }
 
     gc.collect();
+}
+
+#define ASSERT_LIVE(obj) ASSERT_TRUE(((Header*)((char*)obj - sizeof(Header)))->mark);
+#define ASSERT_DEAD(obj) ASSERT_FALSE(((Header*)((char*)obj - sizeof(Header)))->mark);
+
+TEST(DELIVERABLES__GC, MarkTrees) {
+    GC gc;
+
+    struct Twins {
+        int* a;
+        int* b;
+    };
+
+    void* twin_ref_map[2];
+    ((size_t*)twin_ref_map)[0] = 2;
+    ((char*)twin_ref_map)[9] = 0b11000000;
+
+    int* a = (int*)gc.allocate(sizeof(int), nullptr);
+    int* b = (int*)gc.allocate(sizeof(int), nullptr);
+    *a = 0xaaaaaaaa;
+    *b = 0xbbbbbbbb;
+    ASSERT_DEAD(a);
+    ASSERT_DEAD(b);
+
+    Twins* c = (Twins*)gc.allocate(sizeof(Twins), twin_ref_map);
+    c->a = a;
+    c->b = b;
+    ASSERT_DEAD(c);
+
+    void* frame[2];
+    frame[0] = (void*)1;
+    frame[1] = c;
+
+    gc.push_frame((FrameMap*)frame);
+
+    gc.scan();
+    gc.mark();
+
+    gc.pop_frame();
 }
 }  // namespace memory_manager
