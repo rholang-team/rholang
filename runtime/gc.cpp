@@ -39,7 +39,7 @@ void GC::scan() {
 
 void GC::mark() {
     while (!mark_stack.empty()) {
-        Header* obj = static_cast<Header*>(mark_stack.back());
+        Header* obj = (Header*)((char*)mark_stack.back() - sizeof(Header));
         mark_stack.pop_back();
         if (obj->mark) {
             continue;
