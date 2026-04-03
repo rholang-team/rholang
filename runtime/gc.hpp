@@ -16,7 +16,6 @@ class GC {
         size_t n_slots;
         unsigned char bmap[];
     };
-
     alloc::MainAllocator allocator;
     std::deque<void*> mark_stack;
     std::deque<FrameMap*> shadow_stack;

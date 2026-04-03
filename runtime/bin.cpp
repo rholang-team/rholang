@@ -15,13 +15,13 @@ inline size_t align_up(size_t n) {
 void Bin::init_mapping(void* page) {
     auto hdr = (MapHeader*)page;
     hdr->start = (char*)page + align_up(sizeof(MapHeader));
-    hdr->end = (char*)page + PAGE_SIZE - sizeof(MapHeader);
+    hdr->end = (char*)page + PAGE_SIZE;
     hdr->next = map_head;
     map_head = hdr;
 
     Header* cur;
 
-    for (size_t i = 0; i < (PAGE_SIZE + sizeof(MapHeader)) / entry_size - 1; i++) {
+    for (size_t i = 0; i < (PAGE_SIZE - align_up(sizeof(MapHeader))) / entry_size - 1; i++) {
         cur = (Header*)((char*)hdr->start + i * entry_size);
         auto next = (Header*)((char*)cur + entry_size);
         cur->next = next;

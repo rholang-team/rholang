@@ -46,6 +46,8 @@ void GC::mark() {
             obj->mark = true;
             auto base = (void**)((char*)obj + sizeof(Header));
             auto rmap = (RefMap*)obj->ref_map;
+            if (!rmap)
+                continue;
 
             for (size_t slot = 0; slot < rmap->n_slots; ++slot) {
                 auto byte = rmap->bmap[slot / 8];
