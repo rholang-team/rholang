@@ -30,7 +30,7 @@ void Bin::init_mapping(void* page) {
     }
 
     cur->next = free_head;
-    free_head = (Header*)((char*)page + sizeof(Header));
+    free_head = (Header*)((char*)page + sizeof(MapHeader));
 }
 
 void Bin::extend() {
