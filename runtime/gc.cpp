@@ -61,7 +61,7 @@ void GC::mark() {
 }
 
 void GC::sweep() {
-    allocator.foreach_cell([this](Header* cell) {
+    allocator.foreach_allocated([this](Header* cell) {
         if (!cell->mark) {
             allocator.deallocate((char*)cell + sizeof(Header));
         } else {
