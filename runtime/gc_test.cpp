@@ -85,7 +85,7 @@ TEST(DELIVERABLES__GC, MarkTrees) {
 
     void* twin_ref_map[2];
     ((size_t*)twin_ref_map)[0] = 2;
-    ((char*)twin_ref_map)[9] = 0b11000000;
+    ((char*)twin_ref_map)[8] = 0b00000011;
 
     int* a = (int*)gc.allocate(sizeof(int), nullptr);
     int* b = (int*)gc.allocate(sizeof(int), nullptr);
@@ -107,6 +107,83 @@ TEST(DELIVERABLES__GC, MarkTrees) {
 
     gc.scan();
     gc.mark();
+    ASSERT_LIVE(a);
+    ASSERT_LIVE(b);
+    ASSERT_LIVE(c);
+    gc.sweep();
+    ASSERT_DEAD(a);
+    ASSERT_DEAD(b);
+    ASSERT_DEAD(c);
+
+    gc.pop_frame();
+}
+
+TEST(DELIVERABLES__GC, MarkSimpleLoop) {
+    GC gc;
+
+    struct ExistentialCrisis {
+        ExistentialCrisis* ever_avoidant_self;
+    };
+
+    void* ec_ref_map[2];
+    ((size_t*)ec_ref_map)[0] = 1;
+    ((char*)ec_ref_map)[8] = 0b00000001;
+
+    ExistentialCrisis* c = (ExistentialCrisis*)gc.allocate(sizeof(ExistentialCrisis), ec_ref_map);
+    c->ever_avoidant_self = c;
+    ASSERT_DEAD(c);
+
+    void* frame[2];
+    frame[0] = (void*)1;
+    frame[1] = c;
+
+    gc.push_frame((FrameMap*)frame);
+
+    gc.scan();
+    gc.mark();
+    ASSERT_LIVE(c);
+    gc.sweep();
+    ASSERT_DEAD(c);
+
+    gc.pop_frame();
+}
+
+TEST(DELIVERABLES__GC, MarkCyclicList) {
+    GC gc;
+
+    struct LiList {
+        LiList* next;
+    };
+
+    void* ll_ref_map[2];
+    ((size_t*)ll_ref_map)[0] = 1;
+    ((char*)ll_ref_map)[8] = 0b00000001;
+
+    LiList* a = (LiList*)gc.allocate(sizeof(LiList), ll_ref_map);
+    LiList* b = (LiList*)gc.allocate(sizeof(LiList), ll_ref_map);
+    LiList* c = (LiList*)gc.allocate(sizeof(LiList), ll_ref_map);
+    a->next = b;
+    b->next = c;
+    c->next = a;
+    ASSERT_DEAD(a);
+    ASSERT_DEAD(b);
+    ASSERT_DEAD(c);
+
+    void* frame[2];
+    frame[0] = (void*)1;
+    frame[1] = a;
+
+    gc.push_frame((FrameMap*)frame);
+
+    gc.scan();
+    gc.mark();
+    ASSERT_LIVE(a);
+    ASSERT_LIVE(b);
+    ASSERT_LIVE(c);
+    gc.sweep();
+    ASSERT_DEAD(a);
+    ASSERT_DEAD(b);
+    ASSERT_DEAD(c);
 
     gc.pop_frame();
 }
