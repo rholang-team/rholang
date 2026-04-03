@@ -2,6 +2,7 @@ project('language', 'cpp', default_options : [
   'cpp_std=c++23',
   'warning_level=3',
 ])
+add_project_arguments('-Wno-c99-extensions', language : 'cpp')
 
 gtest_dep = dependency('gtest_main')
 

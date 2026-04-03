@@ -8,13 +8,13 @@ namespace memory_manager {
 
 struct FrameMap {
     size_t n_roots;
-    // there lie flat n_roots pointers to roots
+    void* roots[];
 };
 
 class GC {
     struct RefMap {
         size_t n_slots;
-        // there lie flat n_slots unsigned chars of (ptr size aligned) bitmap
+        unsigned char bmap[];
     };
 
     alloc::MainAllocator allocator;
