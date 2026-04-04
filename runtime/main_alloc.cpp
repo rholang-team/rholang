@@ -60,4 +60,12 @@ void MainAllocator::deallocate(void* p) {
     }
     return bins[idx].deallocate(p);
 }
+
+bool MainAllocator::empty() {
+    for (auto& bin : bins) {
+        if (!bin.empty())
+            return false;
+    };
+    return large_bin.empty();
+}
 }  // namespace memory_manager::alloc

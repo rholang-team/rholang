@@ -133,4 +133,11 @@ void FreeListAllocator::coalesce_with_next(Header* cell) {
         }
     }
 }
+
+bool FreeListAllocator::empty() {
+    bool flag = true;
+    foreach_allocated([&flag](Header*) { flag = false; });
+
+    return flag;
+}
 }  // namespace memory_manager::alloc

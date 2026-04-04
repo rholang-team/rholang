@@ -72,4 +72,7 @@ void GC::sweep() {
     });
 }
 
+bool GC::empty() {
+    return allocator.empty();
+}
 }  // namespace memory_manager

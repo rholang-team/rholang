@@ -42,6 +42,8 @@ public:
         });
     }
 
+    bool empty();
+
 private:
     void extend();
     void init_mapping(void* page);

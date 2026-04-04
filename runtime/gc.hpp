@@ -29,6 +29,7 @@ public:
     void scan();
     void mark();
     void sweep();
+    bool empty();
 };
 
 }  // namespace memory_manager

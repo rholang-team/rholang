@@ -38,6 +38,8 @@ public:
         large_bin.foreach_allocated(visitor);
     }
 
+    bool empty();
+
 private:
     /// returns an appropriate bin index for the size, LARGE_BIN if there is no appropriate bins.
     inline static size_t get_bin(size_t size);

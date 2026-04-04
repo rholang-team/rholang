@@ -39,6 +39,8 @@ public:
         });
     }
 
+    bool empty();
+
 private:
     void extend(size_t required_size);
     Header* find(size_t size, Header** prev) const;

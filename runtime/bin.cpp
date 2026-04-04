@@ -62,4 +62,11 @@ void Bin::deallocate(void* p) {
     cell->next = free_head;
     free_head = cell;
 }
+
+bool Bin::empty() {
+    bool flag = true;
+    foreach_allocated([&flag](Header*) { flag = false; });
+
+    return flag;
+}
 }  // namespace memory_manager::alloc
