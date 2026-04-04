@@ -47,6 +47,8 @@ TEST(GCTest, ValuedLinearAllocation) {
     ASSERT_EQ(c->c, 0xbebebebe + 2);
 
     gc.collect();
+
+    ASSERT_TRUE(gc.empty());
 }
 
 double pareto(double xm, double alpha, std::mt19937& gen) {
@@ -70,6 +72,8 @@ TEST(GCTest, FuzzAllocCollect) {
     }
 
     gc.collect();
+
+    ASSERT_TRUE(gc.empty());
 }
 
 #define ASSERT_LIVE(obj) ASSERT_TRUE(((Header*)((char*)obj - sizeof(Header)))->mark);
@@ -116,9 +120,12 @@ TEST(DELIVERABLES__GC, MarkTrees) {
     ASSERT_DEAD(c);
 
     gc.pop_frame();
+
+    gc.collect();
+    ASSERT_TRUE(gc.empty());
 }
 
-TEST(DELIVERABLES__GC, MarkSimpleLoop) {
+TEST(DELIVERABLES__GC, MarkGallow) {
     GC gc;
 
     struct ExistentialCrisis {
@@ -146,6 +153,8 @@ TEST(DELIVERABLES__GC, MarkSimpleLoop) {
     ASSERT_DEAD(c);
 
     gc.pop_frame();
+    gc.collect();
+    ASSERT_TRUE(gc.empty());
 }
 
 TEST(DELIVERABLES__GC, MarkCyclicList) {
@@ -186,5 +195,8 @@ TEST(DELIVERABLES__GC, MarkCyclicList) {
     ASSERT_DEAD(c);
 
     gc.pop_frame();
+
+    gc.collect();
+    ASSERT_TRUE(gc.empty());
 }
 }  // namespace memory_manager

@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 
-#include <deque>
 #include <random>
 #include <vector>
 
@@ -48,6 +47,8 @@ TEST(AllocMainTest, ValuedLinearAllocation) {
     gpa.deallocate(a);
     gpa.deallocate(b);
     gpa.deallocate(c);
+
+    ASSERT_TRUE(gpa.empty());
 }
 
 TEST(AllocMainTest, HugeLinearAllocation) {
@@ -62,6 +63,8 @@ TEST(AllocMainTest, HugeLinearAllocation) {
         gpa.deallocate(objs.back());
         objs.pop_back();
     }
+
+    ASSERT_TRUE(gpa.empty());
 }
 
 double pareto(double xm, double alpha, std::mt19937& gen) {
@@ -86,6 +89,8 @@ TEST(DELIVERABLES__MainAlloc, Linear) {
     for (auto p : objs) {
         gpa.deallocate(p);
     }
+
+    ASSERT_TRUE(gpa.empty());
 }
 
 TEST(DELIVERABLES__MainAlloc, FuzzAllocDeallocOrder) {
@@ -118,5 +123,7 @@ TEST(DELIVERABLES__MainAlloc, FuzzAllocDeallocOrder) {
     for (auto p : living) {
         gpa.deallocate(p);
     }
+
+    ASSERT_TRUE(gpa.empty());
 }
 }  // namespace memory_manager::alloc
