@@ -4,8 +4,10 @@
 #include <math.h>
 #include <sys/mman.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <random>
+#include <vector>
 
 namespace memory_manager {
 
@@ -56,21 +58,76 @@ double pareto(double xm, double alpha, std::mt19937& gen) {
     return xm / std::pow(dist(gen), 1.0 / alpha);
 }
 
-TEST(GCTest, FuzzAllocCollect) {
-    constexpr size_t size_threshold = 9000;
-    constexpr size_t heap_limit = 1 << 25;
+TEST(DELIVERABLES__GC, SweepBig) {
+    constexpr size_t size_threshold = 2048;
+    constexpr size_t obj_limit = 10000;
 
     GC gc;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::vector<void*> objs;
 
-    for (size_t total = 0; total < heap_limit;) {
+    for (size_t i = 0; i < obj_limit; ++i) {
         auto size = size_threshold * pareto(1.0, 2.0, gen);
-        total += size;
         objs.push_back(gc.allocate(size, nullptr));
     }
 
+    gc.collect();
+
+    ASSERT_TRUE(gc.empty());
+}
+
+TEST(DELIVERABLES__GC, SweepFast) {
+    constexpr size_t allocations_threshold = 100;
+    constexpr size_t size_threshold = 2048;
+
+    GC gc;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> dist(0, allocations_threshold);
+
+    for (size_t i = 0; i < 1000; ++i) {
+        for (size_t j = 0; j < dist(gen); ++j) {
+            auto size = size_threshold * pareto(1.0, 2.0, gen);
+            gc.allocate(size, nullptr);
+        }
+
+        gc.collect();
+
+        ASSERT_TRUE(gc.empty());
+    }
+}
+
+TEST(DELIVERABLES__GC, SweepFuzz) {
+    constexpr size_t allocations_threshold = 50;
+    constexpr size_t size_threshold = 2048;
+    constexpr size_t live_limit = 100;
+
+    GC gc;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> dist(0, allocations_threshold);
+    std::uniform_int_distribution<int> bd(0, 1);
+    std::vector<void*> objs;
+
+    for (size_t i = 0; i < 1000; ++i) {
+        auto num = dist(gen);
+        for (size_t j = 0; j < num; ++j) {
+            auto size = size_threshold * pareto(1.0, 2.0, gen);
+            objs.push_back(gc.allocate(size, nullptr));
+        }
+
+        std::shuffle(objs.begin(), objs.end(), gen);
+
+        for (size_t j = 0; j < live_limit && j < num; ++j) {
+            if (bd(gen)) {
+                Header* h = (Header*)((char*)objs[j] - sizeof(Header));
+                h->mark = true;
+            }
+        }
+
+        gc.collect();
+    }
     gc.collect();
 
     ASSERT_TRUE(gc.empty());
@@ -199,4 +256,5 @@ TEST(DELIVERABLES__GC, MarkCyclicList) {
     gc.collect();
     ASSERT_TRUE(gc.empty());
 }
+
 }  // namespace memory_manager
