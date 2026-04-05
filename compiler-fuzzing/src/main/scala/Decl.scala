@@ -1,6 +1,7 @@
 import scala.collection.Seq
 
-case class VarDecl(name: String, ty: Type, value: Expr)
+case class VarDecl(name: String, ty: Type, value: Expr):
+  override def toString: String = s"var $name $ty = $value;"
 
 case class FnSignature(name: String, params: Seq[(String, Type)], rettype: Type) {
   def ty: FnTy                          = FnTy(params map { _._2 }, rettype)

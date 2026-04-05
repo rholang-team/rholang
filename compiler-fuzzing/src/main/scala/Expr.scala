@@ -1,65 +1,58 @@
 import scala.collection.Seq
+import scala.math.Ordering.BigIntOrdering
 
-sealed trait Expr:
-  def ty: Type
+sealed trait Expr
 
-case class UnaryMinusExpr(value: Expr) extends Expr:
-  assert(value.ty == IntTy)
-  override def ty: Type = IntTy
+case class UnaryMinusExpr(value: Expr) extends Expr {
+  override def toString: String = s"-($value)"
+}
 
-case class NotExpr(value: Expr) extends Expr:
-  assert(value.ty == BoolTy)
-  override def ty: Type = BoolTy
+case class NotExpr(value: Expr) extends Expr {
+  override def toString: String = s"!($value)"
+}
 
-sealed trait BinaryExpr extends Expr:
-  assert(lhs.ty == rhs.ty)
+sealed trait BinaryExpr(op: String) extends Expr {
   def lhs: Expr
   def rhs: Expr
-  override def ty: Type = lhs.ty
+  override def toString: String = s"($lhs) $op ($rhs)"
+}
 
-sealed trait CmpExpr extends BinaryExpr:
-  assert(lhs.ty.isComparable)
-  assert(rhs.ty.isComparable)
-  override def ty: Type = BoolTy
+case class EqExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("==")
+case class NeExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("!=")
 
-case class EqExpr(lhs: Expr, rhs: Expr) extends CmpExpr
-case class NeExpr(lhs: Expr, rhs: Expr) extends CmpExpr
+case class LtExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("<")
+case class GtExpr(lhs: Expr, rhs: Expr) extends BinaryExpr(">")
+case class LeExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("<=")
+case class GeExpr(lhs: Expr, rhs: Expr) extends BinaryExpr(">=")
 
-sealed trait OrdExpr extends CmpExpr:
-  assert(lhs.ty.isOrdered)
-  assert(rhs.ty.isOrdered)
-  override def ty: Type = BoolTy
+case class AddExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("+")
+case class SubExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("-")
+case class MulExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("*")
+case class DivExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("/")
 
-case class LtExpr(lhs: Expr, rhs: Expr) extends OrdExpr
-case class GtExpr(lhs: Expr, rhs: Expr) extends OrdExpr
-case class LeExpr(lhs: Expr, rhs: Expr) extends OrdExpr
-case class GeExpr(lhs: Expr, rhs: Expr) extends OrdExpr
+case class OrExpr(lhs: Expr, rhs: Expr)  extends BinaryExpr("||")
+case class AndExpr(lhs: Expr, rhs: Expr) extends BinaryExpr("&&")
 
-sealed trait ArithmeticExpr extends BinaryExpr:
-  assert(lhs.ty == IntTy)
-  assert(rhs.ty == IntTy)
-  override def ty: Type = IntTy
+case class NumLitExpr(value: Int) extends Expr {
+  override def toString: String = value.toString
+}
+case class BoolLitExpr(value: Boolean) extends Expr {
+  override def toString: String = value.toString
+}
 
-case class AddExpr(lhs: Expr, rhs: Expr)  extends ArithmeticExpr
-case class MinusExpr(lhs: Expr, rhs: Expr) extends ArithmeticExpr
-case class MulExpr(lhs: Expr, rhs: Expr)   extends ArithmeticExpr
-
-sealed trait LogicExpr extends BinaryExpr:
-  assert(lhs.ty == BoolTy)
-  assert(rhs.ty == BoolTy)
-  override def ty: Type = BoolTy
-
-case class OrExpr(lhs: Expr, rhs: Expr)  extends LogicExpr
-case class AndExpr(lhs: Expr, rhs: Expr) extends LogicExpr
-
-case class NumLitExpr(value: Int) extends Expr:
-  override def ty: Type = IntTy
-
-case class BoolLitExpr(value: Boolean) extends Expr:
-  override def ty: Type = BoolTy
-
-case class NullLitExpr(ty: Type)                                     extends Expr
-case class VarRefExpr(ty: Type, name: String)                        extends Expr
-case class MemberRefExpr(ty: Type, target: Expr, member: String)     extends Expr
-case class CallExpr(ty: FnTy, callee: Expr, args: Seq[Expr])         extends Expr
-case class StructInitExpr(ty: StructTy, fields: Seq[(String, Expr)]) extends Expr
+case object NullLitExpr extends Expr {
+  override def toString: String = "null"
+}
+case class VarRefExpr(name: String) extends Expr {
+  override def toString: String = name
+}
+case class MemberRefExpr(target: Expr, member: String) extends Expr {
+  override def toString: String = s"($target).$member"
+}
+case class CallExpr(callee: Expr, args: Seq[Expr]) extends Expr {
+  override def toString: String = s"($callee)" ++ args.mkString("(", ", ", ")")
+}
+case class StructInitExpr(ty: StructTy, fields: Seq[(String, Expr)]) extends Expr {
+  override def toString: String =
+    s"${ty.name}" ++ fields.map { (name, value) => s".$name = $value" }.mkString("{", ",\n", "}")
+}

@@ -1,10 +1,16 @@
-builddir := "./build"
+builddir := "build"
 
 run *ARGS: build
     {{builddir}}/compiler {{ARGS}}
 
 test:
     meson test -C {{builddir}}
+
+[working-directory: 'compiler-fuzzing']
+fuzz: build
+    #!/usr/bin/env sh
+    tmp=$(mktemp)
+    sbt "run  '../{{builddir}}/compiler' $tmp 100"
 
 format:
     clang-format -i $(find . -name "**.hpp") $(find . -name "**.cpp")

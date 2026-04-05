@@ -13,7 +13,7 @@ case class Struct(
     methodDefs: HashMap[String, FnDecl],
 ) {
   def ty: StructTy = StructTy(name)
-  
+
   def getMemberType(member: String): Type =
     fields
       .find { (n, _) => n == member }

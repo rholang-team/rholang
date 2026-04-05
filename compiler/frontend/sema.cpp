@@ -340,20 +340,26 @@ class Sema : private ast::DeclVisitor,
     }
 
     void visit(ast::RetStmt& stmt) {
-        std::shared_ptr<Type> rettype = PrimitiveType::voidType;
+        std::shared_ptr<Type> type = PrimitiveType::voidType;
 
         if (stmt.value.has_value()) {
             visit(stmt.value->get());
-            rettype = (*stmt.value)->type;
+            type = (*stmt.value)->type;
+            if (!type) {
+                assert(utils::isa<ast::NullExpr>(stmt.value->get()));
+                type = (*stmt.value)->type = curFunction_->rettype.value;
+            }
         }
 
-        if (*rettype != *curFunction_->rettype.value) {
+        assert(type);
+        assert(curFunction_);
+        if (*type != *curFunction_->rettype.value) {
             throw Error(
                 file_.input,
                 stmt.span,
                 std::format("return type mismatch: expected {}, but got {}",
                             *curFunction_->rettype.value,
-                            *rettype));
+                            *type));
         }
     }
 

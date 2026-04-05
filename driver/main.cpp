@@ -37,6 +37,10 @@ int main(int argc, char** argv) {
     std::string input;
     {
         std::ifstream file{argv[1]};
+        if (!file.is_open()) {
+            std::println(stderr, "could not find file {}", argv[1]);
+            return EXIT_FAILURE;
+        }
         input = std::string{std::istreambuf_iterator{file}, {}};
     }
 
@@ -49,6 +53,7 @@ int main(int argc, char** argv) {
             dumpIr = true;
         } else {
             std::println(stderr, "unknown option {}", argv[i]);
+            return EXIT_FAILURE;
         }
     }
 
@@ -61,6 +66,7 @@ int main(int argc, char** argv) {
         file = parser.parse();
     } catch (const frontend::Error& e) {
         std::print(stderr, "syntax error: {}", e.pretty());
+        return EXIT_FAILURE;
     }
 
     frontend::TranslationUnit tu;
@@ -68,6 +74,7 @@ int main(int argc, char** argv) {
         tu = frontend::runSema(std::move(file));
     } catch (const frontend::Error& e) {
         std::print(stderr, "error: {}", e.pretty());
+        return EXIT_FAILURE;
     }
 
     if (dumpAst)
