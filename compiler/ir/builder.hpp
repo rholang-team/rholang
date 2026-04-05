@@ -5,6 +5,7 @@
 #include "compiler/ir/context.hpp"
 #include "compiler/ir/instr.hpp"
 #include "compiler/ir/module.hpp"
+#include "compiler/ir/type.hpp"
 #include "compiler/ir/value.hpp"
 
 namespace ir {
@@ -28,60 +29,63 @@ public:
     FunctionType* getFunctionTy(Type* rettype, std::span<Type*> params);
     StructType* getStructTy(std::span<Type*> fields);
 
-    void addFunctionSignature(std::unique_ptr<FunctionSignature> signature);
+    FunctionSignature* addFunctionSignature(std::string name,
+                                            FunctionType* type);
 
+    Function* startFunction(std::string name, FunctionType* type);
     Function* startFunction(FunctionSignature* signature);
+
     void finishFunction();
 
     std::optional<FunctionSignature*> lookupSignature(const std::string& name);
 
-    BasicBlock* startBB();
+    BasicBlock* startBb();
     BasicBlock* startBbAndLink();
-    BasicBlock* finishBB();
+    BasicBlock* finishBb();
 
     Function* curFunction();
-    BasicBlock* curBasicBlock();
+    BasicBlock* curBb();
 
-    std::shared_ptr<Instr> addToCurBB(std::shared_ptr<Instr> i);
+    std::shared_ptr<Instr> addToCurBb(std::shared_ptr<Instr> i);
 
-    std::shared_ptr<IntImm> createIntImm(int value);
-    std::shared_ptr<BoolImm> createBoolImm(bool value);
-    std::shared_ptr<FnArgRef> createFnArgRef(const FunctionSignature* fn,
-                                             unsigned idx);
-    std::shared_ptr<NullPtr> createNullPtr();
+    std::shared_ptr<IntImm> intImm(int value);
+    std::shared_ptr<BoolImm> boolImm(bool value);
+    std::shared_ptr<FnArgRef> fnArgRef(unsigned idx);
+    std::shared_ptr<FnArgRef> fnArgRef(const FunctionSignature* fn,
+                                       unsigned idx);
+    std::shared_ptr<NullPtr> nullPtr();
 
-    std::shared_ptr<AllocaInstr> createAllocaInstr(Type* itemType);
-    std::shared_ptr<NewInstr> createNewInstr(Type* itemType);
-    std::shared_ptr<CallInstr> createCallInstr(
+    std::shared_ptr<AllocaInstr> allocaInstr(Type* itemType);
+    std::shared_ptr<NewInstr> newInstr(Type* itemType);
+    std::shared_ptr<CallInstr> callInstr(
         FunctionSignature* callee,
         std::vector<std::shared_ptr<Value>> args);
-    std::shared_ptr<NotInstr> createNotInstr(std::shared_ptr<Value> target);
-    std::shared_ptr<NegInstr> createNegInstr(std::shared_ptr<Value> target);
-    std::shared_ptr<LoadInstr> createLoadInstr(Type* ty,
-                                               std::shared_ptr<Value> src);
-    std::shared_ptr<StoreInstr> createStoreInstr(Type* ty,
-                                                 std::shared_ptr<Value> dest,
-                                                 std::shared_ptr<Value> src);
-    std::shared_ptr<AddInstr> createAddInstr(std::shared_ptr<Value> lhs,
-                                             std::shared_ptr<Value> rhs);
-    std::shared_ptr<SubInstr> createSubInstr(std::shared_ptr<Value> lhs,
-                                             std::shared_ptr<Value> rhs);
-    std::shared_ptr<MulInstr> createMulInstr(std::shared_ptr<Value> lhs,
-                                             std::shared_ptr<Value> rhs);
-    std::shared_ptr<DivInstr> createDivInstr(std::shared_ptr<Value> lhs,
-                                             std::shared_ptr<Value> rhs);
-    std::shared_ptr<CmpInstr> createCmpInstr(CmpInstr::Cond cond,
-                                             std::shared_ptr<Value> lhs,
-                                             std::shared_ptr<Value> rhs);
-    std::shared_ptr<GetFieldPtrInstr> createGetFieldPtrInstr(
+    std::shared_ptr<NotInstr> notInstr(std::shared_ptr<Value> target);
+    std::shared_ptr<NegInstr> negInstr(std::shared_ptr<Value> target);
+    std::shared_ptr<LoadInstr> loadInstr(Type* ty, std::shared_ptr<Value> src);
+    std::shared_ptr<StoreInstr> storeInstr(Type* ty,
+                                           std::shared_ptr<Value> dest,
+                                           std::shared_ptr<Value> src);
+    std::shared_ptr<AddInstr> addInstr(std::shared_ptr<Value> lhs,
+                                       std::shared_ptr<Value> rhs);
+    std::shared_ptr<SubInstr> subInstr(std::shared_ptr<Value> lhs,
+                                       std::shared_ptr<Value> rhs);
+    std::shared_ptr<MulInstr> mulInstr(std::shared_ptr<Value> lhs,
+                                       std::shared_ptr<Value> rhs);
+    std::shared_ptr<DivInstr> divInstr(std::shared_ptr<Value> lhs,
+                                       std::shared_ptr<Value> rhs);
+    std::shared_ptr<CmpInstr> cmpInstr(CmpInstr::Cond cond,
+                                       std::shared_ptr<Value> lhs,
+                                       std::shared_ptr<Value> rhs);
+    std::shared_ptr<GetFieldPtrInstr> getFieldPtrInstr(
         StructType* structType,
         std::shared_ptr<Value> target,
         unsigned fieldIdx);
-    std::shared_ptr<GotoInstr> createGotoInstr(BasicBlock* dest);
-    std::shared_ptr<BrInstr> createBrInstr(std::shared_ptr<Value> cond,
-                                           BasicBlock* onTrue,
-                                           BasicBlock* onFalse);
-    std::shared_ptr<RetInstr> createRetInstr(
+    std::shared_ptr<GotoInstr> gotoInstr(BasicBlock* dest);
+    std::shared_ptr<BrInstr> brInstr(std::shared_ptr<Value> cond,
+                                     BasicBlock* onTrue,
+                                     BasicBlock* onFalse);
+    std::shared_ptr<RetInstr> retInstr(
         std::optional<std::shared_ptr<Value>> value = std::nullopt);
 };
 }  // namespace ir

@@ -27,9 +27,14 @@ StructType* Builder::getStructTy(std::span<Type*> fields) {
     return StructType::get(ctx_, fields);
 }
 
-void Builder::addFunctionSignature(
-    std::unique_ptr<FunctionSignature> signature) {
-    module_.addSignature(std::move(signature));
+FunctionSignature* Builder::addFunctionSignature(std::string name,
+                                                 FunctionType* type) {
+    return module_.addSignature(
+        std::make_unique<FunctionSignature>(std::move(name), type));
+}
+
+Function* Builder::startFunction(std::string name, FunctionType* type) {
+    return startFunction(addFunctionSignature(std::move(name), type));
 }
 
 Function* Builder::startFunction(FunctionSignature* signature) {
@@ -56,7 +61,7 @@ std::optional<FunctionSignature*> Builder::lookupSignature(
     return it->second.get();
 }
 
-BasicBlock* Builder::startBB() {
+BasicBlock* Builder::startBb() {
     assert(!bb_);
 
     bb_ = std::make_unique<BasicBlock>();
@@ -65,17 +70,17 @@ BasicBlock* Builder::startBB() {
 
 BasicBlock* Builder::startBbAndLink() {
     if (!bb_) {
-        return startBB();
+        return startBb();
     }
 
     BasicBlock* prev = bb_.get();
-    finishBB();
-    BasicBlock* res = startBB();
-    prev->addInstr(createGotoInstr(res));
+    finishBb();
+    BasicBlock* res = startBb();
+    prev->addInstr(gotoInstr(res));
     return res;
 }
 
-BasicBlock* Builder::finishBB() {
+BasicBlock* Builder::finishBb() {
     assert(bb_);
     assert(function_);
 
@@ -90,114 +95,115 @@ Function* Builder::curFunction() {
     return function_.get();
 }
 
-BasicBlock* Builder::curBasicBlock() {
+BasicBlock* Builder::curBb() {
     return bb_.get();
 }
 
-std::shared_ptr<Instr> Builder::addToCurBB(std::shared_ptr<Instr> i) {
+std::shared_ptr<Instr> Builder::addToCurBb(std::shared_ptr<Instr> i) {
     assert(bb_);
     bb_->addInstr(i);
     return i;
 }
 
-std::shared_ptr<IntImm> Builder::createIntImm(int value) {
+std::shared_ptr<IntImm> Builder::intImm(int value) {
     return IntImm::create(ctx_, value);
 }
 
-std::shared_ptr<BoolImm> Builder::createBoolImm(bool value) {
+std::shared_ptr<BoolImm> Builder::boolImm(bool value) {
     return BoolImm::create(ctx_, value);
 }
 
-std::shared_ptr<FnArgRef> Builder::createFnArgRef(const FunctionSignature* fn,
-                                                  unsigned idx) {
+std::shared_ptr<FnArgRef> Builder::fnArgRef(unsigned idx) {
+    assert(function_);
+    return FnArgRef::create(function_->signature(), idx);
+}
+
+std::shared_ptr<FnArgRef> Builder::fnArgRef(const FunctionSignature* fn,
+                                            unsigned idx) {
     return FnArgRef::create(fn, idx);
 }
 
-std::shared_ptr<NullPtr> Builder::createNullPtr() {
+std::shared_ptr<NullPtr> Builder::nullPtr() {
     return NullPtr::create(ctx_);
 }
 
-std::shared_ptr<AllocaInstr> Builder::createAllocaInstr(Type* itemType) {
+std::shared_ptr<AllocaInstr> Builder::allocaInstr(Type* itemType) {
     return AllocaInstr::create(ctx_, itemType);
 }
 
-std::shared_ptr<NewInstr> Builder::createNewInstr(Type* itemType) {
+std::shared_ptr<NewInstr> Builder::newInstr(Type* itemType) {
     return NewInstr::create(ctx_, itemType);
 }
 
-std::shared_ptr<CallInstr> Builder::createCallInstr(
+std::shared_ptr<CallInstr> Builder::callInstr(
     FunctionSignature* callee,
     std::vector<std::shared_ptr<Value>> args) {
     return CallInstr::create(callee, std::move(args));
 }
 
-std::shared_ptr<NotInstr> Builder::createNotInstr(
-    std::shared_ptr<Value> target) {
+std::shared_ptr<NotInstr> Builder::notInstr(std::shared_ptr<Value> target) {
     return NotInstr::create(target);
 }
 
-std::shared_ptr<NegInstr> Builder::createNegInstr(
-    std::shared_ptr<Value> target) {
+std::shared_ptr<NegInstr> Builder::negInstr(std::shared_ptr<Value> target) {
     return NegInstr::create(target);
 }
 
-std::shared_ptr<LoadInstr> Builder::createLoadInstr(
-    Type* ty,
-    std::shared_ptr<Value> src) {
+std::shared_ptr<LoadInstr> Builder::loadInstr(Type* ty,
+                                              std::shared_ptr<Value> src) {
     return LoadInstr::create(ty, src);
 }
 
-std::shared_ptr<StoreInstr> Builder::createStoreInstr(
-    Type* ty,
-    std::shared_ptr<Value> dest,
-    std::shared_ptr<Value> src) {
+std::shared_ptr<StoreInstr> Builder::storeInstr(Type* ty,
+                                                std::shared_ptr<Value> dest,
+                                                std::shared_ptr<Value> src) {
     return StoreInstr::create(ctx_, ty, dest, src);
 }
 
-std::shared_ptr<AddInstr> Builder::createAddInstr(std::shared_ptr<Value> lhs,
-                                                  std::shared_ptr<Value> rhs) {
+std::shared_ptr<AddInstr> Builder::addInstr(std::shared_ptr<Value> lhs,
+                                            std::shared_ptr<Value> rhs) {
     return AddInstr::create(lhs, rhs);
 }
 
-std::shared_ptr<SubInstr> Builder::createSubInstr(std::shared_ptr<Value> lhs,
-                                                  std::shared_ptr<Value> rhs) {
+std::shared_ptr<SubInstr> Builder::subInstr(std::shared_ptr<Value> lhs,
+                                            std::shared_ptr<Value> rhs) {
     return SubInstr::create(lhs, rhs);
 }
 
-std::shared_ptr<MulInstr> Builder::createMulInstr(std::shared_ptr<Value> lhs,
-                                                  std::shared_ptr<Value> rhs) {
+std::shared_ptr<MulInstr> Builder::mulInstr(std::shared_ptr<Value> lhs,
+                                            std::shared_ptr<Value> rhs) {
     return MulInstr::create(lhs, rhs);
 }
 
-std::shared_ptr<DivInstr> Builder::createDivInstr(std::shared_ptr<Value> lhs,
-                                                  std::shared_ptr<Value> rhs) {
+std::shared_ptr<DivInstr> Builder::divInstr(std::shared_ptr<Value> lhs,
+                                            std::shared_ptr<Value> rhs) {
     return DivInstr::create(lhs, rhs);
 }
 
-std::shared_ptr<CmpInstr> Builder::createCmpInstr(CmpInstr::Cond cond,
-                                                  std::shared_ptr<Value> lhs,
-                                                  std::shared_ptr<Value> rhs) {
+std::shared_ptr<CmpInstr> Builder::cmpInstr(CmpInstr::Cond cond,
+                                            std::shared_ptr<Value> lhs,
+                                            std::shared_ptr<Value> rhs) {
     return CmpInstr::create(ctx_, cond, lhs, rhs);
 }
 
-std::shared_ptr<GetFieldPtrInstr> Builder::createGetFieldPtrInstr(
+std::shared_ptr<GetFieldPtrInstr> Builder::getFieldPtrInstr(
     StructType* structType,
     std::shared_ptr<Value> target,
     unsigned idx) {
     return GetFieldPtrInstr::create(ctx_, structType, target, idx);
 }
 
-std::shared_ptr<GotoInstr> Builder::createGotoInstr(BasicBlock* dest) {
+std::shared_ptr<GotoInstr> Builder::gotoInstr(BasicBlock* dest) {
     return GotoInstr::create(ctx_, dest);
 }
 
-std::shared_ptr<BrInstr> Builder::createBrInstr(std::shared_ptr<Value> cond,
-                                                BasicBlock* onTrue,
-                                                BasicBlock* onFalse) {
+std::shared_ptr<BrInstr> Builder::brInstr(std::shared_ptr<Value> cond,
+                                          BasicBlock* onTrue,
+                                          BasicBlock* onFalse) {
     return BrInstr::create(ctx_, cond, onTrue, onFalse);
 }
 
-std::shared_ptr<RetInstr> Builder::createRetInstr(
+std::shared_ptr<RetInstr> Builder::retInstr(
     std::optional<std::shared_ptr<Value>> value) {
     return RetInstr::create(ctx_, value);
 }

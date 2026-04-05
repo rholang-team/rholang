@@ -39,6 +39,7 @@ public:
     void visitAddInstr(AddInstr& i) override;
     void visitSubInstr(SubInstr& i) override;
     void visitMulInstr(MulInstr& i) override;
+    void visitDivInstr(DivInstr& i) override;
     void visitCmpInstr(CmpInstr& i) override;
     void visitGetFieldPtrInstr(GetFieldPtrInstr& i) override;
     void visitGotoInstr(GotoInstr& i) override;

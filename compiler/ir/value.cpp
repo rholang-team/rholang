@@ -1,6 +1,7 @@
 #include "compiler/ir/value.hpp"
 
 #include "compiler/ir/function.hpp"
+#include "utils/match.hpp"
 
 namespace ir {
 std::shared_ptr<IntImm> IntImm::create(Context& ctx, int value) {
@@ -19,5 +20,25 @@ std::shared_ptr<FnArgRef> FnArgRef::create(const FunctionSignature* fn,
 
 std::shared_ptr<NullPtr> NullPtr::create(Context& ctx) {
     return std::shared_ptr<NullPtr>{new NullPtr{ctx.getPointerTy()}};
+}
+
+bool IntImm::operator==(const Value& that) const {
+    return utils::isa<IntImm>(&that) &&
+           static_cast<const IntImm&>(that).value_ == value_;
+}
+
+bool BoolImm::operator==(const Value& that) const {
+    return utils::isa<BoolImm>(&that) &&
+           static_cast<const BoolImm&>(that).value_ == value_;
+}
+
+bool FnArgRef::operator==(const Value& that) const {
+    return utils::isa<FnArgRef>(&that) &&
+           static_cast<const FnArgRef&>(that).idx_ == idx_ &&
+           that.type() == type();
+}
+
+bool NullPtr::operator==(const Value& that) const {
+    return utils::isa<NullPtr>(&that) && that.type() == type();
 }
 }  // namespace ir

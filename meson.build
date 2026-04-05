@@ -47,6 +47,7 @@ compiler_src = frontend_src + ir_src + backend_src
 
 compiler_tests_src = [
     'compiler/tests/frontend.cpp',
+    'compiler/tests/translator.cpp',
 ]
 
 compiler = static_library('compiler', compiler_src)

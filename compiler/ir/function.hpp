@@ -21,6 +21,8 @@ public:
     FunctionType* type() const {
         return type_;
     }
+
+    bool operator==(const FunctionSignature& that) const = default;
 };
 
 class Function {
@@ -60,6 +62,14 @@ public:
     }
     BBs::const_iterator cend() const {
         return bbs_.cend();
+    }
+
+    bool operator==(const Function& that) const {
+        return *signature_ == *that.signature_ &&
+               std::ranges::equal(
+                   bbs_,
+                   that.bbs_,
+                   [](const auto& a, const auto& b) { return *a == *b; });
     }
 };
 }  // namespace ir

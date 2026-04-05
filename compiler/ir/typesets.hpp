@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 #include "compiler/ir/type.hpp"
+
 namespace ir {
 namespace internal {
 struct StructTypeHash {

@@ -33,6 +33,8 @@ public:
     Type* itemType() const {
         return itemType_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class NewInstr final : public Instr {
@@ -47,6 +49,8 @@ public:
     Type* itemType() const {
         return itemType_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class CallInstr final : public Instr {
@@ -73,6 +77,8 @@ public:
     const std::vector<std::shared_ptr<Value>>& args() const {
         return args_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class NotInstr final : public Instr {
@@ -89,6 +95,8 @@ public:
     std::shared_ptr<Value> target() const {
         return target_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class NegInstr final : public Instr {
@@ -105,6 +113,8 @@ public:
     std::shared_ptr<Value> target() const {
         return target_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class LoadInstr final : public Instr {
@@ -119,6 +129,8 @@ public:
     std::shared_ptr<Value> src() const {
         return src_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class StoreInstr final : public Instr {
@@ -147,6 +159,8 @@ public:
     Type* storedValueType() const {
         return storedValueType_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 #define MAKE_BINARY_INSTR(name, ty)                                       \
@@ -172,6 +186,8 @@ public:
         std::shared_ptr<Value> rhs() const {                              \
             return rhs_;                                                  \
         }                                                                 \
+                                                                          \
+        virtual bool operator==(const Value& that) const override;        \
     };
 
 MAKE_BINARY_INSTR(AddInstr, Int);
@@ -219,6 +235,8 @@ public:
     std::shared_ptr<Value> rhs() const {
         return rhs_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class GetFieldPtrInstr final : public Instr {
@@ -254,6 +272,8 @@ public:
     StructType* structType() const {
         return structType_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class GotoInstr final : public Instr {
@@ -270,6 +290,8 @@ public:
     BasicBlock* dest() const {
         return dest_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class BrInstr final : public Instr {
@@ -301,6 +323,8 @@ public:
     BasicBlock* onFalse() const {
         return onFalse_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class RetInstr final : public Instr {
@@ -320,5 +344,7 @@ public:
     bool isTerminator() const override {
         return true;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 }  // namespace ir

@@ -111,8 +111,8 @@ class Translator : private ast::DeclVisitor,
             auto [target, targetTy] = unrollRefToPtr(mre->target.get());
 
             if (utils::isa<ast::MemberRefExpr>(mre->target.get())) {
-                target = builder_.addToCurBB(
-                    builder_.createLoadInstr(targetTy, target));
+                target =
+                    builder_.addToCurBb(builder_.loadInstr(targetTy, target));
             }
 
             assert(utils::isa<ir::PointerType>(target->type()));
@@ -125,8 +125,8 @@ class Translator : private ast::DeclVisitor,
                     mre->member.value)
                     .value();
 
-            auto res = builder_.createGetFieldPtrInstr(sty, target, idx);
-            builder_.addToCurBB(res);
+            auto res = builder_.getFieldPtrInstr(sty, target, idx);
+            builder_.addToCurBb(res);
             return {res, res->fieldType()};
         } else {
             return {visit(e), translateType(e->type.get())};
@@ -144,15 +144,15 @@ class Translator : private ast::DeclVisitor,
         for (size_t i = 0; i < decl.paramNames.size(); ++i) {
             namedValues_.addOrShadow(
                 decl.paramNames[i],
-                std::pair{builder_.createFnArgRef(res->signature(), i),
+                std::pair{builder_.fnArgRef(res->signature(), i),
                           res->signature()->type()->params()[i]});
         }
 
-        builder_.startBB();
+        builder_.startBb();
         visit(decl.body);
 
-        if (builder_.curBasicBlock())
-            builder_.finishBB();
+        if (builder_.curBb())
+            builder_.finishBb();
 
         namedValues_.popScope();
         builder_.finishFunction();
@@ -164,16 +164,16 @@ class Translator : private ast::DeclVisitor,
         // globals are handled separately
 
         ir::Type* ty = translateType(decl.type.value.get());
-        auto alloca = builder_.createAllocaInstr(ty);
-        builder_.addToCurBB(alloca);
+        auto alloca = builder_.allocaInstr(ty);
+        builder_.addToCurBb(alloca);
 
         namedValues_.addOrShadow(decl.name.value, std::pair{alloca, ty});
 
         auto value = visit(decl.value.get());
-        builder_.addToCurBB(
-            builder_.createStoreInstr(translateType(decl.type.value.get()),
-                                      alloca,
-                                      value));
+        builder_.addToCurBb(
+            builder_.storeInstr(translateType(decl.type.value.get()),
+                                alloca,
+                                value));
     }
 
     void visit(ast::CompoundStmt& stmt) {
@@ -184,56 +184,55 @@ class Translator : private ast::DeclVisitor,
 
     void visit(ast::CondStmt& stmt) {
         auto cond = visit(stmt.cond.get());
-        ir::BasicBlock* header = builder_.finishBB();
+        ir::BasicBlock* header = builder_.finishBb();
 
-        ir::BasicBlock* trueBlock = builder_.startBB();
+        ir::BasicBlock* trueBlock = builder_.startBb();
         visit(stmt.onTrue);
 
         ir::BasicBlock* falseBlock = nullptr;
         if (stmt.onFalse.has_value()) {
-            builder_.finishBB();
-            falseBlock = builder_.startBB();
+            builder_.finishBb();
+            falseBlock = builder_.startBb();
             visit(stmt.onFalse->get());
-            builder_.finishBB();
+            builder_.finishBb();
         }
 
         if (!trueBlock->hasTerminator()) {
             ir::BasicBlock* tailBlock = builder_.startBbAndLink();
-            trueBlock->addInstr(builder_.createGotoInstr(tailBlock));
+            trueBlock->addInstr(builder_.gotoInstr(tailBlock));
 
             if (falseBlock) {
                 if (!falseBlock->hasTerminator())
-                    falseBlock->addInstr(builder_.createGotoInstr(tailBlock));
+                    falseBlock->addInstr(builder_.gotoInstr(tailBlock));
             } else
                 falseBlock = tailBlock;
         }
 
         if (!falseBlock) {
-            if (builder_.curBasicBlock() &&
-                !builder_.curBasicBlock()->hasTerminator())
+            if (builder_.curBb() && !builder_.curBb()->hasTerminator())
                 falseBlock = builder_.startBbAndLink();
             else {
-                builder_.finishBB();
-                falseBlock = builder_.startBB();
+                builder_.finishBb();
+                falseBlock = builder_.startBb();
             }
         }
 
-        header->addInstr(builder_.createBrInstr(cond, trueBlock, falseBlock));
+        header->addInstr(builder_.brInstr(cond, trueBlock, falseBlock));
     }
 
     void visit(ast::WhileStmt& stmt) {
         ir::BasicBlock* header = builder_.startBbAndLink();
         auto cond = visit(stmt.cond.get());
-        builder_.finishBB();
+        builder_.finishBb();
 
-        ir::BasicBlock* body = builder_.startBB();
+        ir::BasicBlock* body = builder_.startBb();
         visit(stmt.body);
-        builder_.finishBB();
+        builder_.finishBb();
 
-        body->addInstr(builder_.createGotoInstr(header));
+        body->addInstr(builder_.gotoInstr(header));
 
-        ir::BasicBlock* tailBlock = builder_.startBB();
-        header->addInstr(builder_.createBrInstr(cond, body, tailBlock));
+        ir::BasicBlock* tailBlock = builder_.startBb();
+        header->addInstr(builder_.brInstr(cond, body, tailBlock));
     }
 
     void visit(ast::DeclStmt& stmt) {
@@ -241,7 +240,7 @@ class Translator : private ast::DeclVisitor,
     }
 
     void visit(ast::RetStmt& stmt) {
-        builder_.addToCurBB(builder_.createRetInstr(
+        builder_.addToCurBb(builder_.retInstr(
             stmt.value.transform([this](auto& e) { return visit(e.get()); })));
     }
 
@@ -252,7 +251,7 @@ class Translator : private ast::DeclVisitor,
     void visit(ast::AssignmentStmt& stmt) {
         auto [dest, destTy] = unrollRefToPtr(stmt.lhs.get());
         auto src = visit(stmt.rhs.get());
-        builder_.addToCurBB(builder_.createStoreInstr(destTy, dest, src));
+        builder_.addToCurBb(builder_.storeInstr(destTy, dest, src));
     }
 
     std::shared_ptr<ir::Value> visit(ast::UnaryExpr& expr) {
@@ -261,23 +260,23 @@ class Translator : private ast::DeclVisitor,
         std::shared_ptr<ir::Instr> i;
         switch (expr.op.value) {
             case ast::UnaryExpr::Op::Minus:
-                i = builder_.createNegInstr(target);
+                i = builder_.negInstr(target);
                 break;
             case ast::UnaryExpr::Op::Not:
-                i = builder_.createNotInstr(target);
+                i = builder_.notInstr(target);
                 break;
         }
 
-        builder_.addToCurBB(i);
+        builder_.addToCurBb(i);
         return i;
     }
 
     std::shared_ptr<ir::Value> visit(ast::NumLitExpr& expr) {
-        return builder_.createIntImm(expr.value.value);
+        return builder_.intImm(expr.value.value);
     }
 
     std::shared_ptr<ir::Value> visit(ast::BoolLitExpr& expr) {
-        return builder_.createBoolImm(expr.value.value);
+        return builder_.boolImm(expr.value.value);
     }
 
     std::shared_ptr<ir::Value> visit(ast::BinaryExpr& expr) {
@@ -287,34 +286,34 @@ class Translator : private ast::DeclVisitor,
         std::shared_ptr<ir::Instr> i;
         switch (expr.op.value) {
             case ast::BinaryExpr::Op::Eq:
-                i = builder_.createCmpInstr(ir::CmpInstr::Cond::Eq, lhs, rhs);
+                i = builder_.cmpInstr(ir::CmpInstr::Cond::Eq, lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Ne:
-                i = builder_.createCmpInstr(ir::CmpInstr::Cond::Ne, lhs, rhs);
+                i = builder_.cmpInstr(ir::CmpInstr::Cond::Ne, lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Lt:
-                i = builder_.createCmpInstr(ir::CmpInstr::Cond::Lt, lhs, rhs);
+                i = builder_.cmpInstr(ir::CmpInstr::Cond::Lt, lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Gt:
-                i = builder_.createCmpInstr(ir::CmpInstr::Cond::Gt, lhs, rhs);
+                i = builder_.cmpInstr(ir::CmpInstr::Cond::Gt, lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Le:
-                i = builder_.createCmpInstr(ir::CmpInstr::Cond::Le, lhs, rhs);
+                i = builder_.cmpInstr(ir::CmpInstr::Cond::Le, lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Ge:
-                i = builder_.createCmpInstr(ir::CmpInstr::Cond::Ge, lhs, rhs);
+                i = builder_.cmpInstr(ir::CmpInstr::Cond::Ge, lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Plus:
-                i = builder_.createAddInstr(lhs, rhs);
+                i = builder_.addInstr(lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Minus:
-                i = builder_.createSubInstr(lhs, rhs);
+                i = builder_.subInstr(lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Mul:
-                i = builder_.createMulInstr(lhs, rhs);
+                i = builder_.mulInstr(lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::Div:
-                i = builder_.createDivInstr(lhs, rhs);
+                i = builder_.divInstr(lhs, rhs);
                 break;
             case ast::BinaryExpr::Op::And:
                 // TODO
@@ -324,19 +323,19 @@ class Translator : private ast::DeclVisitor,
                 break;
         }
 
-        builder_.addToCurBB(i);
+        builder_.addToCurBb(i);
         return i;
     }
 
     std::shared_ptr<ir::Value> visit(ast::VarRefExpr& expr) {
         auto argIdx = findArgIdx(expr.name.value);
         if (argIdx.has_value()) {
-            return builder_.createFnArgRef(builder_.curFunction()->signature(),
-                                           *argIdx);
+            return builder_.fnArgRef(builder_.curFunction()->signature(),
+                                     *argIdx);
         } else {
             auto& [ptr, valTy] =
                 namedValues_.lookup(expr.name.value).value().get();
-            return builder_.addToCurBB(builder_.createLoadInstr(valTy, ptr));
+            return builder_.addToCurBb(builder_.loadInstr(valTy, ptr));
         }
     }
 
@@ -345,13 +344,13 @@ class Translator : private ast::DeclVisitor,
 
         assert(utils::isa<ir::PointerType>(src->type()));
 
-        auto res = builder_.createLoadInstr(valTy, src);
-        builder_.addToCurBB(res);
+        auto res = builder_.loadInstr(valTy, src);
+        builder_.addToCurBb(res);
         return res;
     }
 
     std::shared_ptr<ir::Value> visit(ast::NullExpr&) {
-        return builder_.createNullPtr();
+        return builder_.nullPtr();
     }
 
     std::shared_ptr<ir::Value> visit(ast::CallExpr& expr) {
@@ -362,33 +361,33 @@ class Translator : private ast::DeclVisitor,
             args.emplace_back(visit(arg.get()));
         }
 
-        auto i = builder_.createCallInstr(
+        auto i = builder_.callInstr(
             builder_.lookupSignature(callee.name.value).value(),
             std::move(args));
 
         assert(i->callee());
 
-        builder_.addToCurBB(i);
+        builder_.addToCurBb(i);
 
         return i;
     }
 
     std::shared_ptr<ir::Value> visit(ast::StructInitExpr& expr) {
         ir::StructType* sty = translateStructType(expr.type.get());
-        auto res = builder_.createNewInstr(sty);
+        auto res = builder_.newInstr(sty);
 
-        builder_.addToCurBB(res);
+        builder_.addToCurBb(res);
 
         for (auto& [name, initializer] : expr.fields) {
             auto value = visit(initializer.get());
 
             auto fieldIdx =
                 findFieldIdx(*derefStructType(expr.type.get()), name).value();
-            auto gfp = builder_.createGetFieldPtrInstr(sty, res, fieldIdx);
+            auto gfp = builder_.getFieldPtrInstr(sty, res, fieldIdx);
 
-            builder_.addToCurBB(gfp);
-            builder_.addToCurBB(
-                builder_.createStoreInstr(gfp->fieldType(), gfp, value));
+            builder_.addToCurBb(gfp);
+            builder_.addToCurBb(
+                builder_.storeInstr(gfp->fieldType(), gfp, value));
         }
 
         return res;
@@ -402,10 +401,8 @@ public:
         // TODO: translate globals
 
         for (auto& [_, fn] : unit_.functions) {
-            builder_.addFunctionSignature(
-                std::make_unique<ir::FunctionSignature>(
-                    fn->name.value,
-                    translateType(fn->type())));
+            builder_.addFunctionSignature(fn->name.value,
+                                          translateType(fn->type()));
         }
 
         for (auto& [_, fn] : unit_.functions) {

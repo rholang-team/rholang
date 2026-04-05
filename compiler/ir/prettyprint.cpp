@@ -172,6 +172,16 @@ void PrettyPrinter::visitMulInstr(MulInstr& i) {
     os_ << '\n';
 }
 
+void PrettyPrinter::visitDivInstr(DivInstr& i) {
+    valueNames_.emplace(&i, tmpIdx_++);
+    printTmp(i);
+    os_ << " = div ";
+    printTmp(i.lhs().get());
+    os_ << ' ';
+    printTmp(i.rhs().get());
+    os_ << '\n';
+}
+
 void PrettyPrinter::visitCmpInstr(CmpInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
     printTmp(i);

@@ -7,38 +7,43 @@
 
 namespace ir {
 class Module {
-    std::unordered_map<std::string, std::unique_ptr<FunctionSignature>>
-        signatures_;
-    std::unordered_map<std::string, std::shared_ptr<Value>> globals_;
-    std::unordered_map<std::string, std::unique_ptr<Function>> functions_;
+public:
+    using Signatures =
+        std::unordered_map<std::string, std::unique_ptr<FunctionSignature>>;
+    using Globals = std::unordered_map<std::string, std::shared_ptr<Value>>;
+    using Functions =
+        std::unordered_map<std::string, std::unique_ptr<Function>>;
+
+private:
+    Signatures signatures_;
+    Globals globals_;
+    Functions functions_;
 
 public:
-    void addSignature(std::unique_ptr<FunctionSignature> fn);
-    void addFunction(std::unique_ptr<Function> fn);
+    FunctionSignature* addSignature(std::unique_ptr<FunctionSignature> fn);
+    Function* addFunction(std::unique_ptr<Function> fn);
 
-    std::unordered_map<std::string, std::unique_ptr<FunctionSignature>>&
-    signatures() & {
+    Signatures& signatures() & {
         return signatures_;
     }
-    const std::unordered_map<std::string, std::unique_ptr<FunctionSignature>>&
-    signatures() const& {
+    const Signatures& signatures() const& {
         return signatures_;
     }
 
-    std::unordered_map<std::string, std::shared_ptr<Value>>& globals() & {
+    Globals& globals() & {
         return globals_;
     }
-    const std::unordered_map<std::string, std::shared_ptr<Value>>& globals()
-        const& {
+    const Globals& globals() const& {
         return globals_;
     }
 
-    std::unordered_map<std::string, std::unique_ptr<Function>>& functions() & {
+    Functions& functions() & {
         return functions_;
     }
-    const std::unordered_map<std::string, std::unique_ptr<Function>>&
-    functions() const& {
+    const Functions& functions() const& {
         return functions_;
     }
+
+    bool operator==(const Module& that) const;
 };
 }  // namespace ir

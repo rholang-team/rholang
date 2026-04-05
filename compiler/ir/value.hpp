@@ -20,6 +20,8 @@ public:
     Type* type() const {
         return type_;
     }
+
+    virtual bool operator==(const Value& that) const = 0;
 };
 
 class IntImm final : public Value {
@@ -33,6 +35,8 @@ public:
     int value() const {
         return value_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class BoolImm final : public Value {
@@ -46,6 +50,8 @@ public:
     bool value() const {
         return value_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class FnArgRef final : public Value {
@@ -60,6 +66,8 @@ public:
     unsigned idx() const {
         return idx_;
     }
+
+    virtual bool operator==(const Value& that) const override;
 };
 
 class NullPtr final : public Value {
@@ -67,5 +75,7 @@ class NullPtr final : public Value {
 
 public:
     static std::shared_ptr<NullPtr> create(Context& ctx);
+
+    virtual bool operator==(const Value& that) const override;
 };
 }  // namespace ir

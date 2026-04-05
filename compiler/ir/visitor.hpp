@@ -72,6 +72,8 @@ struct Visitor {
             return visitSubInstr(*subInstr);
         else if (MulInstr* mulInstr = dynamic_cast<MulInstr*>(i))
             return visitMulInstr(*mulInstr);
+        else if (DivInstr* divInstr = dynamic_cast<DivInstr*>(i))
+            return visitDivInstr(*divInstr);
         else if (CmpInstr* cmpInstr = dynamic_cast<CmpInstr*>(i))
             return visitCmpInstr(*cmpInstr);
         else if (GetFieldPtrInstr* getFieldPtrInstr =
@@ -154,6 +156,11 @@ struct Visitor {
         }
     }
     virtual RetTy visitMulInstr([[maybe_unused]] MulInstr& i) {
+        if constexpr (!std::is_void_v<RetTy>) {
+            return RetTy();
+        }
+    }
+    virtual RetTy visitDivInstr([[maybe_unused]] DivInstr& i) {
         if constexpr (!std::is_void_v<RetTy>) {
             return RetTy();
         }

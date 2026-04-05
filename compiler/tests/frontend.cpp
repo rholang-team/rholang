@@ -8,8 +8,6 @@
 #include "compiler/frontend/parse/parser.hpp"
 #include "compiler/frontend/sema.hpp"
 
-using namespace std::string_view_literals;
-
 using namespace frontend;
 
 namespace {
@@ -54,6 +52,30 @@ struct IntTypeChecker final : public Checker<Type> {
     }
 };
 
+struct VoidTypeChecker final : public Checker<Type> {
+    void run(const Type& t) const override {
+        EXPECT_TRUE(cast<PrimitiveType>(t).kind ==
+                    PrimitiveType::Primitive::Void);
+    }
+};
+
+struct BoolTypeChecker final : public Checker<Type> {
+    void run(const Type& t) const override {
+        EXPECT_TRUE(cast<PrimitiveType>(t).kind ==
+                    PrimitiveType::Primitive::Bool);
+    }
+};
+
+struct TypeRefChecker final : public Checker<Type> {
+    const char* name;
+
+    TypeRefChecker(const char* name) : name{name} {}
+
+    void run(const Type& t) const override {
+        EXPECT_TRUE(cast<TypeRef>(t).name == name);
+    }
+};
+
 struct CompoundStmtChecker final : public Checker<ast::Stmt> {
     std::vector<Checker<ast::Stmt>*> checkers;
 
@@ -95,6 +117,26 @@ struct ReturnStmtChecker final : public Checker<ast::Stmt> {
 
         ASSERT_TRUE(r.value.has_value());
         checker->run(**cast<ast::RetStmt>(stmt).value);
+    }
+};
+
+struct AssignmentStmtChecker final : public Checker<ast::Stmt> {
+    Checker<ast::Expr>* lhs;
+    Checker<ast::Expr>* rhs;
+
+    AssignmentStmtChecker(Checker<ast::Expr>* lhs, Checker<ast::Expr>* rhs)
+        : lhs{lhs}, rhs{rhs} {}
+
+    ~AssignmentStmtChecker() override {
+        delete lhs;
+        delete rhs;
+    }
+
+    void run(const ast::Stmt& stmt) const override {
+        const auto& a = cast<ast::AssignmentStmt>(stmt);
+
+        lhs->run(*a.lhs);
+        rhs->run(*a.rhs);
     }
 };
 
@@ -145,6 +187,31 @@ struct VarRefExprChecker final : public Checker<ast::Expr> {
 
         EXPECT_EQ(vexpr.name.value, name);
         ty->run(*vexpr.type);
+    }
+};
+
+struct MemberRefExprChecker final : public Checker<ast::Expr> {
+    const char* member;
+    Checker<Type>* ty;
+    Checker<ast::Expr>* target;
+
+    ~MemberRefExprChecker() {
+        delete target;
+        delete ty;
+    }
+
+    MemberRefExprChecker(const char* member,
+                         Checker<Type>* ty,
+                         Checker<ast::Expr>* target)
+        : member{member}, ty{ty}, target{target} {}
+
+    void run(const ast::Expr& expr) const override {
+        ty->run(*expr.type);
+
+        const auto& mrexpr = cast<ast::MemberRefExpr>(expr);
+
+        EXPECT_EQ(mrexpr.member.value, member);
+        target->run(*mrexpr.target);
     }
 };
 
@@ -251,4 +318,63 @@ TEST(Frontend, NestedOperators) {
                         new IntTypeChecker(),
                         new NumLitExprChecker(2),
                         new VarRefExprChecker("a", new IntTypeChecker())))))}));
+}
+
+TEST(Frontend, DeepAssignment) {
+    std::string input = R"(
+struct Foo {
+    var bar Bar;
+}
+
+struct Bar {
+    var baz Baz;
+}
+
+struct Baz {
+    var qux Qux;
+}
+
+struct Qux {
+    var plok Plok;
+}
+
+struct Plok {
+    var v int;
+}
+
+fun foo(arg Foo) void {
+    arg.bar.baz.qux.plok.v = 42;
+}
+)";
+
+    TranslationUnit tu;
+    ASSERT_NO_THROW(tu = runFrontend(input));
+
+    const ast::FunctionDecl& fn = *tu.functions.at("foo");
+
+    function(fn,
+             "foo",
+             {{"arg", new TypeRefChecker("Foo")}},
+             new VoidTypeChecker(),
+             CompoundStmtChecker(
+                 std::vector<Checker<ast::Stmt>*>{new AssignmentStmtChecker(
+                     new MemberRefExprChecker(
+                         "v",
+                         new IntTypeChecker(),
+                         new MemberRefExprChecker(
+                             "plok",
+                             new TypeRefChecker("Plok"),
+                             new MemberRefExprChecker(
+                                 "qux",
+                                 new TypeRefChecker("Qux"),
+                                 new MemberRefExprChecker(
+                                     "baz",
+                                     new TypeRefChecker("Baz"),
+                                     new MemberRefExprChecker(
+                                         "bar",
+                                         new TypeRefChecker("Bar"),
+                                         new VarRefExprChecker(
+                                             "arg",
+                                             new TypeRefChecker("Foo"))))))),
+                     new NumLitExprChecker(42))}));
 }

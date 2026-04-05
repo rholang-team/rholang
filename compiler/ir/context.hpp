@@ -1,11 +1,15 @@
 #pragma once
 
 #include <memory_resource>
+#include <span>
 
 #include "compiler/ir/type.hpp"
 #include "compiler/ir/typesets.hpp"
 
 namespace ir {
+class StructType;
+class FunctionType;
+
 class Context {
     std::pmr::monotonic_buffer_resource memoryResource_;
     std::pmr::polymorphic_allocator<> allocator_;
