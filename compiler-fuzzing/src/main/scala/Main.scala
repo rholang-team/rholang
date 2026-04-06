@@ -22,7 +22,7 @@ val policy = GenPolicy(
   expressionDepth = Range(0, 10),
 )
 
-val REPETITIONS = 500
+val REPETITIONS = 10000
 
 @main def main(cmd: String): Unit = {
   val executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())

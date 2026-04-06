@@ -188,7 +188,10 @@ class Generator(policy: GenPolicy)(using rng: Random) {
       res = res orElse {
         try {
           val (callee, sig) = randomCallableExpr(depth - 1, ty)
-          val args          = sig.params.map { _._2 }.map { ty => randomExpr(ty, depth - 1) }
+          val params =
+            if sig.params.headOption.filter { _._1 == "self" }.isDefined then sig.params.tail
+            else sig.params
+          val args = params.map { _._2 }.map { ty => randomExpr(ty, depth - 1) }
           Some(CallExpr(callee, args))
         } catch case _ => None
       }
