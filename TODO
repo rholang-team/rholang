@@ -1,2 +1,1 @@
-- global value reference in IR (replace `Value` with it in `Module::globals`)
 - well, IR is SSA at all times, maybe I should introduce phi nodes?
