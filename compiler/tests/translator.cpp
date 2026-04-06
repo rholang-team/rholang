@@ -207,3 +207,49 @@ fun foo(arg Foo) void {
 
     ASSERT_TRUE(compareModules(expectedModule, actualModule));
 }
+
+TEST(Translator, ControlFlow) {
+    std::string input = R"(
+fun weird_function(a int, b int) int {
+    var res int = 0;
+    var i int = a + b;
+    while (i > 0) {
+        if (a <= i && i <= b) {
+            res += i;
+        } else if (i < a) {
+            res /= 2;
+        }
+        else {
+            res *= 2;
+        }
+    }
+    return res;
+}
+)";
+
+    ir::Context ctx;
+    ir::Module expectedModule;
+
+    {
+        ir::Builder builder(ctx);
+
+        std::vector<ir::Type*> params{builder.intTy(), builder.intTy()};
+
+        builder.startFunction("weird_function",
+                              builder.functionTy(builder.intTy(), params));
+
+        builder.startBb();
+
+        // TODO
+
+        builder.finishBb();
+        builder.finishFunction();
+
+        expectedModule = builder.build();
+    }
+
+    ir::Module actualModule;
+    ASSERT_NO_THROW(actualModule = translate(ctx, input));
+
+    ASSERT_TRUE(compareModules(expectedModule, actualModule));
+}

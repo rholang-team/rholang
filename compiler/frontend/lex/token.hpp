@@ -15,7 +15,7 @@ enum class Token {
     PlusAssign,   // +=
     MinusAssign,  // -=
     MulAssign,    // *=
-    DivAssign,    // *=
+    DivAssign,    // /=
     Bang,         // !
     Eq,           // ==
     Ne,           // !=

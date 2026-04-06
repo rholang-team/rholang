@@ -194,17 +194,19 @@ class Translator : private ast::DeclVisitor,
         ir::BasicBlock* trueBlock = builder_.startBb();
         visit(stmt.onTrue);
 
+        ir::BasicBlock* innerTailBlock = nullptr;
         ir::BasicBlock* falseBlock = nullptr;
         if (stmt.onFalse.has_value()) {
             builder_.finishBb();
             falseBlock = builder_.startBb();
             visit(stmt.onFalse->get());
-            builder_.finishBb();
+            innerTailBlock = builder_.finishBb();
         }
 
         if (!trueBlock->hasTerminator()) {
             ir::BasicBlock* tailBlock = builder_.startBbAndLink();
             trueBlock->addInstr(builder_.gotoInstr(tailBlock));
+            innerTailBlock->addInstr(builder_.gotoInstr(tailBlock));
 
             if (falseBlock) {
                 if (!falseBlock->hasTerminator())
@@ -232,9 +234,9 @@ class Translator : private ast::DeclVisitor,
 
         ir::BasicBlock* body = builder_.startBb();
         visit(stmt.body);
-        builder_.finishBb();
 
-        body->addInstr(builder_.gotoInstr(headerStart));
+        builder_.addToCurBb(builder_.gotoInstr(headerStart));
+        builder_.finishBb();
 
         ir::BasicBlock* tailBlock = builder_.startBb();
         headerEnd->addInstr(builder_.brInstr(cond, body, tailBlock));

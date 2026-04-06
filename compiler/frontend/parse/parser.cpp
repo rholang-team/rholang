@@ -402,6 +402,9 @@ std::shared_ptr<ast::Stmt> Parser::parseExprOrAssignment() {
         case lex::Token::MulAssign:
             assigmentOp = ast::BinaryExpr::Op::Mul;
             break;
+        case lex::Token::DivAssign:
+            assigmentOp = ast::BinaryExpr::Op::Div;
+            break;
         default:
             throw parse::error(lexemes.getInput(),
                                l.span,
