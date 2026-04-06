@@ -65,11 +65,10 @@ TEST(DELIVERABLES__GC, SweepBig) {
     GC gc;
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::vector<void*> objs;
 
     for (size_t i = 0; i < obj_limit; ++i) {
         auto size = size_threshold * pareto(1.0, 2.0, gen);
-        objs.push_back(gc.allocate(size, nullptr));
+        gc.allocate(size, nullptr);
     }
 
     gc.collect();
@@ -96,6 +95,7 @@ TEST(DELIVERABLES__GC, SweepFast) {
 
         ASSERT_TRUE(gc.empty());
     }
+    ASSERT_TRUE(gc.empty());
 }
 
 TEST(DELIVERABLES__GC, SweepFuzz) {
@@ -228,12 +228,15 @@ TEST(DELIVERABLES__GC, MarkCyclicList) {
     LiList* a = (LiList*)gc.allocate(sizeof(LiList), ll_ref_map);
     LiList* b = (LiList*)gc.allocate(sizeof(LiList), ll_ref_map);
     LiList* c = (LiList*)gc.allocate(sizeof(LiList), ll_ref_map);
+    LiList* d = (LiList*)gc.allocate(sizeof(LiList), ll_ref_map);
     a->next = b;
     b->next = c;
     c->next = a;
+    d->next = a;
     ASSERT_DEAD(a);
     ASSERT_DEAD(b);
     ASSERT_DEAD(c);
+    ASSERT_DEAD(d);
 
     void* frame[2];
     frame[0] = (void*)1;
@@ -246,10 +249,12 @@ TEST(DELIVERABLES__GC, MarkCyclicList) {
     ASSERT_LIVE(a);
     ASSERT_LIVE(b);
     ASSERT_LIVE(c);
+    ASSERT_DEAD(d);
     gc.sweep();
     ASSERT_DEAD(a);
     ASSERT_DEAD(b);
     ASSERT_DEAD(c);
+    ASSERT_DEAD(d);
 
     gc.pop_frame();
 
