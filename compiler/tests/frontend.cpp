@@ -76,6 +76,31 @@ struct TypeRefChecker final : public Checker<Type> {
     }
 };
 
+struct FnTypeChecker final : public Checker<Type> {
+    Checker<Type>* rettype;
+    std::vector<Checker<Type>*> params;
+
+    FnTypeChecker(Checker<Type>* rettype, std::vector<Checker<Type>*> params)
+        : rettype{rettype}, params{std::move(params)} {}
+
+    ~FnTypeChecker() {
+        delete rettype;
+        std::ranges::for_each(params, [](auto* p) { delete p; });
+    }
+
+    void run(const Type& t) const override {
+        const FunctionType& fnty = cast<FunctionType>(t);
+
+        rettype->run(*fnty.rettype);
+
+        EXPECT_EQ(params.size(), fnty.params.size());
+
+        for (const auto& [p, c] : std::views::zip(fnty.params, params)) {
+            c->run(*p);
+        }
+    }
+};
+
 struct CompoundStmtChecker final : public Checker<ast::Stmt> {
     std::vector<Checker<ast::Stmt>*> checkers;
 
@@ -229,6 +254,32 @@ struct NumLitExprChecker final : public Checker<ast::Expr> {
     }
 };
 
+struct CallExprChecker final : public Checker<ast::Expr> {
+    Checker<ast::Expr>* callee;
+    std::vector<Checker<ast::Expr>*> args;
+
+    CallExprChecker(Checker<ast::Expr>* callee,
+                    std::vector<Checker<ast::Expr>*> args)
+        : callee{callee}, args{std::move(args)} {}
+
+    ~CallExprChecker() override {
+        delete callee;
+        std::ranges::for_each(args, [](auto* p) { delete p; });
+    }
+
+    void run(const ast::Expr& expr) const override {
+        const auto& cexpr = cast<ast::CallExpr>(expr);
+
+        callee->run(*cexpr.callee);
+
+        EXPECT_EQ(cexpr.args.size(), args.size());
+
+        for (const auto& [e, c] : std::views::zip(cexpr.args, args)) {
+            c->run(*e);
+        }
+    }
+};
+
 void function(const ast::FunctionDecl& fn,
               std::string_view name,
               std::initializer_list<std::pair<std::string_view, Checker<Type>*>>
@@ -377,4 +428,60 @@ fun foo(arg Foo) void {
                                              "arg",
                                              new TypeRefChecker("Foo"))))))),
                      new NumLitExprChecker(42))}));
+}
+
+TEST(Frontend, DeepCall) {
+    std::string input = R"(
+struct Foo {
+    fun getBar(self) Bar {
+        return Bar{.baz = null};
+    }
+}
+
+struct Bar {
+    var baz Baz;
+
+    fun getBaz(self) Baz {
+        return self.baz;
+    }
+}
+
+struct Baz {
+    var x int;
+}
+
+fun foo(arg Foo) int {
+    return arg.getBar().getBaz().x;
+}
+)";
+
+    TranslationUnit tu;
+    ASSERT_NO_THROW(tu = runFrontend(input));
+
+    const ast::FunctionDecl& fn = *tu.functions.at("foo");
+
+    function(
+        fn,
+        "foo",
+        {{"arg", new TypeRefChecker("Foo")}},
+        new IntTypeChecker(),
+        CompoundStmtChecker(std::vector<Checker<ast::Stmt>*>{
+            new ReturnStmtChecker(new MemberRefExprChecker(
+                "x",
+                new IntTypeChecker(),
+                new CallExprChecker(
+                    new VarRefExprChecker(
+                        "_R3Bar6getBaz",
+                        new FnTypeChecker(new TypeRefChecker("Baz"),
+                                          std::vector<Checker<Type>*>{
+                                              new TypeRefChecker("Bar")})),
+                    std::vector<Checker<ast::Expr>*>{new CallExprChecker(
+                        new VarRefExprChecker(
+                            "_R3Foo6getBar",
+                            new FnTypeChecker(new TypeRefChecker("Bar"),
+                                              std::vector<Checker<Type>*>{
+                                                  new TypeRefChecker("Foo")})),
+                        std::vector<Checker<ast::Expr>*>{new VarRefExprChecker(
+                            "arg",
+                            new TypeRefChecker("Foo"))})})))}));
 }

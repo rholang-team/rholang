@@ -491,14 +491,14 @@ public:
         for (auto& [name, s] : file_.structs) {
             curStruct_ = &s;
 
-            for (auto& field : s.fields) {
-                scopes_.addOrShadow(field.name.value, field.type.value);
-            }
-            for (auto& [methodName, method] : s.methods) {
-                scopes_.addOrShadow(
-                    methodName,
-                    std::make_shared<FunctionType>(method->type()));
-            }
+            // for (auto& field : s.fields) {
+            //     scopes_.addOrShadow(field.name.value, field.type.value);
+            // }
+            // for (auto& [methodName, method] : s.methods) {
+            //     scopes_.addOrShadow(
+            //         methodName,
+            //         std::make_shared<FunctionType>(method->type()));
+            // }
 
             for (auto& [methodName, method] : s.methods) {
                 visit(*method);
