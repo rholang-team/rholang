@@ -47,7 +47,8 @@ bool FnArgRef::operator==(const Value& that) const {
 
 bool GlobalPtr::operator==(const Value& that) const {
     return utils::isa<GlobalPtr>(&that) &&
-           static_cast<const GlobalPtr&>(that).valueTy_ == valueTy_;
+           static_cast<const GlobalPtr&>(that).valueTy_ == valueTy_ &&
+           static_cast<const GlobalPtr&>(that).name_ == name_;
 }
 
 bool NullPtr::operator==(const Value& that) const {

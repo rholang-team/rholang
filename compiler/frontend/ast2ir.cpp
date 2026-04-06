@@ -151,8 +151,13 @@ class Translator : private ast::DeclVisitor,
         builder_.startBb();
         visit(decl.body);
 
-        if (builder_.curBb())
+        if (builder_.curBb()) {
+            if (!builder_.curBb()->hasTerminator() &&
+                res->signature()->type()->rettype() == builder_.voidTy()) {
+                builder_.curBb()->addInstr(builder_.retInstr());
+            }
             builder_.finishBb();
+        }
 
         namedValues_.popScope();
         builder_.finishFunction();
@@ -468,23 +473,25 @@ public:
         : unit_{tu}, builder_{ctx} {}
 
     ir::Module run() {
-        builder_.startFunction(
-            "_Rglobal_init",
-            builder_.functionTy(builder_.voidTy(), std::span<ir::Type*>{}));
-        builder_.startBb();
+        if (!unit_.globals.empty()) {
+            builder_.startFunction(
+                "_Rglobal_init",
+                builder_.functionTy(builder_.voidTy(), std::span<ir::Type*>{}));
+            builder_.startBb();
 
-        namedValues_.pushScope();
-        for (auto& [_, global] : unit_.globals) {
-            ir::Type* ty = translateType(global.type.value.get());
-            auto globalPtr = builder_.addGlobal(global.name.value, ty);
+            namedValues_.pushScope();
+            for (auto& [_, global] : unit_.globals) {
+                ir::Type* ty = translateType(global.type.value.get());
+                auto globalPtr = builder_.addGlobal(global.name.value, ty);
 
-            namedValues_.addOrShadow(global.name.value,
-                                     std::pair{globalPtr, ty});
+                namedValues_.addOrShadow(global.name.value,
+                                         std::pair{globalPtr, ty});
+            }
+
+            builder_.addToCurBb(builder_.retInstr());
+            builder_.finishBb();
+            builder_.finishFunction();
         }
-
-        builder_.addToCurBb(builder_.retInstr());
-        builder_.finishBb();
-        builder_.finishFunction();
 
         for (auto& [_, fn] : unit_.functions) {
             builder_.addFunctionSignature(fn->name.value,

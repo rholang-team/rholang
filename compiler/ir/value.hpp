@@ -78,7 +78,9 @@ class GlobalPtr final : public Value {
         : Value{ptrTy}, name_{std::move(name)}, valueTy_{valueTy} {}
 
 public:
-    static std::shared_ptr<GlobalPtr> create(Context& ctx, std::string name, Type* valueTy);
+    static std::shared_ptr<GlobalPtr> create(Context& ctx,
+                                             std::string name,
+                                             Type* valueTy);
 
     std::string_view name() const {
         return name_;
