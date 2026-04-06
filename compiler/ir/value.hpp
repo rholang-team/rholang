@@ -70,6 +70,27 @@ public:
     virtual bool operator==(const Value& that) const override;
 };
 
+class GlobalPtr final : public Value {
+    std::string name_;
+    Type* valueTy_;
+
+    explicit GlobalPtr(PointerType* ptrTy, std::string name, Type* valueTy)
+        : Value{ptrTy}, name_{std::move(name)}, valueTy_{valueTy} {}
+
+public:
+    static std::shared_ptr<GlobalPtr> create(Context& ctx, std::string name, Type* valueTy);
+
+    std::string_view name() const {
+        return name_;
+    }
+
+    Type* valueTy() const {
+        return valueTy_;
+    }
+
+    virtual bool operator==(const Value& that) const override;
+};
+
 class NullPtr final : public Value {
     explicit NullPtr(PointerType* ty) : Value{ty} {}
 

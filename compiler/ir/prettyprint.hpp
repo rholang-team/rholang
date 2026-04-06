@@ -10,8 +10,8 @@ class PrettyPrinter final : public Visitor<void> {
 
     std::ostream& os_;
 
-    void printTmp(Value& v);
-    void printTmp(Value* v);
+    void printInstrArg(Value& v);
+    void printInstrArg(Value* v);
 
 public:
     using Visitor<void>::visit;
@@ -27,6 +27,7 @@ public:
     void visitIntImm(IntImm& imm) override;
     void visitBoolImm(BoolImm& imm) override;
     void visitFnArgRef(FnArgRef& argRef) override;
+    void visitGlobalPtr(GlobalPtr& globalPtr) override;
     void visitNullPtr(NullPtr& argRef) override;
 
     void visitAllocaInstr(AllocaInstr& i) override;

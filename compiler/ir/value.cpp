@@ -18,6 +18,13 @@ std::shared_ptr<FnArgRef> FnArgRef::create(const FunctionSignature* fn,
         new FnArgRef{fn->type()->params()[idx], idx}};
 }
 
+std::shared_ptr<GlobalPtr> GlobalPtr::create(Context& ctx,
+                                             std::string name,
+                                             Type* valueTy) {
+    return std::shared_ptr<GlobalPtr>{
+        new GlobalPtr{ctx.getPointerTy(), std::move(name), valueTy}};
+}
+
 std::shared_ptr<NullPtr> NullPtr::create(Context& ctx) {
     return std::shared_ptr<NullPtr>{new NullPtr{ctx.getPointerTy()}};
 }
@@ -36,6 +43,11 @@ bool FnArgRef::operator==(const Value& that) const {
     return utils::isa<FnArgRef>(&that) &&
            static_cast<const FnArgRef&>(that).idx_ == idx_ &&
            that.type() == type();
+}
+
+bool GlobalPtr::operator==(const Value& that) const {
+    return utils::isa<GlobalPtr>(&that) &&
+           static_cast<const GlobalPtr&>(that).valueTy_ == valueTy_;
 }
 
 bool NullPtr::operator==(const Value& that) const {

@@ -468,7 +468,23 @@ public:
         : unit_{tu}, builder_{ctx} {}
 
     ir::Module run() {
-        // TODO: translate globals
+        builder_.startFunction(
+            "_Rglobal_init",
+            builder_.functionTy(builder_.voidTy(), std::span<ir::Type*>{}));
+        builder_.startBb();
+
+        namedValues_.pushScope();
+        for (auto& [_, global] : unit_.globals) {
+            ir::Type* ty = translateType(global.type.value.get());
+            auto globalPtr = builder_.addGlobal(global.name.value, ty);
+
+            namedValues_.addOrShadow(global.name.value,
+                                     std::pair{globalPtr, ty});
+        }
+
+        builder_.addToCurBb(builder_.retInstr());
+        builder_.finishBb();
+        builder_.finishFunction();
 
         for (auto& [_, fn] : unit_.functions) {
             builder_.addFunctionSignature(fn->name.value,

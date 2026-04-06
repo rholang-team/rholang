@@ -29,6 +29,8 @@ public:
     FunctionType* functionTy(Type* rettype, std::span<Type*> params);
     StructType* structTy(std::span<Type*> fields);
 
+    std::shared_ptr<GlobalPtr> addGlobal(std::string name, Type* ty);
+
     FunctionSignature* addFunctionSignature(std::string name,
                                             FunctionType* type);
 

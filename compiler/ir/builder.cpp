@@ -27,6 +27,10 @@ StructType* Builder::structTy(std::span<Type*> fields) {
     return StructType::get(ctx_, fields);
 }
 
+std::shared_ptr<GlobalPtr> Builder::addGlobal(std::string name, Type* ty) {
+    return module_.addGlobal(name, GlobalPtr::create(ctx_, name, ty));
+}
+
 FunctionSignature* Builder::addFunctionSignature(std::string name,
                                                  FunctionType* type) {
     return module_.addSignature(

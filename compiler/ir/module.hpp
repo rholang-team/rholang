@@ -10,7 +10,7 @@ class Module {
 public:
     using Signatures =
         std::unordered_map<std::string, std::unique_ptr<FunctionSignature>>;
-    using Globals = std::unordered_map<std::string, std::shared_ptr<Value>>;
+    using Globals = std::unordered_map<std::string, std::shared_ptr<GlobalPtr>>;
     using Functions =
         std::unordered_map<std::string, std::unique_ptr<Function>>;
 
@@ -22,6 +22,7 @@ private:
 public:
     FunctionSignature* addSignature(std::unique_ptr<FunctionSignature> fn);
     Function* addFunction(std::unique_ptr<Function> fn);
+    std::shared_ptr<GlobalPtr> addGlobal(std::string name, std::shared_ptr<GlobalPtr> global);
 
     Signatures& signatures() & {
         return signatures_;

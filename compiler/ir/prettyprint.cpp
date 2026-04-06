@@ -5,6 +5,14 @@
 namespace ir {
 void PrettyPrinter::visit(Module& mod) {
     bool first = true;
+    for (auto& [_, global] : mod.globals()) {
+        if (!first)
+            os_ << '\n';
+        first = false;
+
+        os_ << "global " << *global->valueTy() << ' ' << global->name() << '\n';
+    }
+
     for (auto& [_, fn] : mod.functions()) {
         if (!first)
             os_ << '\n';
@@ -60,21 +68,27 @@ void PrettyPrinter::visitFnArgRef(FnArgRef& argRef) {
     os_ << 'a' << argRef.idx();
 }
 
+void PrettyPrinter::visitGlobalPtr(GlobalPtr& globalPtr) {
+    os_ << globalPtr.name();
+}
+
 void PrettyPrinter::visitNullPtr(NullPtr&) {
     os_ << "null";
 }
 
-void PrettyPrinter::printTmp(Value& v) {
-    printTmp(&v);
+void PrettyPrinter::printInstrArg(Value& v) {
+    printInstrArg(&v);
 }
 
-void PrettyPrinter::printTmp(Value* v) {
+void PrettyPrinter::printInstrArg(Value* v) {
     if (IntImm* intImm = dynamic_cast<IntImm*>(v))
         visitIntImm(*intImm);
     else if (BoolImm* boolImm = dynamic_cast<BoolImm*>(v))
         visitBoolImm(*boolImm);
     else if (FnArgRef* fnArgRef = dynamic_cast<FnArgRef*>(v))
         visitFnArgRef(*fnArgRef);
+    else if (GlobalPtr* globalPtr = dynamic_cast<GlobalPtr*>(v))
+        visitGlobalPtr(*globalPtr);
     else if (NullPtr* nullPtr = dynamic_cast<NullPtr*>(v))
         visitNullPtr(*nullPtr);
     else if (Instr* instr = dynamic_cast<Instr*>(v))
@@ -85,106 +99,106 @@ void PrettyPrinter::printTmp(Value* v) {
 
 void PrettyPrinter::visitAllocaInstr(AllocaInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = alloca " << *i.itemType() << '\n';
 }
 
 void PrettyPrinter::visitNewInstr(NewInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = new " << *i.itemType() << '\n';
 }
 
 void PrettyPrinter::visitCallInstr(CallInstr& i) {
     if (!utils::isa<VoidType>(i.callee()->type()->rettype())) {
         valueNames_.emplace(&i, tmpIdx_++);
-        printTmp(i);
+        printInstrArg(i);
         os_ << " = ";
     }
 
     os_ << "call " << i.callee()->name();
     for (auto& arg : i.args()) {
         os_ << ' ';
-        printTmp(arg.get());
+        printInstrArg(arg.get());
     }
     os_ << '\n';
 }
 
 void PrettyPrinter::visitNotInstr(NotInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = not ";
-    printTmp(i.target().get());
+    printInstrArg(i.target().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitNegInstr(NegInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = neg ";
-    printTmp(i.target().get());
+    printInstrArg(i.target().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitLoadInstr(LoadInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = load " << *i.type() << ' ';
-    printTmp(i.src().get());
+    printInstrArg(i.src().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitStoreInstr(StoreInstr& i) {
     os_ << "store " << *i.storedValueType() << ' ';
-    printTmp(i.dest().get());
+    printInstrArg(i.dest().get());
     os_ << ' ';
-    printTmp(i.src().get());
+    printInstrArg(i.src().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitAddInstr(AddInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = add ";
-    printTmp(i.lhs().get());
+    printInstrArg(i.lhs().get());
     os_ << ' ';
-    printTmp(i.rhs().get());
+    printInstrArg(i.rhs().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitSubInstr(SubInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = sub ";
-    printTmp(i.lhs().get());
+    printInstrArg(i.lhs().get());
     os_ << ' ';
-    printTmp(i.rhs().get());
+    printInstrArg(i.rhs().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitMulInstr(MulInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = mul ";
-    printTmp(i.lhs().get());
+    printInstrArg(i.lhs().get());
     os_ << ' ';
-    printTmp(i.rhs().get());
+    printInstrArg(i.rhs().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitDivInstr(DivInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = div ";
-    printTmp(i.lhs().get());
+    printInstrArg(i.lhs().get());
     os_ << ' ';
-    printTmp(i.rhs().get());
+    printInstrArg(i.rhs().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitCmpInstr(CmpInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = cmp ";
 
     switch (i.cond()) {
@@ -209,17 +223,17 @@ void PrettyPrinter::visitCmpInstr(CmpInstr& i) {
     }
 
     os_ << ' ';
-    printTmp(i.lhs().get());
+    printInstrArg(i.lhs().get());
     os_ << ' ';
-    printTmp(i.rhs().get());
+    printInstrArg(i.rhs().get());
     os_ << '\n';
 }
 
 void PrettyPrinter::visitGetFieldPtrInstr(GetFieldPtrInstr& i) {
     valueNames_.emplace(&i, tmpIdx_++);
-    printTmp(i);
+    printInstrArg(i);
     os_ << " = gfp " << *i.structType() << ' ';
-    printTmp(i.target().get());
+    printInstrArg(i.target().get());
     os_ << ' ' << i.fieldIdx() << '\n';
 }
 
@@ -229,7 +243,7 @@ void PrettyPrinter::visitGotoInstr(GotoInstr& i) {
 
 void PrettyPrinter::visitBrInstr(BrInstr& i) {
     os_ << "br ";
-    printTmp(i.cond().get());
+    printInstrArg(i.cond().get());
     os_ << " bb" << bbs_.at(i.onTrue()) << " bb" << bbs_.at(i.onFalse())
         << '\n';
 }
@@ -239,7 +253,7 @@ void PrettyPrinter::visitRetInstr(RetInstr& i) {
 
     if (i.value().has_value()) {
         os_ << ' ';
-        printTmp(i.value()->get());
+        printInstrArg(i.value()->get());
     }
     os_ << '\n';
 }

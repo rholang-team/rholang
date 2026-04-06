@@ -43,6 +43,8 @@ struct Visitor {
             visitBoolImm(*boolImm);
         else if (FnArgRef* fnArgRef = dynamic_cast<FnArgRef*>(v))
             visitFnArgRef(*fnArgRef);
+        else if (GlobalPtr* globalPtr = dynamic_cast<GlobalPtr*>(v))
+            visitGlobalPtr(*globalPtr);
         else if (NullPtr* nullPtr = dynamic_cast<NullPtr*>(v))
             visitNullPtr(*nullPtr);
         else if (Instr* instr = dynamic_cast<Instr*>(v))
@@ -89,106 +91,35 @@ struct Visitor {
         std::unreachable();
     }
 
-    virtual RetTy visitIntImm([[maybe_unused]] IntImm& imm) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitBoolImm([[maybe_unused]] BoolImm& imm) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitFnArgRef([[maybe_unused]] FnArgRef& argRef) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitNullPtr([[maybe_unused]] NullPtr& nullPtr) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
+#define MKVISITOR(TY)                                   \
+    virtual RetTy visit##TY([[maybe_unused]] TY& imm) { \
+        if constexpr (!std::is_void_v<RetTy>)           \
+            return RetTy();                             \
     }
 
-    virtual RetTy visitAllocaInstr([[maybe_unused]] AllocaInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitNewInstr([[maybe_unused]] NewInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitCallInstr([[maybe_unused]] CallInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitNotInstr([[maybe_unused]] NotInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitNegInstr([[maybe_unused]] NegInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitLoadInstr([[maybe_unused]] LoadInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitStoreInstr([[maybe_unused]] StoreInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitAddInstr([[maybe_unused]] AddInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitSubInstr([[maybe_unused]] SubInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitMulInstr([[maybe_unused]] MulInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitDivInstr([[maybe_unused]] DivInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitCmpInstr([[maybe_unused]] CmpInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitGetFieldPtrInstr([[maybe_unused]] GetFieldPtrInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitGotoInstr([[maybe_unused]] GotoInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitBrInstr([[maybe_unused]] BrInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-    virtual RetTy visitRetInstr([[maybe_unused]] RetInstr& i) {
-        if constexpr (!std::is_void_v<RetTy>) {
-            return RetTy();
-        }
-    }
-};
+    MKVISITOR(IntImm)
+    MKVISITOR(BoolImm)
+    MKVISITOR(FnArgRef)
+    MKVISITOR(GlobalPtr)
+    MKVISITOR(NullPtr)
+
+    MKVISITOR(AllocaInstr)
+    MKVISITOR(NewInstr)
+    MKVISITOR(CallInstr)
+    MKVISITOR(NotInstr)
+    MKVISITOR(NegInstr)
+    MKVISITOR(LoadInstr)
+    MKVISITOR(StoreInstr)
+    MKVISITOR(AddInstr)
+    MKVISITOR(SubInstr)
+    MKVISITOR(MulInstr)
+    MKVISITOR(DivInstr)
+    MKVISITOR(CmpInstr)
+    MKVISITOR(GetFieldPtrInstr)
+    MKVISITOR(GotoInstr)
+    MKVISITOR(BrInstr)
+    MKVISITOR(RetInstr)
+
+#undef MKVISITOR
+};  // namespace ir
 }  // namespace ir
