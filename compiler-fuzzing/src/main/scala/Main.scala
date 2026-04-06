@@ -1,47 +1,52 @@
 import scala.util.Random
 import scala.sys.process.*
 
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.charset.StandardCharsets
+import scala.collection.mutable.ArrayBuffer
+
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.io.ByteArrayInputStream
+import java.util.concurrent.Callable
 
 val policy = GenPolicy(
-  identifierLength = Range(1, 16),
-  globalsCount = Range(0, 0),
-  structCount = Range(0, 7),
-  functionCount = Range(0, 16),
+  identifierLength = Range(3, 16),
+  globalsCount = Range(0, 16),
+  structCount = Range(0, 8),
+  functionCount = Range(0, 10),
   paramsPerFunction = Range(0, 10),
   fieldsPerStruct = Range(0, 10),
   methodsPerStruct = Range(0, 10),
-  statementBlockSize = Range(0, 30),
-  statementDepth = Range(0, 4),
-  expressionDepth = Range(0, 5),
+  statementBlockSize = Range(0, 20),
+  statementDepth = Range(0, 7),
+  expressionDepth = Range(0, 10),
 )
 
-@main def main(cmd: String, tmpFile: String, repetitions: Int): Unit = {
-  var failures = 0
+val REPETITIONS = 500
 
-  for i <- 1 to repetitions do {
-    var res: Option[String] = None
-    while res.isEmpty do {
-      res =
-        try Some(Generator(policy)(using Random()).genFile())
-        catch case e: Exception => None
-    }
+@main def main(cmd: String): Unit = {
+  val executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+  val futures = Array.fill[Future[Boolean]](REPETITIONS) {
+    val task =
+      new Callable[Boolean] {
+        override def call(): Boolean = {
+          var input: Option[String] = None
+          while input.isEmpty do {
+            input =
+              try Some(Generator(policy)(using Random()).genFile())
+              catch case e: Exception => None
+          }
 
-    Files.write(Paths.get(tmpFile), res.get.getBytes(StandardCharsets.US_ASCII))
-    assert(res.get == Files.readString(Paths.get(tmpFile)))
-
-    try s"$cmd $tmpFile".!!
-    catch
-      case e: RuntimeException => {
-        println(s"run $i failed")
-        failures += 1
+          (s"$cmd -" #< ByteArrayInputStream(input.get.getBytes)).! == 0
+        }
       }
+
+    executor.submit(task)
   }
 
-  val success = repetitions - failures
+  val successes = futures.count { _.get() }
+
   println(
-    s"$success/$repetitions (${success.toDouble / repetitions.toDouble * 100.0}%) runs were successful"
+    s"$successes/$REPETITIONS (${successes.toDouble / REPETITIONS.toDouble * 100.0}%) runs were successful"
   )
 }

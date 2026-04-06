@@ -196,11 +196,39 @@ class Generator(policy: GenPolicy)(using rng: Random) {
 
     res getOrElse {
       ty match
-        case BoolTy =>
-          if rng.nextBoolean() then NotExpr(randomExpr(BoolTy, depth - 1))
-          else BoolLitExpr(false) // TODO: logic, cmp, eq
+        case BoolTy => {
+          rng.nextInt(11) match
+            case 0 => NotExpr(randomExpr(BoolTy, depth - 1))
+            case 1 => AndExpr(randomExpr(BoolTy, depth - 1), randomExpr(BoolTy, depth - 1))
+            case 2 => OrExpr(randomExpr(BoolTy, depth - 1), randomExpr(BoolTy, depth - 1))
+            case 3 =>
+              if structs.isEmpty then
+                throw RuntimeException("couldn't find a struct for comparison")
+              val struct = structs.values.iterator.drop(structs.size).next().ty
+              if rng.nextBoolean() then EqExpr(randomExpr(struct, depth - 1), NullLitExpr)
+              else EqExpr(NullLitExpr, randomExpr(struct, depth - 1))
+            case 4 =>
+              if structs.isEmpty then
+                throw RuntimeException("couldn't find a struct for comparison")
+              val struct = structs.values.iterator.drop(structs.size).next().ty
+              if rng.nextBoolean() then EqExpr(randomExpr(struct, depth - 1), NullLitExpr)
+              else NeExpr(NullLitExpr, randomExpr(struct, depth - 1))
+            case 5  => EqExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 6  => NeExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 7  => LtExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 8  => GtExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 9  => LeExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 10 => GeExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+        }
         case FnTy(params, rettype) => randomCallableExpr(depth, rettype, Some(params))._1
-        case IntTy                 => NumLitExpr(42) // TODO: arithmetic
+        case IntTy => {
+          rng.nextInt(5) match
+            case 0 => UnaryMinusExpr(randomExpr(IntTy, depth - 1))
+            case 1 => AddExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 2 => SubExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 3 => MulExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+            case 4 => DivExpr(randomExpr(IntTy, depth - 1), randomExpr(IntTy, depth - 1))
+        }
         case ty: StructTy =>
           StructInitExpr(
             ty,

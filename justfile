@@ -8,9 +8,7 @@ test:
 
 [working-directory: 'compiler-fuzzing']
 fuzz: build
-    #!/usr/bin/env sh
-    tmp=$(mktemp)
-    sbt "run  '../{{builddir}}/compiler' $tmp 100"
+    sbt "run '../{{builddir}}/compiler'"
 
 format:
     clang-format -i $(find . -name "**.hpp") $(find . -name "**.cpp")

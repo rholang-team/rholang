@@ -35,13 +35,15 @@ int main(int argc, char** argv) {
     }
 
     std::string input;
-    {
+    if (argv[1] != "-"sv) {
         std::ifstream file{argv[1]};
         if (!file.is_open()) {
             std::println(stderr, "could not find file {}", argv[1]);
             return EXIT_FAILURE;
         }
         input = std::string{std::istreambuf_iterator{file}, {}};
+    } else {
+        input = std::string{std::istreambuf_iterator{std::cin}, {}};
     }
 
     bool dumpAst = false;
