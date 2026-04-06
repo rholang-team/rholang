@@ -40,24 +40,24 @@ class Translator : private ast::DeclVisitor,
             translatedFields.emplace_back(translateType(f.type.get()));
         }
 
-        return builder_.getStructTy(translatedFields);
+        return builder_.structTy(translatedFields);
     }
 
     ir::Type* translateType(const Type* ty) {
         if (const PrimitiveType* pty = dynamic_cast<const PrimitiveType*>(ty)) {
             switch (pty->kind) {
                 case PrimitiveType::Primitive::Void:
-                    return builder_.getVoidTy();
+                    return builder_.voidTy();
                 case PrimitiveType::Primitive::Bool:
-                    return builder_.getBoolTy();
+                    return builder_.boolTy();
                 case PrimitiveType::Primitive::Int:
-                    return builder_.getIntTy();
+                    return builder_.intTy();
             }
         } else if (const FunctionType* fty =
                        dynamic_cast<const FunctionType*>(ty)) {
             return translateType(*fty);
         } else {
-            return builder_.getPointerTy();
+            return builder_.pointerTy();
         }
     }
 
@@ -67,8 +67,8 @@ class Translator : private ast::DeclVisitor,
             translatedParams.push_back(translateType(param.get()));
         }
 
-        return builder_.getFunctionTy(translateType(fty.rettype.get()),
-                                      translatedParams);
+        return builder_.functionTy(translateType(fty.rettype.get()),
+                                   translatedParams);
     }
 
     std::optional<unsigned> findFieldIdx(const StructType& ty,
@@ -221,18 +221,18 @@ class Translator : private ast::DeclVisitor,
     }
 
     void visit(ast::WhileStmt& stmt) {
-        ir::BasicBlock* header = builder_.startBbAndLink();
+        ir::BasicBlock* headerStart = builder_.startBbAndLink();
         auto cond = visit(stmt.cond.get());
-        builder_.finishBb();
+        ir::BasicBlock* headerEnd = builder_.finishBb();
 
         ir::BasicBlock* body = builder_.startBb();
         visit(stmt.body);
         builder_.finishBb();
 
-        body->addInstr(builder_.gotoInstr(header));
+        body->addInstr(builder_.gotoInstr(headerStart));
 
         ir::BasicBlock* tailBlock = builder_.startBb();
-        header->addInstr(builder_.brInstr(cond, body, tailBlock));
+        headerEnd->addInstr(builder_.brInstr(cond, body, tailBlock));
     }
 
     void visit(ast::DeclStmt& stmt) {
@@ -281,50 +281,120 @@ class Translator : private ast::DeclVisitor,
 
     std::shared_ptr<ir::Value> visit(ast::BinaryExpr& expr) {
         auto lhs = visit(expr.lhs.get());
-        auto rhs = visit(expr.rhs.get());
 
-        std::shared_ptr<ir::Instr> i;
+        std::shared_ptr<ir::Instr> res;
         switch (expr.op.value) {
-            case ast::BinaryExpr::Op::Eq:
-                i = builder_.cmpInstr(ir::CmpInstr::Cond::Eq, lhs, rhs);
+            case ast::BinaryExpr::Op::Eq: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.cmpInstr(ir::CmpInstr::Cond::Eq, lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Ne:
-                i = builder_.cmpInstr(ir::CmpInstr::Cond::Ne, lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Ne: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.cmpInstr(ir::CmpInstr::Cond::Ne, lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Lt:
-                i = builder_.cmpInstr(ir::CmpInstr::Cond::Lt, lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Lt: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.cmpInstr(ir::CmpInstr::Cond::Lt, lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Gt:
-                i = builder_.cmpInstr(ir::CmpInstr::Cond::Gt, lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Gt: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.cmpInstr(ir::CmpInstr::Cond::Gt, lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Le:
-                i = builder_.cmpInstr(ir::CmpInstr::Cond::Le, lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Le: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.cmpInstr(ir::CmpInstr::Cond::Le, lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Ge:
-                i = builder_.cmpInstr(ir::CmpInstr::Cond::Ge, lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Ge: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.cmpInstr(ir::CmpInstr::Cond::Ge, lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Plus:
-                i = builder_.addInstr(lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Plus: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.addInstr(lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Minus:
-                i = builder_.subInstr(lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Minus: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.subInstr(lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Mul:
-                i = builder_.mulInstr(lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Mul: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.mulInstr(lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::Div:
-                i = builder_.divInstr(lhs, rhs);
+            }
+            case ast::BinaryExpr::Op::Div: {
+                auto rhs = visit(expr.rhs.get());
+                res = builder_.divInstr(lhs, rhs);
+                builder_.addToCurBb(res);
                 break;
-            case ast::BinaryExpr::Op::And:
-                // TODO
+            }
+            case ast::BinaryExpr::Op::And: {
+                res = builder_.addToCurBb(
+                    builder_.allocaInstr(builder_.boolTy()));
+                ir::BasicBlock* lhsBlock = builder_.finishBb();
+
+                ir::BasicBlock* trueBlock = builder_.startBb();
+                auto rhs = visit(expr.rhs.get());
+                builder_.addToCurBb(
+                    builder_.storeInstr(builder_.boolTy(), res, rhs));
+                builder_.finishBb();
+
+                ir::BasicBlock* falseBlock = builder_.startBb();
+                builder_.addToCurBb(
+                    builder_.storeInstr(builder_.boolTy(),
+                                        res,
+                                        builder_.boolImm(false)));
+
+                ir::BasicBlock* nextBlock = builder_.startBbAndLink();
+
+                trueBlock->addInstr(builder_.gotoInstr(nextBlock));
+                lhsBlock->addInstr(
+                    builder_.brInstr(lhs, trueBlock, falseBlock));
                 break;
-            case ast::BinaryExpr::Op::Or:
-                // TODO
+            }
+            case ast::BinaryExpr::Op::Or: {
+                res = builder_.addToCurBb(
+                    builder_.allocaInstr(builder_.boolTy()));
+                ir::BasicBlock* lhsBlock = builder_.finishBb();
+
+                ir::BasicBlock* trueBlock = builder_.startBb();
+                builder_.addToCurBb(
+                    builder_.storeInstr(builder_.boolTy(),
+                                        res,
+                                        builder_.boolImm(true)));
+                builder_.finishBb();
+
+                ir::BasicBlock* falseBlock = builder_.startBb();
+                auto rhs = visit(expr.rhs.get());
+                builder_.addToCurBb(
+                    builder_.storeInstr(builder_.boolTy(), res, rhs));
+
+                ir::BasicBlock* nextBlock = builder_.startBbAndLink();
+
+                trueBlock->addInstr(builder_.gotoInstr(nextBlock));
+                lhsBlock->addInstr(
+                    builder_.brInstr(lhs, trueBlock, falseBlock));
                 break;
+            }
         }
 
-        builder_.addToCurBb(i);
-        return i;
+        return res;
     }
 
     std::shared_ptr<ir::Value> visit(ast::VarRefExpr& expr) {

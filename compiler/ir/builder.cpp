@@ -6,24 +6,24 @@ namespace ir {
 Module Builder::build() {
     return std::move(module_);
 }
-VoidType* Builder::getVoidTy() {
+VoidType* Builder::voidTy() {
     return ctx_.getVoidTy();
 }
-BoolType* Builder::getBoolTy() {
+BoolType* Builder::boolTy() {
     return ctx_.getBoolTy();
 }
-IntType* Builder::getIntTy() {
+IntType* Builder::intTy() {
     return ctx_.getIntTy();
 }
-PointerType* Builder::getPointerTy() {
+PointerType* Builder::pointerTy() {
     return ctx_.getPointerTy();
 }
 
-FunctionType* Builder::getFunctionTy(Type* rettype, std::span<Type*> params) {
+FunctionType* Builder::functionTy(Type* rettype, std::span<Type*> params) {
     return FunctionType::get(ctx_, rettype, params);
 }
 
-StructType* Builder::getStructTy(std::span<Type*> fields) {
+StructType* Builder::structTy(std::span<Type*> fields) {
     return StructType::get(ctx_, fields);
 }
 

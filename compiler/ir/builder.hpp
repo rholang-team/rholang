@@ -21,13 +21,13 @@ public:
 
     Module build();
 
-    VoidType* getVoidTy();
-    BoolType* getBoolTy();
-    IntType* getIntTy();
-    PointerType* getPointerTy();
+    VoidType* voidTy();
+    BoolType* boolTy();
+    IntType* intTy();
+    PointerType* pointerTy();
 
-    FunctionType* getFunctionTy(Type* rettype, std::span<Type*> params);
-    StructType* getStructTy(std::span<Type*> fields);
+    FunctionType* functionTy(Type* rettype, std::span<Type*> params);
+    StructType* structTy(std::span<Type*> fields);
 
     FunctionSignature* addFunctionSignature(std::string name,
                                             FunctionType* type);

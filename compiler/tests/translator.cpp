@@ -62,11 +62,11 @@ TEST(Translator, NestedOperators) {
     {
         ir::Builder builder(ctx);
 
-        std::vector<ir::Type*> params{builder.getIntTy(), builder.getIntTy()};
+        std::vector<ir::Type*> params{builder.intTy(), builder.intTy()};
 
         builder.startFunction(
             "foo",
-            builder.getFunctionTy(builder.getIntTy(), params));
+            builder.functionTy(builder.intTy(), params));
 
         builder.startBb();
 

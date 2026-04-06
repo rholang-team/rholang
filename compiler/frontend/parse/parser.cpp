@@ -57,6 +57,10 @@ std::optional<ast::BinaryExpr::Op> binaryOpFromToken(lex::Token tok) {
             return ast::BinaryExpr::Op::Le;
         case lex::Token::Ge:
             return ast::BinaryExpr::Op::Ge;
+        case lex::Token::And:
+            return ast::BinaryExpr::Op::And;
+        case lex::Token::Or:
+            return ast::BinaryExpr::Op::Or;
         default:
             return std::nullopt;
     }
