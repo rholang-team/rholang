@@ -1,4 +1,4 @@
-#include "gc.hpp"
+#include "runtime/gc.hpp"
 
 #include <gtest/gtest.h>
 #include <math.h>

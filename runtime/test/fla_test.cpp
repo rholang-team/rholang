@@ -1,4 +1,4 @@
-#include "bin.hpp"
+#include "runtime/fla.hpp"
 
 #include <gtest/gtest.h>
 
@@ -7,37 +7,28 @@
 
 namespace memory_manager::alloc {
 
-static constexpr size_t next_pow2(size_t n) {
-    if (n <= 1)
-        return 1;
-    size_t p = 1;
-    while (p < n)
-        p <<= 1;
-    return p;
-}
-
 struct TestStruct {
     char a;
     short b;
     size_t c;
 };
 
-TEST(AllocBinTest, ValuedLinearAllocation) {
-    Bin bin(next_pow2(sizeof(TestStruct)));
+TEST(AllocFLATest, ValuedLinearAllocation) {
+    FreeListAllocator fla;
 
-    TestStruct* a = (TestStruct*)bin.allocate();
+    TestStruct* a = (TestStruct*)fla.allocate(sizeof(TestStruct));
     ASSERT_NE(a, nullptr);
     a->a = 'a';
     a->b = 12;
     a->c = 0xbebebebe;
 
-    TestStruct* b = (TestStruct*)bin.allocate();
+    TestStruct* b = (TestStruct*)fla.allocate(sizeof(TestStruct));
     ASSERT_NE(b, nullptr);
     b->a = 'b';
     b->b = 13;
     b->c = 0xbebebebe + 1;
 
-    TestStruct* c = (TestStruct*)bin.allocate();
+    TestStruct* c = (TestStruct*)fla.allocate(sizeof(TestStruct));
     ASSERT_NE(c, nullptr);
     c->a = 'c';
     c->b = 14;
@@ -53,30 +44,30 @@ TEST(AllocBinTest, ValuedLinearAllocation) {
     ASSERT_EQ(c->b, 14);
     ASSERT_EQ(c->c, 0xbebebebe + 2);
 
-    bin.deallocate(a);
-    bin.deallocate(b);
-    bin.deallocate(c);
+    fla.deallocate(a);
+    fla.deallocate(b);
+    fla.deallocate(c);
 }
 
-TEST(AllocBinTest, HugeLinearAllocation) {
+TEST(AllocFLATest, HugeLinearAllocation) {
     constexpr size_t size = 256;
-    Bin bin(next_pow2(size));
+    FreeListAllocator fla;
 
     std::vector<void*> objs;
     for (int i = 0; i < 128; i++) {
-        objs.push_back(bin.allocate());
+        objs.push_back(fla.allocate(size));
     }
     for (int i = 0; i < 128; i++) {
-        bin.deallocate(objs.back());
+        fla.deallocate(objs.back());
         objs.pop_back();
     }
 }
 
-TEST(AllocBinTest, FuzzAllocDeallocOrder) {
-    constexpr size_t size_threshold = 29;
-    constexpr size_t heap_limit = 1900;
+TEST(AllocFLATest, FuzzAllocDeallocOrder) {
+    constexpr size_t size_threshold = 7000;
+    constexpr size_t heap_limit = 1 << 22;
 
-    Bin bin(next_pow2(size_threshold));
+    FreeListAllocator fla;
     std::random_device rd;
     std::mt19937 g(rd());
     std::uniform_int_distribution<> dist(1, size_threshold);
@@ -85,13 +76,13 @@ TEST(AllocBinTest, FuzzAllocDeallocOrder) {
     for (size_t total = 0; total < heap_limit;) {
         auto size = dist(g);
         total += size;
-        objs.push_back(bin.allocate());
+        objs.push_back(fla.allocate(size));
     }
 
     std::shuffle(objs.begin(), objs.end(), g);
 
     for (auto p : objs) {
-        bin.deallocate(p);
+        fla.deallocate(p);
     }
 }
 }  // namespace memory_manager::alloc
