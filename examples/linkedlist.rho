@@ -1,0 +1,36 @@
+struct Node {
+    var value int;
+    var next Node;
+}
+
+struct LinkedList {
+    var size int;
+    var head Node;
+
+    fun push(self, x int) void {
+        self.head = Node{.value = x, .next = self.head};
+    }
+
+    fun headValue(self) int {
+        return self.head.value;
+    }
+
+    fun pop(self) void {
+        self.head = self.head.next;
+    }
+
+    fun contains(self, x int) bool {
+        var cur Node = self.head;
+        while (cur != null) {
+            if (cur.value == x) {
+                return true;
+            }
+            cur = cur.next;
+        }
+        return false;
+    }
+}
+
+fun linkedList() LinkedList {
+    return LinkedList{.size = 0, .head = null};
+}

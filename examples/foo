@@ -1,8 +1,0 @@
-var bar int = (-42.foo)(1, 2, 3, 4);
-
-fn foo(a int) int {
-    {
-        var b int = a;
-    }
-    return 42;
-}

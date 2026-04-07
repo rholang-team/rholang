@@ -1,0 +1,17 @@
+struct Node {
+    var l Node;
+    var r Node;
+    var x int;
+}
+
+fun leafNode(x int) Node {
+    return Node{.l = null, .r = null, .x = x};
+}
+
+fun get(n Node) int {
+    return n.x;
+}
+
+fun foo() int {
+    return get(null);
+}
