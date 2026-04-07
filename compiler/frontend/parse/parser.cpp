@@ -654,8 +654,9 @@ std::shared_ptr<ast::Expr> Parser::parseTerm() {
     }
 
     // add prefix ops
-    for (const auto& op : std::ranges::reverse_view{ops}) {
-        term = std::make_shared<ast::UnaryExpr>(op, std::move(term));
+    auto it = ops.rbegin();
+    while (it != ops.rend()) {
+        term = std::make_shared<ast::UnaryExpr>(*it, std::move(term));
     }
 
     return term;
