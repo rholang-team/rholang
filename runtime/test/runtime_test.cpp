@@ -1,5 +1,3 @@
-#include "runtime/gc.hpp"
-
 #include <gtest/gtest.h>
 #include <math.h>
 #include <sys/mman.h>
@@ -8,6 +6,8 @@
 #include <cstddef>
 #include <random>
 #include <vector>
+
+#include "runtime/runtime.hpp"
 
 namespace memory_manager {
 
@@ -18,7 +18,7 @@ struct TestStruct {
 };
 
 TEST(GCTest, ValuedLinearAllocation) {
-    GC gc;
+    Runtime gc;
 
     TestStruct* a = (TestStruct*)gc.allocate(sizeof(TestStruct), nullptr);
     ASSERT_NE(a, nullptr);
@@ -62,7 +62,7 @@ TEST(DELIVERABLES__GC, SweepBig) {
     constexpr size_t size_threshold = 2048;
     constexpr size_t obj_limit = 10000;
 
-    GC gc;
+    Runtime gc;
     std::random_device rd;
     std::mt19937 gen(rd());
 
@@ -80,7 +80,7 @@ TEST(DELIVERABLES__GC, SweepFast) {
     constexpr size_t allocations_threshold = 100;
     constexpr size_t size_threshold = 2048;
 
-    GC gc;
+    Runtime gc;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<size_t> dist(0, allocations_threshold);
@@ -103,7 +103,7 @@ TEST(DELIVERABLES__GC, SweepFuzz) {
     constexpr size_t size_threshold = 2048;
     constexpr size_t live_limit = 100;
 
-    GC gc;
+    Runtime gc;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<size_t> dist(0, allocations_threshold);
@@ -137,7 +137,7 @@ TEST(DELIVERABLES__GC, SweepFuzz) {
 #define ASSERT_DEAD(obj) ASSERT_FALSE(((Header*)((char*)obj - sizeof(Header)))->mark);
 
 TEST(DELIVERABLES__GC, MarkTrees) {
-    GC gc;
+    Runtime gc;
 
     struct Twins {
         int* a;
@@ -183,7 +183,7 @@ TEST(DELIVERABLES__GC, MarkTrees) {
 }
 
 TEST(DELIVERABLES__GC, MarkGallow) {
-    GC gc;
+    Runtime gc;
 
     struct ExistentialCrisis {
         ExistentialCrisis* ever_avoidant_self;
@@ -215,7 +215,7 @@ TEST(DELIVERABLES__GC, MarkGallow) {
 }
 
 TEST(DELIVERABLES__GC, MarkCyclicList) {
-    GC gc;
+    Runtime gc;
 
     struct LiList {
         LiList* next;

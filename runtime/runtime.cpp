@@ -1,9 +1,9 @@
-#include "gc.hpp"
+#include "runtime.hpp"
 
 #include "header.hpp"
 
 namespace memory_manager {
-void* GC::allocate(size_t size, void* ref_map) {
+void* Runtime::allocate(size_t size, void* ref_map) {
     auto p = allocator.allocate(size);
     Header* h = (Header*)((char*)p - sizeof(Header));
     h->ref_map = ref_map;
@@ -12,22 +12,22 @@ void* GC::allocate(size_t size, void* ref_map) {
     return p;
 }
 
-void GC::collect() {
+void Runtime::collect() {
     scan();
     mark();
     sweep();
 }
 
-void GC::push_frame(FrameMap* frame) {
+void Runtime::push_frame(FrameMap* frame) {
     shadow_stack.push_back(frame);
 }
 
-void GC::pop_frame() {
+void Runtime::pop_frame() {
     shadow_stack.pop_back();
 }
 
 // scans the roots and pushes them onto mark stack.
-void GC::scan() {
+void Runtime::scan() {
     for (auto frame : shadow_stack) {
         auto n = frame->n_roots;
         for (size_t i = 0; i < n; ++i) {
@@ -36,7 +36,7 @@ void GC::scan() {
     }
 }
 
-void GC::mark() {
+void Runtime::mark() {
     while (!mark_stack.empty()) {
         Header* obj = (Header*)((char*)mark_stack.back() - sizeof(Header));
         mark_stack.pop_back();
@@ -62,7 +62,7 @@ void GC::mark() {
     }
 }
 
-void GC::sweep() {
+void Runtime::sweep() {
     allocator.foreach_allocated([this](Header* cell) {
         if (!cell->mark) {
             allocator.deallocate((char*)cell + sizeof(Header));
@@ -72,7 +72,7 @@ void GC::sweep() {
     });
 }
 
-bool GC::empty() {
+bool Runtime::empty() {
     return allocator.empty();
 }
 }  // namespace memory_manager

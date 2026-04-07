@@ -12,7 +12,7 @@ gtest_dep = dependency('gtest_main')
 
 runtime_src = [
   'runtime/main_alloc.cpp',
-  'runtime/gc.cpp',
+  'runtime/runtime.cpp',
   'runtime/bin.cpp',
   'runtime/fla.cpp',
 ]
@@ -21,7 +21,7 @@ runtime_tests_src = [
   'runtime/test/bin_test.cpp',
   'runtime/test/fla_test.cpp',
   'runtime/test/main_alloc_test.cpp',
-  'runtime/test/gc_test.cpp',
+  'runtime/test/runtime_test.cpp',
 ]
 
 runtime = static_library('runtime', runtime_src)

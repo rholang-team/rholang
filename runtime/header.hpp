@@ -6,7 +6,7 @@ namespace memory_manager {
 struct alignas(std::max_align_t) Header {
     union {
         Header* next;
-        void* ref_map;  // TODO #4
+        void* ref_map;
     };
     size_t size;     // cell size of a bin or 0 for large bin.
     bool mark;       // TODO move into size

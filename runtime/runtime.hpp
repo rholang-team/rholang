@@ -11,7 +11,7 @@ struct FrameMap {
     void* roots[];
 };
 
-class GC {
+class Runtime {
     struct RefMap {
         size_t n_slots;
         unsigned char bmap[];
@@ -21,7 +21,7 @@ class GC {
     std::deque<FrameMap*> shadow_stack;
 
 public:
-    GC() {}
+    Runtime() {}
     void* allocate(size_t size, void* ref_map);
     void collect();
     void push_frame(FrameMap* frame);
