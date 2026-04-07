@@ -3,8 +3,14 @@ builddir := "build"
 run *ARGS: build
     {{builddir}}/compiler {{ARGS}}
 
-test:
-    meson test -C {{builddir}}
+test *ARGS:
+    meson test -C {{builddir}} {{ARGS}}
+
+test-compiler:
+    meson test -C {{builddir}} --suite compiler
+
+test-runtime:
+    meson test -C {{builddir}} --suite runtime
 
 [working-directory: 'compiler-fuzzing']
 fuzz: build

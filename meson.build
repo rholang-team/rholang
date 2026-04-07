@@ -33,6 +33,7 @@ test(
         dependencies: [gtest_dep],
         link_with: runtime,
     ),
+    suite: 'runtime'
 )
 
 frontend_src = [
@@ -80,6 +81,7 @@ test(
         dependencies: [gtest_dep],
         link_with: [compiler],
     ),
+    suite: 'compiler'
 )
 
 driver_src = [
