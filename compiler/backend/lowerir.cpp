@@ -52,7 +52,7 @@ size_t valueSize(const ir::Type* ty) {
     assert(!utils::isa<ir::FunctionType>(ty));
 
     if (utils::isa<ir::IntType>(ty)) {
-        return 4;
+        return 8;
     } else if (utils::isa<ir::PointerType>(ty)) {
         return 8;
     } else if (utils::isa<ir::BoolType>(ty)) {
