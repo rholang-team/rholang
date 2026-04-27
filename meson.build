@@ -62,9 +62,19 @@ ir_src = [
     'compiler/ir/prettyprint.cpp',
 ]
 
-backend_src = []
+lir_src = [
+    'compiler/lir/bb.cpp',
+    'compiler/lir/function.cpp',
+    'compiler/lir/module.cpp',
+    'compiler/lir/prettyprint.cpp',
+]
 
-compiler_src = frontend_src + ir_src + backend_src
+backend_src = [
+    'compiler/backend/codegen.cpp',
+    'compiler/backend/lowerir.cpp',
+]
+
+compiler_src = frontend_src + ir_src + lir_src + backend_src
 
 compiler_tests_src = [
     'compiler/tests/frontend.cpp',

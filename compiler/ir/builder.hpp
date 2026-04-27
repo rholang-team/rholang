@@ -83,10 +83,12 @@ public:
         StructType* structType,
         std::shared_ptr<Value> target,
         unsigned fieldIdx);
-    std::shared_ptr<GotoInstr> gotoInstr(BasicBlock* dest);
+    std::shared_ptr<GotoInstr> gotoInstr(BasicBlock* dest,
+                                         bool backedge = false);
     std::shared_ptr<BrInstr> brInstr(std::shared_ptr<Value> cond,
                                      BasicBlock* onTrue,
-                                     BasicBlock* onFalse);
+                                     BasicBlock* onFalse,
+                                     bool containsBackedge = false);
     std::shared_ptr<RetInstr> retInstr(
         std::optional<std::shared_ptr<Value>> value = std::nullopt);
 };

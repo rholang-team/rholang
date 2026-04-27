@@ -3,23 +3,18 @@
 #include <memory>
 #include <vector>
 
-namespace ir {
-class Instr;
+namespace lir {
+struct Instr;
 
 class BasicBlock {
 public:
-    using Instrs = std::vector<std::shared_ptr<Instr>>;
+    using Instrs = std::vector<std::unique_ptr<Instr>>;
 
 private:
     Instrs instrs_;
-    bool hasTerminator_ = false;
 
 public:
-    void addInstr(std::shared_ptr<Instr> i);
-
-    bool hasTerminator() const {
-        return hasTerminator_;
-    }
+    void addInstr(std::unique_ptr<Instr> i);
 
     Instrs::iterator begin() {
         return instrs_.begin();
@@ -40,7 +35,6 @@ public:
     Instrs::const_iterator cend() const {
         return instrs_.cend();
     }
-
-    bool operator==(const BasicBlock& that) const;
 };
-}  // namespace ir
+
+}  // namespace lir

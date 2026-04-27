@@ -58,16 +58,20 @@ std::shared_ptr<GetFieldPtrInstr> GetFieldPtrInstr::create(
         new GetFieldPtrInstr{resTy, structType, target, idx}};
 }
 
-std::shared_ptr<GotoInstr> GotoInstr::create(Context& ctx, BasicBlock* dest) {
-    return std::shared_ptr<GotoInstr>{new GotoInstr{ctx.getVoidTy(), dest}};
+std::shared_ptr<GotoInstr> GotoInstr::create(Context& ctx,
+                                             BasicBlock* dest,
+                                             bool containsBackedge) {
+    return std::shared_ptr<GotoInstr>{
+        new GotoInstr{ctx.getVoidTy(), dest, containsBackedge}};
 }
 
 std::shared_ptr<BrInstr> BrInstr::create(Context& ctx,
                                          std::shared_ptr<Value> cond,
                                          BasicBlock* onTrue,
-                                         BasicBlock* onFalse) {
+                                         BasicBlock* onFalse,
+                                         bool containsBackedge) {
     return std::shared_ptr<BrInstr>{
-        new BrInstr{ctx.getVoidTy(), cond, onTrue, onFalse}};
+        new BrInstr{ctx.getVoidTy(), cond, onTrue, onFalse, containsBackedge}};
 }
 
 std::shared_ptr<RetInstr> RetInstr::create(
@@ -77,15 +81,15 @@ std::shared_ptr<RetInstr> RetInstr::create(
 }
 
 bool AllocaInstr::operator==(const Value& that) const {
-    return utils::isa<AllocaInstr>(&that) &&
+    return utils::isa<AllocaInstr>(that) &&
            static_cast<const AllocaInstr&>(that).itemType_ == itemType_;
 }
 bool NewInstr::operator==(const Value& that) const {
-    return utils::isa<NewInstr>(&that) &&
+    return utils::isa<NewInstr>(that) &&
            static_cast<const NewInstr&>(that).itemType_ == itemType_;
 }
 bool CallInstr::operator==(const Value& that) const {
-    if (!utils::isa<CallInstr>(&that)) {
+    if (!utils::isa<CallInstr>(that)) {
         return false;
     }
 
@@ -97,51 +101,51 @@ bool CallInstr::operator==(const Value& that) const {
                [](const auto& a, const auto& b) { return *a == *b; });
 }
 bool NotInstr::operator==(const Value& that) const {
-    return utils::isa<NotInstr>(&that) &&
+    return utils::isa<NotInstr>(that) &&
            *static_cast<const NotInstr&>(that).target_ == *target_;
 }
 bool NegInstr::operator==(const Value& that) const {
-    return utils::isa<NegInstr>(&that) &&
+    return utils::isa<NegInstr>(that) &&
            *static_cast<const NegInstr&>(that).target_ == *target_;
 }
 bool LoadInstr::operator==(const Value& that) const {
-    return utils::isa<LoadInstr>(&that) && that.type() == type() &&
+    return utils::isa<LoadInstr>(that) && that.type() == type() &&
            *static_cast<const LoadInstr&>(that).src_ == *src_;
 }
 bool StoreInstr::operator==(const Value& that) const {
-    return utils::isa<StoreInstr>(&that) &&
+    return utils::isa<StoreInstr>(that) &&
            static_cast<const StoreInstr&>(that).storedValueType_ ==
                storedValueType_ &&
            *static_cast<const StoreInstr&>(that).dest_ == *dest_ &&
            *static_cast<const StoreInstr&>(that).src_ == *src_;
 }
 bool AddInstr::operator==(const Value& that) const {
-    return utils::isa<AddInstr>(&that) &&
+    return utils::isa<AddInstr>(that) &&
            *static_cast<const AddInstr&>(that).lhs_ == *lhs_ &&
            *static_cast<const AddInstr&>(that).rhs_ == *rhs_;
 }
 bool SubInstr::operator==(const Value& that) const {
-    return utils::isa<SubInstr>(&that) &&
+    return utils::isa<SubInstr>(that) &&
            *static_cast<const SubInstr&>(that).lhs_ == *lhs_ &&
            *static_cast<const SubInstr&>(that).rhs_ == *rhs_;
 }
 bool MulInstr::operator==(const Value& that) const {
-    return utils::isa<MulInstr>(&that) &&
+    return utils::isa<MulInstr>(that) &&
            *static_cast<const MulInstr&>(that).lhs_ == *lhs_ &&
            *static_cast<const MulInstr&>(that).rhs_ == *rhs_;
 }
 bool DivInstr::operator==(const Value& that) const {
-    return utils::isa<DivInstr>(&that) &&
+    return utils::isa<DivInstr>(that) &&
            *static_cast<const DivInstr&>(that).lhs_ == *lhs_ &&
            *static_cast<const DivInstr&>(that).rhs_ == *rhs_;
 }
 bool CmpInstr::operator==(const Value& that) const {
-    return utils::isa<CmpInstr>(&that) &&
+    return utils::isa<CmpInstr>(that) &&
            *static_cast<const CmpInstr&>(that).lhs_ == *lhs_ &&
            *static_cast<const CmpInstr&>(that).rhs_ == *rhs_;
 }
 bool GetFieldPtrInstr::operator==(const Value& that) const {
-    if (!utils::isa<GetFieldPtrInstr>(&that)) {
+    if (!utils::isa<GetFieldPtrInstr>(that)) {
         return false;
     }
 
@@ -151,17 +155,17 @@ bool GetFieldPtrInstr::operator==(const Value& that) const {
            *gfp.target_ == *target_;
 }
 bool GotoInstr::operator==(const Value& that) const {
-    return utils::isa<GotoInstr>(&that) &&
+    return utils::isa<GotoInstr>(that) &&
            *static_cast<const GotoInstr&>(that).dest_ == *dest_;
 }
 bool BrInstr::operator==(const Value& that) const {
-    return utils::isa<BrInstr>(&that) &&
+    return utils::isa<BrInstr>(that) &&
            *static_cast<const BrInstr&>(that).cond_ == *cond_ &&
            *static_cast<const BrInstr&>(that).onTrue_ == *onTrue_ &&
            *static_cast<const BrInstr&>(that).onFalse_ == *onFalse_;
 }
 bool RetInstr::operator==(const Value& that) const {
-    if (!utils::isa<RetInstr>(&that)) {
+    if (!utils::isa<RetInstr>(that)) {
         return false;
     }
 

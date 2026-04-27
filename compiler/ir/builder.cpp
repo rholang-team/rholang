@@ -197,14 +197,15 @@ std::shared_ptr<GetFieldPtrInstr> Builder::getFieldPtrInstr(
     return GetFieldPtrInstr::create(ctx_, structType, target, idx);
 }
 
-std::shared_ptr<GotoInstr> Builder::gotoInstr(BasicBlock* dest) {
-    return GotoInstr::create(ctx_, dest);
+std::shared_ptr<GotoInstr> Builder::gotoInstr(BasicBlock* dest, bool backedge) {
+    return GotoInstr::create(ctx_, dest, backedge);
 }
 
 std::shared_ptr<BrInstr> Builder::brInstr(std::shared_ptr<Value> cond,
                                           BasicBlock* onTrue,
-                                          BasicBlock* onFalse) {
-    return BrInstr::create(ctx_, cond, onTrue, onFalse);
+                                          BasicBlock* onFalse,
+                                          bool containsBackedge) {
+    return BrInstr::create(ctx_, cond, onTrue, onFalse, containsBackedge);
 }
 
 std::shared_ptr<RetInstr> Builder::retInstr(

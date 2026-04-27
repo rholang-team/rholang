@@ -2,6 +2,7 @@
 #include <iostream>
 #include <print>
 
+#include "compiler/backend/lowerir.hpp"
 #include "compiler/frontend/ast/prettyprint.hpp"
 #include "compiler/frontend/ast2ir.hpp"
 #include "compiler/frontend/lex/lexer.hpp"
@@ -9,6 +10,8 @@
 #include "compiler/frontend/sema.hpp"
 #include "compiler/ir/context.hpp"
 #include "compiler/ir/prettyprint.hpp"
+#include "compiler/lir/module.hpp"
+#include "compiler/lir/prettyprint.hpp"
 
 using namespace std::string_view_literals;
 
@@ -48,11 +51,14 @@ int main(int argc, char** argv) {
 
     bool dumpAst = false;
     bool dumpIr = false;
+    bool dumpLir = false;
     for (int i = 2; i < argc; ++i) {
         if (argv[i] == "--dump-ast"sv) {
             dumpAst = true;
         } else if (argv[i] == "--dump-ir"sv) {
             dumpIr = true;
+        } else if (argv[i] == "--dump-lir"sv) {
+            dumpLir = true;
         } else {
             std::println(stderr, "unknown option {}", argv[i]);
             return EXIT_FAILURE;
@@ -83,10 +89,23 @@ int main(int argc, char** argv) {
         printTranslationUnit(tu);
 
     ir::Context ctx;
-    ir::Module module = frontend::ast2ir::translate(ctx, tu);
+    ir::Module irMod = frontend::ast2ir::translate(ctx, tu);
 
     if (dumpIr) {
+        if (dumpAst)
+            std::println();
+
         ir::PrettyPrinter irPretty{std::cout};
-        irPretty.visit(module);
+        irPretty.visit(irMod);
+    }
+
+    lir::Module lirMod = backend::lowerIr(irMod);
+
+    if (dumpLir) {
+        if (dumpAst || dumpIr)
+            std::println();
+
+        lir::PrettyPrinter lirPretty{std::cout};
+        lirPretty.visit(lirMod);
     }
 }

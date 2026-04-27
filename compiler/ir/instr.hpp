@@ -276,13 +276,29 @@ public:
     virtual bool operator==(const Value& that) const override;
 };
 
-class GotoInstr final : public Instr {
-    BasicBlock* dest_;
+class ControlFlowInstr : public Instr {
+    bool containsBackedge_;
 
-    GotoInstr(VoidType* ty, BasicBlock* dest) : Instr{ty}, dest_{dest} {}
+protected:
+    ControlFlowInstr(Type* ty, bool containsBackedge)
+        : Instr{ty}, containsBackedge_{containsBackedge} {}
 
 public:
-    static std::shared_ptr<GotoInstr> create(Context& ctx, BasicBlock* dest);
+    bool containsBackedge() const {
+        return containsBackedge_;
+    }
+};
+
+class GotoInstr final : public ControlFlowInstr {
+    BasicBlock* dest_;
+
+    GotoInstr(VoidType* ty, BasicBlock* dest, bool backedge)
+        : ControlFlowInstr{ty, backedge}, dest_{dest} {}
+
+public:
+    static std::shared_ptr<GotoInstr> create(Context& ctx,
+                                             BasicBlock* dest,
+                                             bool backedge = false);
 
     bool isTerminator() const override {
         return true;
@@ -294,7 +310,7 @@ public:
     virtual bool operator==(const Value& that) const override;
 };
 
-class BrInstr final : public Instr {
+class BrInstr final : public ControlFlowInstr {
     std::shared_ptr<Value> cond_;
     BasicBlock* onTrue_;
     BasicBlock* onFalse_;
@@ -302,14 +318,19 @@ class BrInstr final : public Instr {
     BrInstr(VoidType* ty,
             std::shared_ptr<Value> cond,
             BasicBlock* onTrue,
-            BasicBlock* onFalse)
-        : Instr{ty}, cond_{cond}, onTrue_{onTrue}, onFalse_{onFalse} {}
+            BasicBlock* onFalse,
+            bool containsBackedge)
+        : ControlFlowInstr{ty, containsBackedge},
+          cond_{cond},
+          onTrue_{onTrue},
+          onFalse_{onFalse} {}
 
 public:
     static std::shared_ptr<BrInstr> create(Context& ctx,
                                            std::shared_ptr<Value> cond,
                                            BasicBlock* onTrue,
-                                           BasicBlock* onFalse);
+                                           BasicBlock* onFalse,
+                                           bool containsBackedge = false);
 
     bool isTerminator() const override {
         return true;

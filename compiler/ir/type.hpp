@@ -19,6 +19,8 @@ struct Type {
     static IntType* getIntTy(Context& c);
     static PointerType* getPointerTy(Context& c);
 
+    bool isVoid();
+
     virtual ~Type() = default;
 };
 
