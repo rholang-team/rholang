@@ -1,12 +1,19 @@
 #pragma once
 
 #include <concepts>
+#include <memory>
 
 namespace utils {
 template <typename Derived, typename Base>
     requires std::derived_from<Derived, Base>
-bool isa(const Base* p) {
-    return nullptr != dynamic_cast<const Derived*>(p);
+bool isa(const Base* x) {
+    return nullptr != dynamic_cast<const Derived*>(x);
+}
+
+template <typename Derived, typename Base>
+    requires std::derived_from<Derived, Base>
+bool isa(const Base& x) {
+    return nullptr != dynamic_cast<const Derived*>(std::addressof(x));
 }
 
 template <typename Base, typename Derived>

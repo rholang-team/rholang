@@ -235,7 +235,7 @@ class Translator : private ast::DeclVisitor,
         ir::BasicBlock* body = builder_.startBb();
         visit(stmt.body);
 
-        builder_.addToCurBb(builder_.gotoInstr(headerStart));
+        builder_.addToCurBb(builder_.gotoInstr(headerStart, /*backedge=*/true));
         builder_.finishBb();
 
         ir::BasicBlock* tailBlock = builder_.startBb();

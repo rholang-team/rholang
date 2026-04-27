@@ -172,24 +172,24 @@ struct std::formatter<frontend::StructType> {
 template <typename Ctx>
 Ctx::iterator std::formatter<frontend::Type>::format(const frontend::Type& type,
                                                      Ctx& ctx) const {
-    if (utils::isa<frontend::PrimitiveType>(&type)) {
+    if (utils::isa<frontend::PrimitiveType>(type)) {
         return std::format_to(
             ctx.out(),
             "{}",
             dynamic_cast<const frontend::PrimitiveType&>(type));
     }
-    if (utils::isa<frontend::FunctionType>(&type)) {
+    if (utils::isa<frontend::FunctionType>(type)) {
         return std::format_to(
             ctx.out(),
             "{}",
             dynamic_cast<const frontend::FunctionType&>(type));
     }
-    if (utils::isa<frontend::TypeRef>(&type)) {
+    if (utils::isa<frontend::TypeRef>(type)) {
         return std::format_to(ctx.out(),
                               "{}",
                               dynamic_cast<const frontend::TypeRef&>(type));
     }
-    if (utils::isa<frontend::StructType>(&type)) {
+    if (utils::isa<frontend::StructType>(type)) {
         return std::format_to(ctx.out(),
                               "{}",
                               dynamic_cast<const frontend::StructType&>(type));

@@ -30,28 +30,28 @@ std::shared_ptr<NullPtr> NullPtr::create(Context& ctx) {
 }
 
 bool IntImm::operator==(const Value& that) const {
-    return utils::isa<IntImm>(&that) &&
+    return utils::isa<IntImm>(that) &&
            static_cast<const IntImm&>(that).value_ == value_;
 }
 
 bool BoolImm::operator==(const Value& that) const {
-    return utils::isa<BoolImm>(&that) &&
+    return utils::isa<BoolImm>(that) &&
            static_cast<const BoolImm&>(that).value_ == value_;
 }
 
 bool FnArgRef::operator==(const Value& that) const {
-    return utils::isa<FnArgRef>(&that) &&
+    return utils::isa<FnArgRef>(that) &&
            static_cast<const FnArgRef&>(that).idx_ == idx_ &&
            that.type() == type();
 }
 
 bool GlobalPtr::operator==(const Value& that) const {
-    return utils::isa<GlobalPtr>(&that) &&
+    return utils::isa<GlobalPtr>(that) &&
            static_cast<const GlobalPtr&>(that).valueTy_ == valueTy_ &&
            static_cast<const GlobalPtr&>(that).name_ == name_;
 }
 
 bool NullPtr::operator==(const Value& that) const {
-    return utils::isa<NullPtr>(&that) && that.type() == type();
+    return utils::isa<NullPtr>(that) && that.type() == type();
 }
 }  // namespace ir

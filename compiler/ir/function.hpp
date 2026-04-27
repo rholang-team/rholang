@@ -1,6 +1,6 @@
 #pragma once
 
-#include <list>
+#include <vector>
 
 #include "compiler/ir/bb.hpp"
 #include "compiler/ir/type.hpp"
@@ -27,7 +27,7 @@ public:
 
 class Function {
 public:
-    using BBs = std::list<std::unique_ptr<BasicBlock>>;
+    using BBs = std::vector<std::unique_ptr<BasicBlock>>;
 
 private:
     FunctionSignature* signature_;

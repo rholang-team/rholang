@@ -6,95 +6,115 @@
 #include "compiler/ir/module.hpp"
 
 namespace ir {
-template <typename RetTy = void>
+template <typename RetTy = void, bool Const = false>
 struct Visitor {
+    template <typename T>
+    using ArgPtr = std::conditional_t<Const, const T*, T*>;
+
+    template <typename T>
+    using ArgRef = std::conditional_t<Const, const T&, T&>;
+
     virtual ~Visitor() = default;
 
-    virtual void visit(Module& module) {
-        for (auto& [_, fn] : module.functions()) {
+    virtual void visit(ArgRef<Module> module) {
+        for (auto&& [_, fn] : module.functions()) {
             visit(*fn);
+        }
+
+        for (auto&& [_, global] : module.globals()) {
+            visitGlobalDecl(*global);
         }
     }
 
-    virtual void visit(Function& fn) {
-        for (auto& bb : fn) {
+    virtual void visitGlobalDecl([[maybe_unused]] ArgRef<GlobalPtr> global) {}
+
+    virtual void visit(ArgRef<Function> fn) {
+        for (auto&& bb : fn) {
             visit(*bb);
         }
     }
 
-    virtual void visit(BasicBlock& bb) {
-        for (auto& i : bb) {
+    virtual void visit(ArgRef<BasicBlock> bb) {
+        for (auto&& i : bb) {
             visit(i.get());
         }
     }
 
-    virtual RetTy visitInstr(Instr& i) {
+    virtual RetTy visitInstr(ArgRef<Instr> i) {
         return visit(&i);
     }
 
-    virtual RetTy visit(Value& v) {
+    virtual RetTy visit(ArgRef<Value> v) {
         return visit(&v);
     }
 
-    virtual RetTy visit(Value* v) {
-        if (IntImm* intImm = dynamic_cast<IntImm*>(v))
+
+    virtual RetTy visit(ArgPtr<Value> v) {
+        if (ArgPtr<IntImm> intImm = dynamic_cast<ArgPtr<IntImm>>(v))
             visitIntImm(*intImm);
-        else if (BoolImm* boolImm = dynamic_cast<BoolImm*>(v))
+        else if (ArgPtr<BoolImm> boolImm = dynamic_cast<ArgPtr<BoolImm>>(v))
             visitBoolImm(*boolImm);
-        else if (FnArgRef* fnArgRef = dynamic_cast<FnArgRef*>(v))
+        else if (ArgPtr<FnArgRef> fnArgRef = dynamic_cast<ArgPtr<FnArgRef>>(v))
             visitFnArgRef(*fnArgRef);
-        else if (GlobalPtr* globalPtr = dynamic_cast<GlobalPtr*>(v))
+        else if (ArgPtr<GlobalPtr> globalPtr =
+                     dynamic_cast<ArgPtr<GlobalPtr>>(v))
             visitGlobalPtr(*globalPtr);
-        else if (NullPtr* nullPtr = dynamic_cast<NullPtr*>(v))
+        else if (ArgPtr<NullPtr> nullPtr = dynamic_cast<ArgPtr<NullPtr>>(v))
             visitNullPtr(*nullPtr);
-        else if (Instr* instr = dynamic_cast<Instr*>(v))
+        else if (ArgPtr<Instr> instr = dynamic_cast<ArgPtr<Instr>>(v))
             visitInstr(instr);
         else
             std::unreachable();
     }
 
-    virtual RetTy visitInstr(Instr* i) {
-        if (AllocaInstr* allocaInstr = dynamic_cast<AllocaInstr*>(i))
+    virtual RetTy visitInstr(ArgPtr<Instr> i) {
+        if (ArgPtr<AllocaInstr> allocaInstr =
+                dynamic_cast<ArgPtr<AllocaInstr>>(i))
             return visitAllocaInstr(*allocaInstr);
-        else if (NewInstr* allocaInstr = dynamic_cast<NewInstr*>(i))
+        else if (ArgPtr<NewInstr> allocaInstr =
+                     dynamic_cast<ArgPtr<NewInstr>>(i))
             return visitNewInstr(*allocaInstr);
-        else if (CallInstr* callInstr = dynamic_cast<CallInstr*>(i))
+        else if (ArgPtr<CallInstr> callInstr =
+                     dynamic_cast<ArgPtr<CallInstr>>(i))
             return visitCallInstr(*callInstr);
-        else if (NotInstr* notInstr = dynamic_cast<NotInstr*>(i))
+        else if (ArgPtr<NotInstr> notInstr = dynamic_cast<ArgPtr<NotInstr>>(i))
             return visitNotInstr(*notInstr);
-        else if (NegInstr* negInstr = dynamic_cast<NegInstr*>(i))
+        else if (ArgPtr<NegInstr> negInstr = dynamic_cast<ArgPtr<NegInstr>>(i))
             return visitNegInstr(*negInstr);
-        else if (LoadInstr* loadInstr = dynamic_cast<LoadInstr*>(i))
+        else if (ArgPtr<LoadInstr> loadInstr =
+                     dynamic_cast<ArgPtr<LoadInstr>>(i))
             return visitLoadInstr(*loadInstr);
-        else if (StoreInstr* storeInstr = dynamic_cast<StoreInstr*>(i))
+        else if (ArgPtr<StoreInstr> storeInstr =
+                     dynamic_cast<ArgPtr<StoreInstr>>(i))
             return visitStoreInstr(*storeInstr);
-        else if (AddInstr* addInstr = dynamic_cast<AddInstr*>(i))
+        else if (ArgPtr<AddInstr> addInstr = dynamic_cast<ArgPtr<AddInstr>>(i))
             return visitAddInstr(*addInstr);
-        else if (SubInstr* subInstr = dynamic_cast<SubInstr*>(i))
+        else if (ArgPtr<SubInstr> subInstr = dynamic_cast<ArgPtr<SubInstr>>(i))
             return visitSubInstr(*subInstr);
-        else if (MulInstr* mulInstr = dynamic_cast<MulInstr*>(i))
+        else if (ArgPtr<MulInstr> mulInstr = dynamic_cast<ArgPtr<MulInstr>>(i))
             return visitMulInstr(*mulInstr);
-        else if (DivInstr* divInstr = dynamic_cast<DivInstr*>(i))
+        else if (ArgPtr<DivInstr> divInstr = dynamic_cast<ArgPtr<DivInstr>>(i))
             return visitDivInstr(*divInstr);
-        else if (CmpInstr* cmpInstr = dynamic_cast<CmpInstr*>(i))
+        else if (ArgPtr<CmpInstr> cmpInstr = dynamic_cast<ArgPtr<CmpInstr>>(i))
             return visitCmpInstr(*cmpInstr);
-        else if (GetFieldPtrInstr* getFieldPtrInstr =
-                     dynamic_cast<GetFieldPtrInstr*>(i))
+        else if (ArgPtr<GetFieldPtrInstr> getFieldPtrInstr =
+                     dynamic_cast<ArgPtr<GetFieldPtrInstr>>(i))
             return visitGetFieldPtrInstr(*getFieldPtrInstr);
-        else if (GotoInstr* gotoInstr = dynamic_cast<GotoInstr*>(i))
+        else if (ArgPtr<GotoInstr> gotoInstr =
+                     dynamic_cast<ArgPtr<GotoInstr>>(i))
             return visitGotoInstr(*gotoInstr);
-        else if (BrInstr* brInstr = dynamic_cast<BrInstr*>(i))
+        else if (ArgPtr<BrInstr> brInstr = dynamic_cast<ArgPtr<BrInstr>>(i))
             return visitBrInstr(*brInstr);
-        else if (RetInstr* retInstr = dynamic_cast<RetInstr*>(i))
+        else if (ArgPtr<RetInstr> retInstr = dynamic_cast<ArgPtr<RetInstr>>(i))
             return visitRetInstr(*retInstr);
 
         std::unreachable();
     }
 
-#define MKVISITOR(TY)                                   \
-    virtual RetTy visit##TY([[maybe_unused]] TY& imm) { \
-        if constexpr (!std::is_void_v<RetTy>)           \
-            return RetTy();                             \
+#define MKVISITOR(TY)                                      \
+    virtual RetTy visit##TY([[maybe_unused]] ArgRef<TY>) { \
+        if constexpr (!std::is_void_v<RetTy>)              \
+            return RetTy();                                \
     }
 
     MKVISITOR(IntImm)

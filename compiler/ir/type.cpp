@@ -1,6 +1,7 @@
 #include "compiler/ir/type.hpp"
 
 #include "compiler/ir/context.hpp"
+#include "utils/match.hpp"
 
 namespace ir {
 VoidType* Type::getVoidTy(Context& c) {
@@ -17,6 +18,10 @@ IntType* Type::getIntTy(Context& c) {
 
 PointerType* Type::getPointerTy(Context& c) {
     return c.getPointerTy();
+}
+
+bool Type::isVoid() {
+    return utils::isa<VoidType>(this);
 }
 
 StructType* StructType::get(Context& ctx, std::span<Type*> fields) {
