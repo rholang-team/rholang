@@ -4,11 +4,6 @@
 #include <string>
 
 namespace lir {
-struct Assemblable {
-    virtual ~Assemblable() = default;
-    virtual std::string toAsm() const = 0;
-};
-
 struct Value {
     virtual ~Value() = default;
 };
@@ -17,13 +12,13 @@ struct Address {
     virtual ~Address() = default;
 };
 
-struct AssemblableValue : public Value, public Assemblable {};
-
 struct Register : public Value, public Address {};
 
-struct Instr : public Assemblable {};
+struct Instr {
+    virtual ~Instr() = default;
+};
 
-class Immediate final : public AssemblableValue {
+class Immediate final : public Value {
     int value_;
 
 public:
@@ -32,13 +27,9 @@ public:
     int value() const {
         return value_;
     }
-
-    std::string toAsm() const override {
-        return std::to_string(value_);
-    }
 };
 
-class AddressExpression final : public AssemblableValue, public Address {
+class AddressExpression final : public Value, public Address {
     int displacement_;
 
 public:
@@ -47,27 +38,31 @@ public:
     AddressExpression(std::shared_ptr<Register> base, int displacement)
         : displacement_{displacement}, base{base} {}
 
-    std::string toAsm() const override {
-        throw "todo";
-    }
-
     int displacement() const {
         return displacement_;
     }
 };
 
-class StackSlot final : public AssemblableValue, public Address {
+class StackSlot final : public Value, public Address {
     size_t slot_;
 
 public:
     StackSlot(size_t slot) : slot_{slot} {}
 
-    std::string toAsm() const override {
-        throw "todo";
-    }
-
     size_t slot() const {
         return slot_;
+    }
+};
+
+class Global final : public Value, public Address {
+    std::string name_;
+
+public:
+    template <typename T>
+    Global(T&& name) : name_{std::forward<T>(name)} {}
+
+    std::string_view name() const {
+        return name_;
     }
 };
 }  // namespace lir

@@ -1,0 +1,23 @@
+var acc int = 0;
+
+var counter Counter = newCounter();
+
+fun inc() void {
+    acc += 1;
+}
+
+struct Counter {
+    var added int;
+    
+    fun get(self) int {
+         return acc + self.added;
+    }
+
+    fun inc(self) void {
+        self.added += 1;
+    }
+}
+
+fun newCounter() Counter {
+    return Counter{.added = 0};
+}
