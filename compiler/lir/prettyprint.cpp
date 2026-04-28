@@ -84,9 +84,8 @@ void PrettyPrinter::visitAddressExpression(const AddressExpression& addr) {
 }
 
 void PrettyPrinter::visitMovInstr(const MovInstr& i) {
-    os_ << "mov ";
     visitRegister(i.dest.get());
-    os_ << ' ';
+    os_ << " = ";
     visit(i.src.get());
 }
 

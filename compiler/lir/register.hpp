@@ -6,13 +6,40 @@
 
 namespace lir {
 class VirtualRegister final : public Register {
-    size_t id_;
+public:
+    using Id = size_t;
+
+    Id id() const {
+        return id_;
+    }
+
+private:
+    Id id_;
+
+    friend class VirtualRegisterFactory;
+
+    VirtualRegister(Id id) : id_{id} {}
+};
+
+class VirtualRegisterFactory {
+    VirtualRegister::Id counter_ = 0;
+
+    VirtualRegister::Id nextId() {
+        return counter_++;
+    }
 
 public:
-    VirtualRegister(size_t id) : id_{id} {}
+    VirtualRegisterFactory() = default;
 
-    size_t id() const {
-        return id_;
+    void reset() {
+        counter_ = 0;
+    }
+
+    VirtualRegister next() {
+        return VirtualRegister{nextId()};
+    }
+    std::shared_ptr<VirtualRegister> nextShared() {
+        return std::shared_ptr<VirtualRegister>(new VirtualRegister{nextId()});
     }
 };
 
@@ -47,42 +74,7 @@ public:
         return name_;
     }
 
-    static std::string_view nameToString(Name name) {
-        switch (name) {
-            case Name::Rax:
-                return "rax";
-            case Name::Rbx:
-                return "rbx";
-            case Name::Rcx:
-                return "rcx";
-            case Name::Rdx:
-                return "rdx";
-            case Name::Rsi:
-                return "rsi";
-            case Name::Rdi:
-                return "rdi";
-            case Name::Rbp:
-                return "rbp";
-            case Name::Rsp:
-                return "rsp";
-            case Name::R8:
-                return "r8";
-            case Name::R9:
-                return "r9";
-            case Name::R10:
-                return "r10";
-            case Name::R11:
-                return "r11";
-            case Name::R12:
-                return "r12";
-            case Name::R13:
-                return "r13";
-            case Name::R14:
-                return "r14";
-            case Name::R15:
-                return "r15";
-        }
-    }
+    static std::string_view nameToString(Name name);
 
     std::string_view toString() const {
         return nameToString(name_);

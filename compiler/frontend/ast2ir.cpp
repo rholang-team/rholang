@@ -103,12 +103,20 @@ class Translator : private ast::DeclVisitor,
     }
 
     std::pair<std::shared_ptr<ir::Value>, ir::Type*> unrollRefToPtr(
-        ast::Expr* e) {
+        ast::Expr* e,
+        bool topLevel = true) {
         if (ast::VarRefExpr* vre = dynamic_cast<ast::VarRefExpr*>(e)) {
-            return namedValues_.lookup(vre->name.value).value();
+            if (topLevel)
+                return namedValues_.lookup(vre->name.value).value();
+            else {
+                auto [ptr, ptrTy] =
+                    namedValues_.lookup(vre->name.value).value().get();
+                return {builder_.addToCurBb(builder_.loadInstr(ptrTy, ptr)), ptrTy};
+            }
         } else if (ast::MemberRefExpr* mre =
                        dynamic_cast<ast::MemberRefExpr*>(e)) {
-            auto [target, targetTy] = unrollRefToPtr(mre->target.get());
+            auto [target, targetTy] =
+                unrollRefToPtr(mre->target.get(), /* topLevel= */ false);
 
             if (utils::isa<ast::MemberRefExpr>(mre->target.get())) {
                 target =
@@ -141,14 +149,21 @@ class Translator : private ast::DeclVisitor,
 
         namedValues_.pushScope();
 
+        builder_.startBb();
+
         for (size_t i = 0; i < decl.paramNames.size(); ++i) {
-            namedValues_.addOrShadow(
-                decl.paramNames[i],
-                std::pair{builder_.fnArgRef(res->signature(), i),
-                          res->signature()->type()->params()[i]});
+            auto ty = res->signature()->type()->params()[i];
+            auto alloca = builder_.allocaInstr(ty);
+            builder_.addToCurBb(alloca);
+            builder_.addToCurBb(
+                builder_.storeInstr(ty,
+                                    alloca,
+                                    builder_.fnArgRef(res->signature(), i)));
+
+            namedValues_.addOrShadow(decl.paramNames[i], std::pair{alloca, ty});
         }
 
-        builder_.startBb();
+        builder_.startBbAndLink();
         visit(decl.body);
 
         if (builder_.curBb()) {
@@ -405,15 +420,14 @@ class Translator : private ast::DeclVisitor,
     }
 
     std::shared_ptr<ir::Value> visit(ast::VarRefExpr& expr) {
-        auto argIdx = findArgIdx(expr.name.value);
-        if (argIdx.has_value()) {
-            return builder_.fnArgRef(builder_.curFunction()->signature(),
-                                     *argIdx);
-        } else {
-            auto& [ptr, valTy] =
-                namedValues_.lookup(expr.name.value).value().get();
-            return builder_.addToCurBb(builder_.loadInstr(valTy, ptr));
-        }
+        // auto argIdx = findArgIdx(expr.name.value);
+        // if (argIdx.has_value()) {
+        //     return builder_.fnArgRef(builder_.curFunction()->signature(),
+        //                              *argIdx);
+        // } else {
+        auto& [ptr, valTy] = namedValues_.lookup(expr.name.value).value().get();
+        return builder_.addToCurBb(builder_.loadInstr(valTy, ptr));
+        // }
     }
 
     std::shared_ptr<ir::Value> visit(ast::MemberRefExpr& expr) {

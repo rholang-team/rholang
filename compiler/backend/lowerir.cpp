@@ -105,6 +105,8 @@ class Lowerer final : public ir::Visitor<void, true> {
 
     std::unordered_map<const ir::BasicBlock*, lir::BasicBlock*> bbMap_;
 
+    lir::VirtualRegisterFactory vregFactory_;
+
     std::shared_ptr<lir::VirtualRegister> newVirtualRegister(
         const ir::Value& valuePut) {
         auto res = newVirtualRegister();
@@ -113,9 +115,7 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     std::shared_ptr<lir::VirtualRegister> newVirtualRegister() {
-        static size_t idx = 0;
-        auto res = std::make_shared<lir::VirtualRegister>(idx++);
-        return res;
+        return vregFactory_.nextShared();
     }
 
     // template <std::ranges::sized_range R>
@@ -269,6 +269,7 @@ class Lowerer final : public ir::Visitor<void, true> {
         fakedAllocas_.clear();
         bbMap_.clear();
         fnArgs_.clear();
+        vregFactory_.reset();
 
         fn_ = lir::Function(fn.signature()->name());
 
