@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 #include "compiler/lir/value.hpp"
 
@@ -17,7 +16,7 @@ public:
     }
 };
 
-class PhysicalRegister final : public Register, public AssemblableValue {
+class PhysicalRegister final : public Register {
 public:
     enum class Name : uint8_t {
         Rax,
@@ -48,8 +47,8 @@ public:
         return name_;
     }
 
-    std::string toAsm() const override {
-        switch (name_) {
+    static std::string_view nameToString(Name name) {
+        switch (name) {
             case Name::Rax:
                 return "rax";
             case Name::Rbx:
@@ -83,6 +82,10 @@ public:
             case Name::R15:
                 return "r15";
         }
+    }
+
+    std::string_view toString() const {
+        return nameToString(name_);
     }
 };
 }  // namespace lir

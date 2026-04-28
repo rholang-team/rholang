@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <print>
@@ -16,17 +17,17 @@
 using namespace std::string_view_literals;
 
 namespace {
-void printTranslationUnit(frontend::TranslationUnit& tu) {
+void dumpTranslationUnit(std::ostream& os, frontend::TranslationUnit& tu) {
     for (auto& [name, s] : tu.structs) {
-        std::println("{}\n", *s);
+        os << *s << '\n';
     }
     for (auto& [name, decl] : tu.globals) {
-        frontend::ast::PrettyPrinter{std::cout}.visit(decl);
-        std::cout << '\n';
+        frontend::ast::PrettyPrinter{os}.visit(decl);
+        os << '\n';
     }
     for (auto& [name, decl] : tu.functions) {
-        frontend::ast::PrettyPrinter{std::cout}.visit(*decl);
-        std::cout << '\n';
+        frontend::ast::PrettyPrinter{os}.visit(*decl);
+        os << '\n';
     }
 }
 }  // namespace
@@ -37,8 +38,13 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
+    std::filesystem::path filename;
+
     std::string input;
     if (argv[1] != "-"sv) {
+        filename = argv[1];
+        filename = filename.filename();
+
         std::ifstream file{argv[1]};
         if (!file.is_open()) {
             std::println(stderr, "could not find file {}", argv[1]);
@@ -46,6 +52,7 @@ int main(int argc, char** argv) {
         }
         input = std::string{std::istreambuf_iterator{file}, {}};
     } else {
+        filename = "stdin";
         input = std::string{std::istreambuf_iterator{std::cin}, {}};
     }
 
@@ -85,27 +92,25 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    if (dumpAst)
-        printTranslationUnit(tu);
+    if (dumpAst) {
+        std::ofstream dump{std::string{filename} + ".ast.dump"};
+        dumpTranslationUnit(dump, tu);
+    }
 
     ir::Context ctx;
     ir::Module irMod = frontend::ast2ir::translate(ctx, tu);
 
     if (dumpIr) {
-        if (dumpAst)
-            std::println();
-
-        ir::PrettyPrinter irPretty{std::cout};
+        std::ofstream dump{std::string{filename} + ".ir.dump"};
+        ir::PrettyPrinter irPretty{dump};
         irPretty.visit(irMod);
     }
 
     lir::Module lirMod = backend::lowerIr(irMod);
 
     if (dumpLir) {
-        if (dumpAst || dumpIr)
-            std::println();
-
-        lir::PrettyPrinter lirPretty{std::cout};
+        std::ofstream dump{std::string{filename} + ".lir.dump"};
+        lir::PrettyPrinter lirPretty{dump};
         lirPretty.visit(lirMod);
     }
 }

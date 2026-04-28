@@ -65,6 +65,7 @@ ir_src = [
 lir_src = [
     'compiler/lir/bb.cpp',
     'compiler/lir/function.cpp',
+    'compiler/lir/instr.cpp',
     'compiler/lir/module.cpp',
     'compiler/lir/prettyprint.cpp',
 ]

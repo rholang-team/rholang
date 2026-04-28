@@ -27,6 +27,8 @@ public:
 
     void visitStackSlot(const StackSlot& slot) override;
 
+    void visitGlobal(const Global& global) override;
+
     void visitInstr(const Instr* i) override;
 
     void visitVirtualRegister(const VirtualRegister& i) override;

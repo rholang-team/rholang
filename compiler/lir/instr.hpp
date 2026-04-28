@@ -6,26 +6,27 @@
 #include "compiler/lir/value.hpp"
 
 namespace lir {
+enum class WordType : uint8_t {
+    Byte,
+    Word,
+    Dword,
+    Qword,
+};
+
+std::string_view wordTypeToString(WordType w);
+
 struct MovInstr final : public Instr {
     std::shared_ptr<Register> dest;
     std::shared_ptr<Register> src;
 
     MovInstr(std::shared_ptr<Register> dest, std::shared_ptr<Register> src)
         : dest{dest}, src{src} {}
-
-    std::string toAsm() const override {
-        throw "todo";
-    }
 };
 
 class PushInstr final : public Instr {
     std::shared_ptr<Register> reg_;
 
 public:
-    std::string toAsm() const override {
-        throw "todo";
-    }
-
     std::shared_ptr<Register> reg() const {
         return reg_;
     }
@@ -35,10 +36,6 @@ class PopInstr final : public Instr {
     std::shared_ptr<Register> reg_;
 
 public:
-    std::string toAsm() const override {
-        throw "todo";
-    }
-
     std::shared_ptr<Register> reg() const {
         return reg_;
     }
@@ -46,25 +43,26 @@ public:
 
 struct LeaInstr final : public Instr {
     std::shared_ptr<Register> dest;
-    AddressExpression addr;
+    std::shared_ptr<Address> addr;
 
-    LeaInstr(std::shared_ptr<Register> dest, AddressExpression addr)
+    LeaInstr(std::shared_ptr<Register> dest, std::shared_ptr<Address> addr)
         : dest{dest}, addr{addr} {}
-
-    std::string toAsm() const override {
-        throw "todo";
-    }
 };
 
-struct LoadInstr final : public Instr {
+class LoadInstr final : public Instr {
+    WordType itemSize_;
+
+public:
     std::shared_ptr<Register> dest;
     std::shared_ptr<Address> src;
 
-    LoadInstr(std::shared_ptr<Register> dest, std::shared_ptr<Address> src)
-        : dest{dest}, src{src} {}
+    LoadInstr(WordType itemSize,
+              std::shared_ptr<Register> dest,
+              std::shared_ptr<Address> src)
+        : itemSize_{itemSize}, dest{dest}, src{src} {}
 
-    std::string toAsm() const override {
-        throw "todo";
+    WordType itemSize() const {
+        return itemSize_;
     }
 };
 
@@ -81,21 +79,22 @@ public:
     int imm() const {
         return imm_;
     }
-
-    std::string toAsm() const override {
-        throw "todo";
-    }
 };
 
-struct StoreInstr final : public Instr {
+class StoreInstr final : public Instr {
+    WordType itemSize_;
+
+public:
     std::shared_ptr<Address> dest;
     std::shared_ptr<Register> src;
 
-    StoreInstr(std::shared_ptr<Address> dest, std::shared_ptr<Register> src)
-        : dest{dest}, src{src} {}
+    StoreInstr(WordType itemSize,
+               std::shared_ptr<Address> dest,
+               std::shared_ptr<Register> src)
+        : itemSize_{itemSize}, dest{dest}, src{src} {}
 
-    std::string toAsm() const override {
-        throw "todo";
+    WordType itemSize() const {
+        return itemSize_;
     }
 };
 
@@ -103,20 +102,12 @@ struct NotInstr final : public Instr {
     std::shared_ptr<Register> operand;
 
     NotInstr(std::shared_ptr<Register> operand) : operand{operand} {}
-
-    std::string toAsm() const override {
-        throw "todo";
-    }
 };
 
 struct NegInstr final : public Instr {
     std::shared_ptr<Register> operand;
 
     NegInstr(std::shared_ptr<Register> operand) : operand{operand} {}
-
-    std::string toAsm() const override {
-        throw "todo";
-    }
 };
 
 struct CmpInstr final : public Instr {
@@ -139,10 +130,6 @@ struct CmpInstr final : public Instr {
              std::shared_ptr<Register> lhs,
              std::shared_ptr<Register> rhs)
         : dest{dest}, cond{cond}, lhs{lhs}, rhs{rhs} {}
-
-    std::string toAsm() const override {
-        throw "todo";
-    }
 };
 
 class JmpInstr final : public Instr {
@@ -166,20 +153,12 @@ public:
         return conditional() && cond->second;
     }
 
-    std::string toAsm() const override {
-        throw "todo";
-    }
-
     BasicBlock* dest() const {
         return dest_;
     }
 };
 
-struct RetInstr final : public Instr {
-    std::string toAsm() const override {
-        throw "todo";
-    }
-};
+struct RetInstr final : public Instr {};
 
 class CallInstr final : public Instr {
     std::string callee_;
@@ -200,10 +179,6 @@ public:
           dest{std::move(dest)},
           args{std::move(args)} {}
 
-    std::string toAsm() const override {
-        throw "todo";
-    }
-
     std::string_view callee() const {
         return callee_;
     }
@@ -219,10 +194,6 @@ public:
              std::shared_ptr<Register> lhs,     \
              std::shared_ptr<Register> rhs)     \
             : dest{dest}, lhs{lhs}, rhs{rhs} {} \
-                                                \
-        std::string toAsm() const override {    \
-            throw "todo";                       \
-        }                                       \
     };
 
 BINARY_INSTR(AddInstr);

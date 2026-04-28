@@ -52,6 +52,9 @@ struct Visitor {
         } else if (ArgPtr<StackSlot> slot =
                        dynamic_cast<ArgPtr<StackSlot>>(addr)) {
             return visitStackSlot(*slot);
+        } else if (ArgPtr<Global> global =
+                       dynamic_cast<ArgPtr<Global>>(addr)) {
+            return visitGlobal(*global);
         }
 
         std::unreachable();
@@ -73,6 +76,8 @@ struct Visitor {
         else if (ArgPtr<StackSlot> stackSlot =
                      dynamic_cast<ArgPtr<StackSlot>>(v))
             return visitStackSlot(*stackSlot);
+        else if (ArgPtr<Global> global = dynamic_cast<ArgPtr<Global>>(v))
+            return visitGlobal(*global);
         else if (ArgPtr<Instr> instr = dynamic_cast<ArgPtr<Instr>>(v))
             return visitInstr(instr);
 
@@ -147,8 +152,8 @@ struct Visitor {
     }
 
     MKVISITOR(Immediate)
-
     MKVISITOR(StackSlot)
+    MKVISITOR(Global)
 
     MKVISITOR(VirtualRegister)
     MKVISITOR(PhysicalRegister)

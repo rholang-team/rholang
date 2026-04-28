@@ -52,7 +52,7 @@ size_t valueSize(const ir::Type* ty) {
     assert(!utils::isa<ir::FunctionType>(ty));
 
     if (utils::isa<ir::IntType>(ty)) {
-        return 8;
+        return 4;
     } else if (utils::isa<ir::PointerType>(ty)) {
         return 8;
     } else if (utils::isa<ir::BoolType>(ty)) {
@@ -60,6 +60,22 @@ size_t valueSize(const ir::Type* ty) {
     } else if (utils::isa<ir::StructType>(ty)) {
         const ir::StructType* sty = static_cast<const ir::StructType*>(ty);
         return totalSizeWithAlignment(sty->fields());
+    }
+
+    std::unreachable();
+}
+
+lir::WordType valueWordType(const ir::Type* ty) {
+    assert(!utils::isa<ir::VoidType>(ty));
+    assert(!utils::isa<ir::FunctionType>(ty));
+    assert(!utils::isa<ir::StructType>(ty));
+
+    if (utils::isa<ir::IntType>(ty)) {
+        return lir::WordType::Dword;
+    } else if (utils::isa<ir::PointerType>(ty)) {
+        return lir::WordType::Qword;
+    } else if (utils::isa<ir::BoolType>(ty)) {
+        return lir::WordType::Byte;
     }
 
     std::unreachable();
@@ -153,6 +169,14 @@ class Lowerer final : public ir::Visitor<void, true> {
             auto reg = fnArgs_[fnArg->idx()];
             virtualRegisterMap_.emplace(&v, reg);
             return reg;
+        } else if (const ir::GlobalPtr* global =
+                       dynamic_cast<const ir::GlobalPtr*>(&v)) {
+            auto reg = newVirtualRegister();
+            bb_->addInstr(std::make_unique<lir::LeaInstr>(
+                reg,
+                std::make_shared<lir::Global>(global->name())));
+            virtualRegisterMap_.emplace(&v, reg);
+            return reg;
         }
 
         std::unreachable();
@@ -210,7 +234,7 @@ class Lowerer final : public ir::Visitor<void, true> {
 
     void addArgLoads(const ir::FunctionSignature& sig,
                      lir::BasicBlock& prologue) {
-        size_t argCount = sig.type()->params().size();
+        auto params = sig.type()->params();
 
         constexpr std::array<lir::PhysicalRegister::Name, 6> regArgs{
             lir::PhysicalRegister::Name::Rdi,
@@ -220,7 +244,7 @@ class Lowerer final : public ir::Visitor<void, true> {
             lir::PhysicalRegister::Name::R8,
             lir::PhysicalRegister::Name::R9};
 
-        for (size_t i = 0; i < argCount; ++i) {
+        for (size_t i = 0; i < params.size(); ++i) {
             if (i < regArgs.size()) {
                 prologue.addInstr(std::make_unique<lir::MovInstr>(
                     fnArgs_[i],
@@ -231,6 +255,7 @@ class Lowerer final : public ir::Visitor<void, true> {
             int disp = 8 * (i - regArgs.size() + 1);
 
             prologue.addInstr(std::make_unique<lir::LoadInstr>(
+                valueWordType(params[i]),
                 fnArgs_[i],
                 std::make_shared<lir::AddressExpression>(
                     std::make_shared<lir::PhysicalRegister>(
@@ -240,7 +265,11 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void visit(const ir::Function& fn) override {
+        virtualRegisterMap_.clear();
+        fakedAllocas_.clear();
+        bbMap_.clear();
         fnArgs_.clear();
+
         fn_ = lir::Function(fn.signature()->name());
 
         auto prologue = std::make_unique<lir::BasicBlock>();
@@ -315,6 +344,7 @@ class Lowerer final : public ir::Visitor<void, true> {
         }
 
         bb_->addInstr(std::make_unique<lir::LoadInstr>(
+            valueWordType(i.type()),
             newVirtualRegister(i),
             std::dynamic_pointer_cast<lir::Address>(
                 translateInstrArgument(*i.src()))));
@@ -328,6 +358,7 @@ class Lowerer final : public ir::Visitor<void, true> {
         }
 
         bb_->addInstr(std::make_unique<lir::StoreInstr>(
+            valueWordType(i.storedValueType()),
             std::dynamic_pointer_cast<lir::Address>(
                 translateInstrArgument(*i.dest())),
             translateInstrArgument(*i.src())));
@@ -397,7 +428,7 @@ class Lowerer final : public ir::Visitor<void, true> {
 
         bb_->addInstr(std::make_unique<lir::LeaInstr>(
             newVirtualRegister(i),
-            lir::AddressExpression(target, offset)));
+            std::make_shared<lir::AddressExpression>(target, offset)));
     }
 
     void visitGotoInstr(const ir::GotoInstr& i) override {

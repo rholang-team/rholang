@@ -58,7 +58,7 @@ void PrettyPrinter::visitVirtualRegister(const VirtualRegister& i) {
 }
 
 void PrettyPrinter::visitPhysicalRegister(const PhysicalRegister& i) {
-    os_ << i.toAsm();
+    os_ << i.toString();
 }
 
 void PrettyPrinter::visitImmediate(const Immediate& imm) {
@@ -66,6 +66,10 @@ void PrettyPrinter::visitImmediate(const Immediate& imm) {
 }
 void PrettyPrinter::visitStackSlot(const StackSlot& slot) {
     os_ << 's' << slot.slot();
+}
+
+void PrettyPrinter::visitGlobal(const Global& global) {
+    os_ << '[' << global.name() << ']';
 }
 
 void PrettyPrinter::visitAddressExpression(const AddressExpression& addr) {
@@ -108,7 +112,7 @@ void PrettyPrinter::visitPushInstr(const PushInstr& i) {
 void PrettyPrinter::visitLeaInstr(const LeaInstr& i) {
     visitRegister(i.dest.get());
     os_ << " = lea ";
-    visitAddressExpression(i.addr);
+    visitAddress(i.addr.get());
 }
 
 void PrettyPrinter::visitPopInstr(const PopInstr& i) {
@@ -118,7 +122,7 @@ void PrettyPrinter::visitPopInstr(const PopInstr& i) {
 
 void PrettyPrinter::visitLoadInstr(const LoadInstr& i) {
     visitRegister(i.dest.get());
-    os_ << " = load ";
+    os_ << " = load " << wordTypeToString(i.itemSize()) << ' ';
     visitAddress(i.src.get());
 }
 
@@ -128,7 +132,7 @@ void PrettyPrinter::visitLoadImmInstr(const LoadImmInstr& i) {
 }
 
 void PrettyPrinter::visitStoreInstr(const StoreInstr& i) {
-    os_ << "store ";
+    os_ << "store " << wordTypeToString(i.itemSize()) << ' ';
     visitAddress(i.dest.get());
     os_ << ' ';
     visit(i.src.get());
