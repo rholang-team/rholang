@@ -5,7 +5,8 @@
 
 namespace memory_manager::alloc {
 inline size_t page_size() {
-    static size_t pagesize = [] { return (size_t)sysconf(_SC_PAGESIZE); }();
+    static size_t pagesize = [] { return (size_t)sysconf(_SC_PAGESIZE); }() *
+                             1024;
     return pagesize;
 }
 }  // namespace memory_manager::alloc
