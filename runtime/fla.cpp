@@ -18,8 +18,12 @@ void FreeListAllocator::extend(size_t required_size) {
     size_t map_head_off = align_up(sizeof(MapHeader));
     size_t pages = (required_size + map_head_off + PAGE_SIZE - 1) / PAGE_SIZE;
     size_t total = pages * PAGE_SIZE;
-    auto new_page =
-        mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    auto new_page = mmap(nullptr,
+                         total,
+                         PROT_READ | PROT_WRITE,
+                         MAP_ANONYMOUS | MAP_PRIVATE,
+                         -1,
+                         0);
     auto map = (MapHeader*)new_page;
     auto node = (Header*)((char*)new_page + map_head_off);
     map->start = node;
@@ -33,12 +37,13 @@ void FreeListAllocator::extend(size_t required_size) {
 
     node->size = total - map_head_off - sizeof(Header);
     node->allocated = false;
-    node->mark = false;
+    node->clear_mark();
     node->next = free_head;
     free_head = node;
 }
 
-FreeListAllocator::FreeListAllocator() : free_head(nullptr), map_head(nullptr) {}
+FreeListAllocator::FreeListAllocator()
+    : free_head(nullptr), map_head(nullptr) {}
 
 void* FreeListAllocator::allocate(size_t size) {
     Header* prev;
@@ -99,7 +104,7 @@ void FreeListAllocator::split_if_possible(Header* cell, size_t payload_size) {
         auto new_cell = (Header*)((char*)cell + total_size);
         new_cell->size = cell->size - total_size;
         new_cell->next = cell->next;
-        new_cell->mark = false;
+        new_cell->clear_mark();
         new_cell->allocated = false;
         cell->size = payload_size;
         cell->next = new_cell;
