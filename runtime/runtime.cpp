@@ -95,7 +95,9 @@ void Runtime::mark_worker(size_t worker_id) {
                             void* child = *(base + slot);
                             if (child) {
                                 while (!my_deque.push(child)) {
-                                    std::this_thread::yield();
+                                    std::lock_guard<std::mutex> lk(
+                                        global_queue_mutex);
+                                    global_root_queue.push_back(child);
                                 }
                             }
                         }
