@@ -33,6 +33,7 @@ void Runtime::pop_frame() {
 }
 
 void Runtime::scan() {
+    { std::lock_guard<std::mutex> lock(global_queue_mutex); }
     for (auto frame : shadow_stack) {
         auto n = frame->n_roots;
         for (size_t i = 0; i < n; ++i) {
