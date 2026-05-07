@@ -1,3 +1,5 @@
+#include "runtime/runtime.hpp"
+
 #include <gtest/gtest.h>
 #include <math.h>
 #include <sys/mman.h>
@@ -6,8 +8,6 @@
 #include <cstddef>
 #include <random>
 #include <vector>
-
-#include "runtime/runtime.hpp"
 
 namespace memory_manager {
 
@@ -118,23 +118,28 @@ TEST(DELIVERABLES__GC, SweepFuzz) {
         }
 
         std::shuffle(objs.begin(), objs.end(), gen);
+        std::vector<void*> survivors;
 
-        for (size_t j = 0; j < live_limit && j < num; ++j) {
+        for (size_t j = 0; j < live_limit && j < objs.size(); ++j) {
             if (bd(gen)) {
                 Header* h = (Header*)((char*)objs[j] - sizeof(Header));
                 h->mark = true;
+                survivors.push_back(objs[j]);
             }
         }
 
         gc.collect();
+        objs = std::move(survivors);
     }
     gc.collect();
 
     ASSERT_TRUE(gc.empty());
 }
 
-#define ASSERT_LIVE(obj) ASSERT_TRUE(((Header*)((char*)obj - sizeof(Header)))->mark);
-#define ASSERT_DEAD(obj) ASSERT_FALSE(((Header*)((char*)obj - sizeof(Header)))->mark);
+#define ASSERT_LIVE(obj) \
+    ASSERT_TRUE(((Header*)((char*)obj - sizeof(Header)))->mark);
+#define ASSERT_DEAD(obj) \
+    ASSERT_FALSE(((Header*)((char*)obj - sizeof(Header)))->mark);
 
 TEST(DELIVERABLES__GC, MarkTrees) {
     Runtime gc;
@@ -193,7 +198,8 @@ TEST(DELIVERABLES__GC, MarkGallow) {
     ((size_t*)ec_ref_map)[0] = 1;
     ((char*)ec_ref_map)[8] = 0b00000001;
 
-    ExistentialCrisis* c = (ExistentialCrisis*)gc.allocate(sizeof(ExistentialCrisis), ec_ref_map);
+    ExistentialCrisis* c =
+        (ExistentialCrisis*)gc.allocate(sizeof(ExistentialCrisis), ec_ref_map);
     c->ever_avoidant_self = c;
     ASSERT_DEAD(c);
 
