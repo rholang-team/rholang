@@ -1,20 +1,33 @@
 #pragma once
 
+#include <list>
 #include <memory>
-#include <vector>
+#include <optional>
 
 namespace lir {
 struct Instr;
+class JmpInstr;
 
 class BasicBlock {
 public:
-    using Instrs = std::vector<std::unique_ptr<Instr>>;
+    using Instrs = std::list<std::unique_ptr<Instr>>;
 
 private:
+    size_t idx_;
     Instrs instrs_;
 
 public:
+    ~BasicBlock();
+    BasicBlock(size_t idx);
+    
     void addInstr(std::unique_ptr<Instr> i);
+
+    size_t idx() const {
+        return idx_;
+    }
+
+    std::optional<const lir::JmpInstr*> findJmp() const;
+    bool hasReturn() const;
 
     Instrs::iterator begin() {
         return instrs_.begin();
@@ -36,5 +49,4 @@ public:
         return instrs_.cend();
     }
 };
-
 }  // namespace lir

@@ -6,6 +6,8 @@
 namespace lir {
 struct Value {
     virtual ~Value() = default;
+
+    virtual bool operator==(const Value& that) const = 0;
 };
 
 struct Address {
@@ -14,19 +16,21 @@ struct Address {
 
 struct Register : public Value, public Address {};
 
-struct Instr {
-    virtual ~Instr() = default;
-};
-
 class Immediate final : public Value {
     int value_;
 
-public:
     Immediate(int value) : value_{value} {}
+
+public:
+    static std::shared_ptr<Immediate> create(int value) {
+        return std::shared_ptr<Immediate>{new Immediate(value)};
+    }
 
     int value() const {
         return value_;
     }
+
+    bool operator==(const Value& that) const override;
 };
 
 class AddressExpression final : public Value, public Address {
@@ -41,28 +45,34 @@ public:
     int displacement() const {
         return displacement_;
     }
+
+    bool operator==(const Value& that) const override;
 };
 
-class StackSlot final : public Value, public Address {
-    size_t slot_;
+// class StackSlot final : public Value, public Address {
+//     size_t slot_;
 
-public:
-    StackSlot(size_t slot) : slot_{slot} {}
+// public:
+//     StackSlot(size_t slot) : slot_{slot} {}
 
-    size_t slot() const {
-        return slot_;
-    }
-};
+//     size_t slot() const {
+//         return slot_;
+//     }
 
-class Global final : public Value, public Address {
+//     bool operator==(const Value& that) const override;
+// };
+
+class GlobalRef final : public Value, public Address {
     std::string name_;
 
 public:
     template <typename T>
-    Global(T&& name) : name_{std::forward<T>(name)} {}
+    GlobalRef(T&& name) : name_{std::forward<T>(name)} {}
 
     std::string_view name() const {
         return name_;
     }
+
+    bool operator==(const Value& that) const override;
 };
 }  // namespace lir

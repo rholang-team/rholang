@@ -6,3 +6,4 @@ build/
 .scala-build/
 target/
 *.dump
+*.nasm

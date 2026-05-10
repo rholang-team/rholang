@@ -3,6 +3,7 @@
 #include <iostream>
 #include <print>
 
+#include "compiler/backend/codegen.hpp"
 #include "compiler/backend/lowerir.hpp"
 #include "compiler/frontend/ast/prettyprint.hpp"
 #include "compiler/frontend/ast2ir.hpp"
@@ -113,4 +114,7 @@ int main(int argc, char** argv) {
         lir::PrettyPrinter lirPretty{dump};
         lirPretty.visit(lirMod);
     }
+
+    std::ofstream outfile{std::string{filename} + ".nasm"};
+    backend::codegen(outfile, lirMod);
 }

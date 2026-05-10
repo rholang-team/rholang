@@ -7,7 +7,7 @@
 
 namespace lir {
 class Module {
-    using Globals = std::unordered_map<std::string, size_t>;
+    using Globals = std::unordered_map<std::string, WordType>;
     using Functions = std::vector<Function>;
 
 private:
@@ -22,8 +22,8 @@ public:
     void addFunction(Function fn);
 
     template <typename T>
-    void addGlobal(T&& name, size_t size) {
-        globals_.emplace(std::forward<T>(name), size);
+    void addGlobal(T&& name, WordType w) {
+        globals_.emplace(std::forward<T>(name), w);
     }
 
     Globals& globals() {

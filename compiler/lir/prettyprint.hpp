@@ -21,18 +21,17 @@ public:
     void visit(const BasicBlock& bb) override;
     void visitInstr(const Instr& i) override;
 
-    void visitGlobalDecl(std::string_view name, size_t size) override;
+    void visitGlobalDecl(std::string_view name, WordType w) override;
 
     void visitImmediate(const Immediate& imm) override;
 
-    void visitStackSlot(const StackSlot& slot) override;
-
-    void visitGlobal(const Global& global) override;
+    void visitGlobalRef(const GlobalRef& global) override;
 
     void visitInstr(const Instr* i) override;
 
-    void visitVirtualRegister(const VirtualRegister& i) override;
-    void visitPhysicalRegister(const PhysicalRegister& i) override;
+    void visitVirtualRegister(const VirtualRegister& r) override;
+    void visitPhysicalRegister(const PhysicalRegister& r) override;
+    void visitStackPointer(const StackPointer& sp) override;
 
     void visitAddressExpression(const AddressExpression& i) override;
 

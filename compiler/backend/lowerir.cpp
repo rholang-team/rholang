@@ -1,6 +1,7 @@
 #include "compiler/backend/lowerir.hpp"
 
 #include <algorithm>
+#include <print>
 #include <ranges>
 
 #include "compiler/ir/visitor.hpp"
@@ -103,45 +104,24 @@ class Lowerer final : public ir::Visitor<void, true> {
     std::unordered_map<const ir::Value*, std::shared_ptr<lir::VirtualRegister>>
         fakedAllocas_;
 
+    std::vector<bool> frameMap_;
+
     std::unordered_map<const ir::BasicBlock*, lir::BasicBlock*> bbMap_;
 
     lir::VirtualRegisterFactory vregFactory_;
 
     std::shared_ptr<lir::VirtualRegister> newVirtualRegister(
         const ir::Value& valuePut) {
-        auto res = newVirtualRegister();
+        auto res =
+            newVirtualRegister(utils::isa<ir::PointerType>(valuePut.type()));
         virtualRegisterMap_.emplace(&valuePut, res);
         return res;
     }
 
-    std::shared_ptr<lir::VirtualRegister> newVirtualRegister() {
+    std::shared_ptr<lir::VirtualRegister> newVirtualRegister(bool isPtr) {
+        frameMap_.push_back(isPtr);
         return vregFactory_.nextShared();
     }
-
-    // template <std::ranges::sized_range R>
-    //     requires std::same_as<typename R::value_type,
-    //                           std::shared_ptr<lir::Value>>
-    // void makeAbiCompliantCall(std::string name, const R& args) {
-    //     size_t argsCount = std::ranges::size(args);
-    //     // TODO
-    // }
-
-    // std::shared_ptr<lir::PhysicalRegister> materializeInReg(
-    //     lir::PhysicalRegister::Name reg,
-    //     const ir::Value* v) {}
-
-    // std::optional<std::shared_ptr<lir::StackSlot>> findFrameSlot(
-    //     const ir::Value& v) {
-    //     for (size_t i = 0; i < frameSlots_.size(); ++i) {
-    //         if (*frameSlots_[i] != v) {
-    //             continue;
-    //         }
-
-    //         return std::make_shared<lir::StackSlot>(i);
-    //     }
-
-    //     return std::nullopt;
-    // }
 
     std::shared_ptr<lir::Register> translateInstrArgument(const ir::Value& v) {
         if (auto it = virtualRegisterMap_.find(&v);
@@ -171,10 +151,10 @@ class Lowerer final : public ir::Visitor<void, true> {
             return reg;
         } else if (const ir::GlobalPtr* global =
                        dynamic_cast<const ir::GlobalPtr*>(&v)) {
-            auto reg = newVirtualRegister();
+            auto reg = newVirtualRegister(false);
             bb_->addInstr(std::make_unique<lir::LeaInstr>(
                 reg,
-                std::make_shared<lir::Global>(global->name())));
+                std::make_shared<lir::GlobalRef>(global->name())));
             virtualRegisterMap_.emplace(&v, reg);
             return reg;
         }
@@ -208,6 +188,7 @@ class Lowerer final : public ir::Visitor<void, true> {
                 std::make_unique<lir::MovInstr>(desiredReg,
                                                 fnArgs_[fnArg->idx()]));
         } else {
+            std::println(stderr, "match error on `{}`", typeid(v).name());
             std::unreachable();
         }
     }
@@ -225,7 +206,7 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void visitGlobalDecl(const ir::GlobalPtr& global) override {
-        res_.addGlobal(global.name(), valueSize(global.valueTy()));
+        res_.addGlobal(global.name(), valueWordType(global.valueTy()));
     }
 
     lir::BasicBlock* translateBb(const ir::BasicBlock* bb) const {
@@ -233,33 +214,28 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void addArgLoads(const ir::FunctionSignature& sig,
-                     lir::BasicBlock& prologue) {
+                     lir::BasicBlock& prologue,
+                     size_t vregCount) {
         auto params = sig.type()->params();
 
-        constexpr std::array<lir::PhysicalRegister::Name, 6> regArgs{
-            lir::PhysicalRegister::Name::Rdi,
-            lir::PhysicalRegister::Name::Rsi,
-            lir::PhysicalRegister::Name::Rdx,
-            lir::PhysicalRegister::Name::Rcx,
-            lir::PhysicalRegister::Name::R8,
-            lir::PhysicalRegister::Name::R9};
+        const auto& argumentRegisters = lir::Function::argumentRegisters;
 
         for (size_t i = 0; i < params.size(); ++i) {
-            if (i < regArgs.size()) {
+            if (i < argumentRegisters.size()) {
                 prologue.addInstr(std::make_unique<lir::MovInstr>(
                     fnArgs_[i],
-                    std::make_shared<lir::PhysicalRegister>(regArgs[i])));
+                    lir::PhysicalRegister::create(argumentRegisters[i])));
                 continue;
             }
 
-            int disp = 8 * (i - regArgs.size() + 1);
+            int disp = lir::wordTypeToSize(lir::WordType::Qword) *
+                       (vregCount + i - argumentRegisters.size() + 1);
 
             prologue.addInstr(std::make_unique<lir::LoadInstr>(
                 valueWordType(params[i]),
                 fnArgs_[i],
                 std::make_shared<lir::AddressExpression>(
-                    std::make_shared<lir::PhysicalRegister>(
-                        lir::PhysicalRegister::Name::Rsp),
+                    lir::StackPointer::create(),
                     disp)));
         }
     }
@@ -270,19 +246,25 @@ class Lowerer final : public ir::Visitor<void, true> {
         bbMap_.clear();
         fnArgs_.clear();
         vregFactory_.reset();
+        frameMap_.clear();
 
-        fn_ = lir::Function(fn.signature()->name());
+        fn_ = lir::Function(fn.signature()->name(),
+                            fn.signature()->type()->params().size(),
+                            !fn.signature()->type()->rettype()->isVoid());
 
-        auto prologue = std::make_unique<lir::BasicBlock>();
+        size_t bbIdx = 0;
+
+        auto prologueUnique = std::make_unique<lir::BasicBlock>(bbIdx++);
+        lir::BasicBlock* prologue = prologueUnique.get();
         for (size_t i = 0; i < fn.signature()->type()->params().size(); ++i) {
-            fnArgs_.push_back(newVirtualRegister());
+            fnArgs_.push_back(newVirtualRegister(utils::isa<ir::PointerType>(
+                fn.signature()->type()->params()[i])));
         }
-        addArgLoads(*fn.signature(), *prologue);
-        // TODO: call stack change
-        fn_->addBb(std::move(prologue));
+        // TODO: shadow stack update on frame entry
+        fn_->addBb(std::move(prologueUnique));
 
         for (const auto& bb : fn) {
-            auto lBb = std::make_unique<lir::BasicBlock>();
+            auto lBb = std::make_unique<lir::BasicBlock>(bbIdx++);
             bbMap_.emplace(bb.get(), lBb.get());
             fn_->addBb(std::move(lBb));
         }
@@ -291,26 +273,75 @@ class Lowerer final : public ir::Visitor<void, true> {
             bb_ = translateBb(bb.get());
             visit(*bb);
         }
+
+        auto vregCount = vregFactory_.created();
+        fn_->setFrameMap(frameMap_);
+        prologue->addInstr(std::make_unique<lir::SubInstr>(
+            lir::StackPointer::create(),
+            lir::Immediate::create(vregCount *
+                                   lir::wordTypeToSize(lir::WordType::Qword))));
+        addArgLoads(*fn.signature(), *prologue, vregCount);
     }
 
     void visitAllocaInstr(const ir::AllocaInstr& i) override {
-        fakedAllocas_.emplace(&i, newVirtualRegister());
+        fakedAllocas_.emplace(
+            &i,
+            newVirtualRegister(utils::isa<ir::PointerType>(i.itemType())));
+    }
+    template <std::ranges::range R>
+        requires std::convertible_to<
+            std::ranges::range_value_t<std::remove_cvref_t<R>>,
+            std::shared_ptr<lir::Register>>
+    void makeAbiCompliantCall(
+        lir::BasicBlock& bb,
+        std::string_view callee,
+        R&& args,
+        std::optional<std::shared_ptr<lir::Register>> ret = std::nullopt) {
+        const auto& argumentRegisters = lir::Function::argumentRegisters;
+
+        for (size_t i = 0; i < args.size(); ++i) {
+            if (i < argumentRegisters.size()) {
+                bb.addInstr(std::make_unique<lir::MovInstr>(
+                    lir::PhysicalRegister::create(argumentRegisters[i]),
+                    args[i]));
+                continue;
+            }
+
+            auto arg = args[args.size() - (i - argumentRegisters.size()) - 1];
+            bb.addInstr(std::make_unique<lir::PushInstr>(arg));
+        }
+
+        bb_->addInstr(std::make_unique<lir::CallInstr>(callee));
+
+        if (args.size() > argumentRegisters.size()) {
+            bb_->addInstr(std::make_unique<lir::AddInstr>(
+                lir::StackPointer::create(),
+                lir::Immediate::create(
+                    lir::wordTypeToSize(lir::WordType::Qword) *
+                    (args.size() - argumentRegisters.size()))));
+        }
+
+        if (ret.has_value()) {
+            bb_->addInstr(std::make_unique<lir::MovInstr>(
+                *ret,
+                lir::PhysicalRegister::create(
+                    lir::PhysicalRegister::Name::Rax)));
+        }
     }
 
     void visitNewInstr(const ir::NewInstr& i) override {
         // TODO: add object map pointer to args
         // probably in form of a global ref
 
-        auto sizeReg = newVirtualRegister();
+        auto sizeReg = newVirtualRegister(false);
         bb_->addInstr(
             std::make_unique<lir::LoadImmInstr>(sizeReg,
                                                 valueSize(i.itemType())));
         std::vector<std::shared_ptr<lir::Register>> args{sizeReg};
 
         auto dest = newVirtualRegister(i);
-        bb_->addInstr(std::make_unique<lir::CallInstr>("runtime_alloc",
-                                                       dest,
-                                                       std::move(args)));
+
+        makeAbiCompliantCall(*bb_, "runtime_alloc", std::move(args), dest);
     }
 
     void visitCallInstr(const ir::CallInstr& i) override {
@@ -319,12 +350,13 @@ class Lowerer final : public ir::Visitor<void, true> {
             args.emplace_back(translateInstrArgument(*arg));
         }
 
-        auto dest = i.type()->isVoid() ? std::nullopt
-                                       : std::optional{newVirtualRegister(i)};
-
-        bb_->addInstr(std::make_unique<lir::CallInstr>(i.callee()->name(),
-                                                       std::move(dest),
-                                                       std::move(args)));
+        bool returnsValue = !i.type()->isVoid();
+        makeAbiCompliantCall(*bb_,
+                             i.callee()->name(),
+                             std::move(args),
+                             (returnsValue)
+                                 ? std::optional{newVirtualRegister(i)}
+                                 : std::nullopt);
     }
 
     void visitNotInstr(const ir::NotInstr& i) override {
@@ -366,28 +398,46 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void visitAddInstr(const ir::AddInstr& i) override {
+        auto lhs = translateInstrArgument(*i.lhs());
+
+        auto lhsDest = newVirtualRegister(i);
+        bb_->addInstr(std::make_unique<lir::MovInstr>(lhsDest, lhs));
+
         bb_->addInstr(
-            std::make_unique<lir::AddInstr>(newVirtualRegister(i),
-                                            translateInstrArgument(*i.lhs()),
+            std::make_unique<lir::AddInstr>(lhsDest,
                                             translateInstrArgument(*i.rhs())));
     }
     void visitSubInstr(const ir::SubInstr& i) override {
+        auto lhs = translateInstrArgument(*i.lhs());
+
+        auto lhsDest = newVirtualRegister(i);
+        bb_->addInstr(std::make_unique<lir::MovInstr>(lhsDest, lhs));
+
         bb_->addInstr(
-            std::make_unique<lir::SubInstr>(newVirtualRegister(i),
-                                            translateInstrArgument(*i.lhs()),
+            std::make_unique<lir::SubInstr>(lhsDest,
                                             translateInstrArgument(*i.rhs())));
     }
     void visitMulInstr(const ir::MulInstr& i) override {
+        auto lhs = translateInstrArgument(*i.lhs());
+
+        auto lhsDest = newVirtualRegister(i);
+        bb_->addInstr(std::make_unique<lir::MovInstr>(lhsDest, lhs));
+
         bb_->addInstr(
-            std::make_unique<lir::MulInstr>(newVirtualRegister(i),
-                                            translateInstrArgument(*i.lhs()),
+            std::make_unique<lir::MulInstr>(lhsDest,
                                             translateInstrArgument(*i.rhs())));
     }
     void visitDivInstr(const ir::DivInstr& i) override {
+        // TODO: `cdq` in `idiv` emission
+
+        bb_->addInstr(std::make_unique<lir::MovInstr>(
+            lir::PhysicalRegister::create(lir::PhysicalRegister::Name::Rax),
+            translateInstrArgument(*i.lhs())));
         bb_->addInstr(
-            std::make_unique<lir::DivInstr>(newVirtualRegister(i),
-                                            translateInstrArgument(*i.lhs()),
-                                            translateInstrArgument(*i.rhs())));
+            std::make_unique<lir::DivInstr>(translateInstrArgument(*i.rhs())));
+        bb_->addInstr(std::make_unique<lir::MovInstr>(
+            newVirtualRegister(i),
+            lir::PhysicalRegister::create(lir::PhysicalRegister::Name::Rax)));
     }
 
     void visitCmpInstr(const ir::CmpInstr& i) override {
@@ -414,7 +464,8 @@ class Lowerer final : public ir::Visitor<void, true> {
         }
 
         bb_->addInstr(
-            std::make_unique<lir::CmpInstr>(newVirtualRegister(i),
+            std::make_unique<lir::CmpInstr>(valueWordType(i.lhs()->type()),
+                                            newVirtualRegister(i),
                                             cond,
                                             translateInstrArgument(*i.lhs()),
                                             translateInstrArgument(*i.rhs())));
@@ -468,10 +519,11 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void visitRetInstr(const ir::RetInstr& i) override {
+        // TODO: shadow stack update on frame exit
+
         if (i.value().has_value()) {
             bb_->addInstr(std::make_unique<lir::MovInstr>(
-                std::make_shared<lir::PhysicalRegister>(
-                    lir::PhysicalRegister::Name::Rax),
+                lir::PhysicalRegister::create(lir::PhysicalRegister::Name::Rax),
                 translateInstrArgument(**i.value())));
         }
 

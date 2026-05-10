@@ -19,8 +19,8 @@ void PrettyPrinter::visit(const Module& mod) {
     }
 }
 
-void PrettyPrinter::visitGlobalDecl(std::string_view name, size_t size) {
-    os_ << "global " << name << " size " << size << '\n';
+void PrettyPrinter::visitGlobalDecl(std::string_view name, WordType w) {
+    os_ << "global " << wordTypeToString(w) << ' ' << name << '\n';
 }
 
 void PrettyPrinter::visit(const Function& fn) {
@@ -58,17 +58,21 @@ void PrettyPrinter::visitVirtualRegister(const VirtualRegister& i) {
 }
 
 void PrettyPrinter::visitPhysicalRegister(const PhysicalRegister& i) {
-    os_ << i.toString();
+    os_ << i.toString(WordType::Qword);
+}
+
+void PrettyPrinter::visitStackPointer(const StackPointer&) {
+    os_ << "sp";
 }
 
 void PrettyPrinter::visitImmediate(const Immediate& imm) {
     os_ << imm.value();
 }
-void PrettyPrinter::visitStackSlot(const StackSlot& slot) {
-    os_ << 's' << slot.slot();
-}
+// void PrettyPrinter::visitStackSlot(const StackSlot& slot) {
+//     os_ << 's' << slot.slot();
+// }
 
-void PrettyPrinter::visitGlobal(const Global& global) {
+void PrettyPrinter::visitGlobalRef(const GlobalRef& global) {
     os_ << '[' << global.name() << ']';
 }
 
@@ -90,22 +94,17 @@ void PrettyPrinter::visitMovInstr(const MovInstr& i) {
 }
 
 void PrettyPrinter::visitCallInstr(const CallInstr& i) {
-    if (i.dest.has_value()) {
-        visitRegister(i.dest->get());
-        os_ << " = ";
-    }
-
     os_ << "call " << i.callee();
 
-    for (auto&& arg : i.args) {
-        os_ << ' ';
-        visit(arg.get());
-    }
+    // for (auto&& arg : i.args) {
+    //     os_ << ' ';
+    //     visit(arg.get());
+    // }
 }
 
 void PrettyPrinter::visitPushInstr(const PushInstr& i) {
     os_ << "push ";
-    visitRegister(i.reg().get());
+    visitRegister(i.reg.get());
 }
 
 void PrettyPrinter::visitLeaInstr(const LeaInstr& i) {
@@ -115,7 +114,7 @@ void PrettyPrinter::visitLeaInstr(const LeaInstr& i) {
 }
 
 void PrettyPrinter::visitPopInstr(const PopInstr& i) {
-    visitRegister(i.reg().get());
+    visitRegister(i.reg.get());
     os_ << " = pop";
 }
 
@@ -139,7 +138,7 @@ void PrettyPrinter::visitStoreInstr(const StoreInstr& i) {
 
 void PrettyPrinter::visitCmpInstr(const CmpInstr& i) {
     visitRegister(i.dest.get());
-    os_ << " = cmp ";
+    os_ << " = cmp " << wordTypeToString(i.itemSize) << ' ';
     switch (i.cond) {
         case CmpInstr::Cond::Eq:
             os_ << "eq ";
@@ -166,31 +165,25 @@ void PrettyPrinter::visitCmpInstr(const CmpInstr& i) {
 }
 
 void PrettyPrinter::visitAddInstr(const AddInstr& i) {
-    visitRegister(i.dest.get());
-    os_ << " = add ";
-    visit(i.lhs.get());
+    os_ << "add ";
+    visit(i.lhsDest.get());
     os_ << ' ';
     visit(i.rhs.get());
 }
 void PrettyPrinter::visitSubInstr(const SubInstr& i) {
-    visitRegister(i.dest.get());
-    os_ << " = sub ";
-    visit(i.lhs.get());
+    os_ << "sub ";
+    visit(i.lhsDest.get());
     os_ << ' ';
     visit(i.rhs.get());
 }
 void PrettyPrinter::visitMulInstr(const MulInstr& i) {
-    visitRegister(i.dest.get());
-    os_ << " = mul ";
-    visit(i.lhs.get());
+    os_ << "mul ";
+    visit(i.lhsDest.get());
     os_ << ' ';
     visit(i.rhs.get());
 }
 void PrettyPrinter::visitDivInstr(const DivInstr& i) {
-    visitRegister(i.dest.get());
-    os_ << " = div ";
-    visit(i.lhs.get());
-    os_ << ' ';
+    os_ << "div ";
     visit(i.rhs.get());
 }
 
