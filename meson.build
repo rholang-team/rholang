@@ -69,12 +69,12 @@ lir_src = [
     'compiler/lir/module.cpp',
     'compiler/lir/prettyprint.cpp',
     'compiler/lir/register.cpp',
+    'compiler/lir/value.cpp',
 ]
 
 backend_src = [
     'compiler/backend/codegen.cpp',
     'compiler/backend/lowerir.cpp',
-    'compiler/backend/interferencegraph.cpp',
 ]
 
 compiler_src = frontend_src + ir_src + lir_src + backend_src

@@ -3,17 +3,13 @@
 #include <optional>
 
 #include "compiler/lir/bb.hpp"
+#include "compiler/lir/register.hpp"
 #include "compiler/lir/value.hpp"
 
 namespace lir {
-enum class WordType : uint8_t {
-    Byte,
-    Word,
-    Dword,
-    Qword,
+struct Instr {
+    virtual ~Instr() = default;
 };
-
-std::string_view wordTypeToString(WordType w);
 
 struct MovInstr final : public Instr {
     std::shared_ptr<Register> dest;
@@ -23,22 +19,16 @@ struct MovInstr final : public Instr {
         : dest{dest}, src{src} {}
 };
 
-class PushInstr final : public Instr {
-    std::shared_ptr<Register> reg_;
+struct PushInstr final : public Instr {
+    std::shared_ptr<Register> reg;
 
-public:
-    std::shared_ptr<Register> reg() const {
-        return reg_;
-    }
+    PushInstr(std::shared_ptr<Register> reg) : reg{reg} {}
 };
 
-class PopInstr final : public Instr {
-    std::shared_ptr<Register> reg_;
+struct PopInstr final : public Instr {
+    std::shared_ptr<Register> reg;
 
-public:
-    std::shared_ptr<Register> reg() const {
-        return reg_;
-    }
+    PopInstr(std::shared_ptr<Register> reg) : reg{reg} {}
 };
 
 struct LeaInstr final : public Instr {
@@ -120,16 +110,18 @@ struct CmpInstr final : public Instr {
         Ge,
     };
 
+    WordType itemSize;
     std::shared_ptr<Register> dest;
     Cond cond;
     std::shared_ptr<Register> lhs;
     std::shared_ptr<Register> rhs;
 
-    CmpInstr(std::shared_ptr<Register> dest,
+    CmpInstr(WordType itemSize,
+             std::shared_ptr<Register> dest,
              Cond cond,
              std::shared_ptr<Register> lhs,
              std::shared_ptr<Register> rhs)
-        : dest{dest}, cond{cond}, lhs{lhs}, rhs{rhs} {}
+        : itemSize{itemSize}, dest{dest}, cond{cond}, lhs{lhs}, rhs{rhs} {}
 };
 
 class JmpInstr final : public Instr {
@@ -162,44 +154,54 @@ struct RetInstr final : public Instr {};
 
 class CallInstr final : public Instr {
     std::string callee_;
+    // bool returnsValue_;
 
 public:
-    std::optional<std::shared_ptr<Register>> dest;
-    std::vector<std::shared_ptr<Register>> args;
+    // std::vector<std::shared_ptr<Register>> args;
 
     template <typename T>
-    CallInstr(T&& callee, std::vector<std::shared_ptr<Register>> args)
-        : callee_{std::forward<T>(callee)}, args{std::move(args)} {}
+    CallInstr(T&& callee
+              // , std::vector<std::shared_ptr<Register>> args = {}
+              // , bool returnsValue
+              )
+        : callee_{std::forward<T>(callee)}  // , returnsValue_{returnsValue}
+                                            // , args{std::move(args)}
+    {}
 
-    template <typename T>
-    CallInstr(T&& callee,
-              std::optional<std::shared_ptr<Register>> dest,
-              std::vector<std::shared_ptr<Register>> args)
-        : callee_{std::forward<T>(callee)},
-          dest{std::move(dest)},
-          args{std::move(args)} {}
+    // bool returnsValue() const {
+    //     return returnsValue_;
+    // }
 
     std::string_view callee() const {
         return callee_;
     }
 };
 
-#define BINARY_INSTR(NAME)                      \
-    struct NAME final : public Instr {          \
-        std::shared_ptr<Register> dest;         \
-        std::shared_ptr<Register> lhs;          \
-        std::shared_ptr<Register> rhs;          \
-                                                \
-        NAME(std::shared_ptr<Register> dest,    \
-             std::shared_ptr<Register> lhs,     \
-             std::shared_ptr<Register> rhs)     \
-            : dest{dest}, lhs{lhs}, rhs{rhs} {} \
+#define BINARY_INSTR(NAME)                                                  \
+    struct NAME final : public Instr {                                      \
+        std::shared_ptr<Register> lhsDest;                                  \
+        std::shared_ptr<Value> rhs;                                         \
+                                                                            \
+        NAME(std::shared_ptr<Register> lhsDest, std::shared_ptr<Value> rhs) \
+            : lhsDest{lhsDest}, rhs{rhs} {}                                 \
     };
 
 BINARY_INSTR(AddInstr);
 BINARY_INSTR(SubInstr);
-BINARY_INSTR(MulInstr);
-BINARY_INSTR(DivInstr);
+
+struct MulInstr final : public Instr {
+    std::shared_ptr<Register> lhsDest;
+    std::shared_ptr<Register> rhs;
+
+    MulInstr(std::shared_ptr<Register> lhsDest, std::shared_ptr<Register> rhs)
+        : lhsDest{lhsDest}, rhs{rhs} {}
+};
+
+struct DivInstr final : public Instr {
+    std::shared_ptr<Register> rhs;
+
+    DivInstr(std::shared_ptr<Register> rhs) : rhs{rhs} {}
+};
 
 #undef BINARY_INSTR
 }  // namespace lir

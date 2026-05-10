@@ -28,7 +28,7 @@ struct Visitor {
     }
 
     virtual void visitGlobalDecl([[maybe_unused]] std::string_view name,
-                                 [[maybe_unused]] size_t size) {}
+                                 [[maybe_unused]] WordType w) {}
 
     virtual void visit(ArgRef<Function> fn) {
         for (auto&& bb : fn) {
@@ -49,12 +49,9 @@ struct Visitor {
         } else if (ArgPtr<Register> reg =
                        dynamic_cast<ArgPtr<Register>>(addr)) {
             return visitRegister(reg);
-        } else if (ArgPtr<StackSlot> slot =
-                       dynamic_cast<ArgPtr<StackSlot>>(addr)) {
-            return visitStackSlot(*slot);
-        } else if (ArgPtr<Global> global =
-                       dynamic_cast<ArgPtr<Global>>(addr)) {
-            return visitGlobal(*global);
+        } else if (ArgPtr<GlobalRef> global =
+                       dynamic_cast<ArgPtr<GlobalRef>>(addr)) {
+            return visitGlobalRef(*global);
         }
 
         std::unreachable();
@@ -73,11 +70,11 @@ struct Visitor {
             return visitImmediate(*imm);
         else if (ArgPtr<Address> addr = dynamic_cast<ArgPtr<Address>>(v))
             return visitAddress(addr);
-        else if (ArgPtr<StackSlot> stackSlot =
-                     dynamic_cast<ArgPtr<StackSlot>>(v))
-            return visitStackSlot(*stackSlot);
-        else if (ArgPtr<Global> global = dynamic_cast<ArgPtr<Global>>(v))
-            return visitGlobal(*global);
+        // else if (ArgPtr<StackSlot> stackSlot =
+        //              dynamic_cast<ArgPtr<StackSlot>>(v))
+        //     return visitStackSlot(*stackSlot);
+        else if (ArgPtr<GlobalRef> global = dynamic_cast<ArgPtr<GlobalRef>>(v))
+            return visitGlobalRef(*global);
         else if (ArgPtr<Instr> instr = dynamic_cast<ArgPtr<Instr>>(v))
             return visitInstr(instr);
 
@@ -91,6 +88,9 @@ struct Visitor {
         else if (ArgPtr<PhysicalRegister> preg =
                      dynamic_cast<ArgPtr<PhysicalRegister>>(r))
             return visitPhysicalRegister(*preg);
+        else if (ArgPtr<StackPointer> sp =
+                     dynamic_cast<ArgPtr<StackPointer>>(r))
+            return visitStackPointer(*sp);
 
         std::unreachable();
     }
@@ -152,11 +152,11 @@ struct Visitor {
     }
 
     MKVISITOR(Immediate)
-    MKVISITOR(StackSlot)
-    MKVISITOR(Global)
+    MKVISITOR(GlobalRef)
 
     MKVISITOR(VirtualRegister)
     MKVISITOR(PhysicalRegister)
+    MKVISITOR(StackPointer)
 
     MKVISITOR(AddressExpression)
 
