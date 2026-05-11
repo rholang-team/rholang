@@ -164,13 +164,29 @@ void Runtime::mark_worker(size_t worker_id) {
 }
 
 void Runtime::sweep() {
-    allocator.foreach_allocated([this](Header* cell) {
+    auto visitor = [this](Header* cell) {
         if (!cell->mark) {
             allocator.deallocate((char*)cell + sizeof(Header));
         } else {
             cell->mark.store(false, std::memory_order_relaxed);
         }
-    });
+    };
+
+    std::vector<std::thread> threads;
+    threads.reserve(alloc::BIN_LIMIT + 1);
+
+    for (size_t i = 0; i < alloc::BIN_LIMIT; ++i) {
+        threads.emplace_back([this, i, visitor]() {
+            allocator.bins[i].foreach_allocated(visitor);
+        });
+    }
+
+    threads.emplace_back(
+        [this, visitor]() { allocator.large_bin.foreach_allocated(visitor); });
+
+    for (auto& t : threads) {
+        t.join();
+    }
 }
 
 bool Runtime::empty() {
