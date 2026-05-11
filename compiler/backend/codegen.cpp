@@ -11,6 +11,10 @@
 #include "utils/match.hpp"
 
 namespace backend {
+std::string structMapName(std::string_view s) {
+    return std::format("_Rstructmap{}", s);
+}
+
 namespace {
 class Generator : private lir::Visitor<void, true> {
 public:
@@ -23,9 +27,6 @@ private:
     lir::WordType wordType_;
 
     const lir::Function* curFn_;
-    // bool returnsValue_;
-    // size_t virtualsCount_;
-    // std::string frameMapName_;
 
     size_t physRegIdx_ = 0;
     std::unordered_map<lir::VirtualRegister::Id, lir::PhysicalRegister::Name>
@@ -521,6 +522,25 @@ public:
             os_ << fn.frameMapName() << ":\n";
             os_ << "dq " << pointers << '\n';
             os_ << "times " << pointers << " dq 0\n";
+            os_ << '\n';
+        }
+
+        for (auto& [name, m] : mod.structMaps()) {
+            size_t nBytes =
+                m.size() + (m.size() % 8 == 0 ? 0 : 8 - m.size() % 8);
+
+            os_ << structMapName(name) << ":\n";
+            os_ << "dq " << nBytes << '\n';
+            for (size_t i = 0; i < m.size(); i += 8) {
+                uint8_t byte = 0;
+                for (size_t j = 0; j < 8; ++j) {
+                    if (i + j < m.size() && m[i + j]) {
+                        byte |= 1 << j;
+                    }
+                }
+                os_ << "db 0x" << std::hex << static_cast<unsigned>(byte)
+                    << '\n';
+            }
             os_ << '\n';
         }
 

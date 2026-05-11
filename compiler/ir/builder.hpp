@@ -21,6 +21,11 @@ public:
 
     Module build();
 
+    template<typename T>
+    void addStructMap(T&& name, std::vector<bool> m) {
+        module_.addStructMap(std::forward<T>(name), std::move(m));
+    }
+
     VoidType* voidTy();
     BoolType* boolTy();
     IntType* intTy();
@@ -58,7 +63,7 @@ public:
     std::shared_ptr<NullPtr> nullPtr();
 
     std::shared_ptr<AllocaInstr> allocaInstr(Type* itemType);
-    std::shared_ptr<NewInstr> newInstr(Type* itemType);
+    std::shared_ptr<NewInstr> newInstr(std::string structName, StructType* itemType);
     std::shared_ptr<CallInstr> callInstr(
         FunctionSignature* callee,
         std::vector<std::shared_ptr<Value>> args);

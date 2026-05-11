@@ -4,11 +4,13 @@
 #include <print>
 #include <ranges>
 
+#include "compiler/backend/codegen.hpp"
 #include "compiler/ir/visitor.hpp"
 #include "compiler/lir/instr.hpp"
 #include "compiler/lir/register.hpp"
 #include "compiler/lir/value.hpp"
 
+namespace backend {
 namespace {
 size_t valueAlignment(const ir::Type* ty) {
     assert(!utils::isa<ir::VoidType>(ty));
@@ -346,14 +348,15 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void visitNewInstr(const ir::NewInstr& i) override {
-        // TODO: add object map pointer to args
-        // probably in form of a global ref
-
         auto sizeReg = newVirtualRegister(false);
+        auto mapReg = newVirtualRegister(false);
         bb_->addInstr(
             std::make_unique<lir::LoadImmInstr>(sizeReg,
                                                 valueSize(i.itemType())));
-        std::vector<std::shared_ptr<lir::Register>> args{sizeReg};
+        bb_->addInstr(std::make_unique<lir::LeaInstr>(
+            mapReg,
+            std::make_shared<lir::GlobalRef>(structMapName(i.structName()))));
+        std::vector<std::shared_ptr<lir::Register>> args{sizeReg, mapReg};
 
         auto dest = newVirtualRegister(i);
 
@@ -554,12 +557,12 @@ public:
 
     lir::Module run(const ir::Module& module) {
         visit(module);
+        res_.putStructMaps(module.structMaps());
         return std::move(res_);
     }
 };
 }  // namespace
 
-namespace backend {
 lir::Module lowerIr(const ir::Module& mod) {
     return Lowerer{}.run(mod);
 }

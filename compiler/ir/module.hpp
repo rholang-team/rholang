@@ -15,6 +15,7 @@ public:
         std::unordered_map<std::string, std::unique_ptr<Function>>;
 
 private:
+    std::unordered_map<std::string, std::vector<bool>> structMaps_;
     Signatures signatures_;
     Globals globals_;
     Functions functions_;
@@ -24,6 +25,15 @@ public:
     Function* addFunction(std::unique_ptr<Function> fn);
     std::shared_ptr<GlobalPtr> addGlobal(std::string name,
                                          std::shared_ptr<GlobalPtr> global);
+
+    std::unordered_map<std::string, std::vector<bool>> structMaps() const {
+        return structMaps_;
+    }
+
+    template <typename T>
+    void addStructMap(T&& n, std::vector<bool> m) {
+        structMaps_.emplace(std::forward<T>(n), std::move(m));
+    }
 
     Signatures& signatures() & {
         return signatures_;

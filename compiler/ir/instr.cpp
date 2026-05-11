@@ -6,9 +6,11 @@ std::shared_ptr<AllocaInstr> AllocaInstr::create(Context& ctx, Type* itemType) {
         new AllocaInstr{ctx.getPointerTy(), itemType}};
 }
 
-std::shared_ptr<NewInstr> NewInstr::create(Context& ctx, Type* itemType) {
+std::shared_ptr<NewInstr> NewInstr::create(Context& ctx,
+                                           std::string structName,
+                                           StructType* itemType) {
     return std::shared_ptr<NewInstr>{
-        new NewInstr{ctx.getPointerTy(), itemType}};
+        new NewInstr{ctx.getPointerTy(), std::move(structName), itemType}};
 }
 
 std::shared_ptr<CallInstr> CallInstr::create(
