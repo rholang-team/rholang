@@ -3,8 +3,6 @@
 #include <condition_variable>
 #include <cstddef>
 #include <deque>
-#include <thread>
-#include <vector>
 
 #include "main_alloc.hpp"
 #include "work_stealing_queue.hpp"
