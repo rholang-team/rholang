@@ -9,7 +9,7 @@
 
 namespace memory_manager::alloc {
 
-class Bin {
+class alignas(64) Bin {
     size_t entry_size;
     size_t class_size;
     Header* free_head;

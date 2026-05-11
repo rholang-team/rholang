@@ -9,6 +9,8 @@
 
 namespace memory_manager::alloc {
 
+size_t page_size = sysconf(_SC_PAGESIZE) * 1024;
+
 MainAllocator::MainAllocator() {
     auto cur_size = MIN_ALLOCATION_SIZE;
     for (size_t i = 0; i < BIN_LIMIT; i++) {

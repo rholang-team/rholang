@@ -21,11 +21,13 @@ void Bin::init_mapping(void* page) {
 
     Header* cur;
 
-    for (size_t i = 0; i < (PAGE_SIZE - align_up(sizeof(MapHeader))) / entry_size - 1; i++) {
+    for (size_t i = 0;
+         i < (PAGE_SIZE - align_up(sizeof(MapHeader))) / entry_size - 1;
+         i++) {
         cur = (Header*)((char*)hdr->start + i * entry_size);
         auto next = (Header*)((char*)cur + entry_size);
         cur->next = next;
-        cur->mark = false;
+        cur->clear_mark();
         cur->allocated = false;
     }
 
@@ -34,12 +36,17 @@ void Bin::init_mapping(void* page) {
 }
 
 void Bin::extend() {
-    auto new_page =
-        mmap(nullptr, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    auto new_page = mmap(nullptr,
+                         PAGE_SIZE,
+                         PROT_READ | PROT_WRITE,
+                         MAP_PRIVATE | MAP_ANONYMOUS,
+                         -1,
+                         0);
     init_mapping(new_page);
 }
 
-Bin::Bin(size_t class_sz) : class_size(class_sz), free_head(nullptr), map_head(nullptr) {
+Bin::Bin(size_t class_sz)
+    : class_size(class_sz), free_head(nullptr), map_head(nullptr) {
     entry_size = align_up(class_size + sizeof(Header));
 }
 
