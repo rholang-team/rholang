@@ -7,10 +7,12 @@
 
 namespace lir {
 class Module {
+public:
     using Globals = std::unordered_map<std::string, WordType>;
     using Functions = std::vector<Function>;
 
 private:
+    std::unordered_map<std::string, std::vector<bool>> structMaps_;
     Globals globals_;
     Functions functions_;
 
@@ -18,6 +20,21 @@ public:
     ~Module();
     Module();
     Module(Module&&);
+
+    const std::unordered_map<std::string, std::vector<bool>>& structMaps()
+        const {
+        return structMaps_;
+    }
+
+    template <typename T>
+    void addStructMap(T&& n, std::vector<bool> m) {
+        structMaps_.emplace(n, std::move(m));
+    }
+
+    template <typename T>
+    void putStructMaps(T&& m) {
+        structMaps_ = std::forward<T>(m);
+    }
 
     void addFunction(Function fn);
 

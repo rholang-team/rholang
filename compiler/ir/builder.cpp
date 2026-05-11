@@ -135,8 +135,9 @@ std::shared_ptr<AllocaInstr> Builder::allocaInstr(Type* itemType) {
     return AllocaInstr::create(ctx_, itemType);
 }
 
-std::shared_ptr<NewInstr> Builder::newInstr(Type* itemType) {
-    return NewInstr::create(ctx_, itemType);
+std::shared_ptr<NewInstr> Builder::newInstr(std::string structName,
+                                            StructType* itemType) {
+    return NewInstr::create(ctx_, std::move(structName), itemType);
 }
 
 std::shared_ptr<CallInstr> Builder::callInstr(

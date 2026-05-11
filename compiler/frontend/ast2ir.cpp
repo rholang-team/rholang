@@ -31,7 +31,7 @@ class Translator : private ast::DeclVisitor,
         return sty;
     }
 
-    ir::StructType* translateStructType(Type* ty) {
+    std::pair<ir::StructType*, std::string> translateStructType(Type* ty) {
         StructType* sty = derefStructType(ty);
 
         std::vector<ir::Type*> translatedFields;
@@ -40,7 +40,7 @@ class Translator : private ast::DeclVisitor,
             translatedFields.emplace_back(translateType(f.type.get()));
         }
 
-        return builder_.structTy(translatedFields);
+        return {builder_.structTy(translatedFields), sty->name};
     }
 
     ir::Type* translateType(const Type* ty) {
@@ -111,7 +111,8 @@ class Translator : private ast::DeclVisitor,
             else {
                 auto [ptr, ptrTy] =
                     namedValues_.lookup(vre->name.value).value().get();
-                return {builder_.addToCurBb(builder_.loadInstr(ptrTy, ptr)), ptrTy};
+                return {builder_.addToCurBb(builder_.loadInstr(ptrTy, ptr)),
+                        ptrTy};
             }
         } else if (ast::MemberRefExpr* mre =
                        dynamic_cast<ast::MemberRefExpr*>(e)) {
@@ -125,7 +126,8 @@ class Translator : private ast::DeclVisitor,
 
             assert(utils::isa<ir::PointerType>(target->type()));
 
-            ir::StructType* sty = translateStructType(mre->target->type.get());
+            ir::StructType* sty =
+                translateStructType(mre->target->type.get()).first;
             unsigned idx =
                 findFieldIdx(
                     *unit_.structs.at(
@@ -464,8 +466,8 @@ class Translator : private ast::DeclVisitor,
     }
 
     std::shared_ptr<ir::Value> visit(ast::StructInitExpr& expr) {
-        ir::StructType* sty = translateStructType(expr.type.get());
-        auto res = builder_.newInstr(sty);
+        auto [sty, structName] = translateStructType(expr.type.get());
+        auto res = builder_.newInstr(structName, sty);
 
         builder_.addToCurBb(res);
 
@@ -489,6 +491,14 @@ public:
         : unit_{tu}, builder_{ctx} {}
 
     ir::Module run() {
+        for (auto& [name, s] : unit_.structs) {
+            std::vector<bool> m;
+            for (auto& field : s->fields) {
+                m.push_back(utils::isa<frontend::StructType>(field.type.get()));
+            }
+            builder_.addStructMap(name, std::move(m));
+        }
+
         for (auto& [_, fn] : unit_.functions) {
             builder_.addFunctionSignature(fn->name.value,
                                           translateType(fn->type()));

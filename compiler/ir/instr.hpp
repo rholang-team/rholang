@@ -38,15 +38,24 @@ public:
 };
 
 class NewInstr final : public Instr {
-    Type* itemType_;
+    std::string structName_;
+    StructType* itemType_;
 
-    NewInstr(PointerType* resType, Type* itemType)
-        : Instr{resType}, itemType_{itemType} {}
+    NewInstr(PointerType* resType, std::string structName, StructType* itemType)
+        : Instr{resType},
+          structName_{std::move(structName)},
+          itemType_{itemType} {}
 
 public:
-    static std::shared_ptr<NewInstr> create(Context& ctx, Type* itemType);
+    static std::shared_ptr<NewInstr> create(Context& ctx,
+                                            std::string structName,
+                                            StructType* itemType);
 
-    Type* itemType() const {
+    std::string_view structName() const {
+        return structName_;
+    }
+
+    StructType* itemType() const {
         return itemType_;
     }
 
