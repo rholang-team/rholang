@@ -98,6 +98,12 @@ struct Visitor {
     virtual RetTy visitInstr(ArgPtr<Instr> i) {
         if (ArgPtr<MovInstr> movInstr = dynamic_cast<ArgPtr<MovInstr>>(i)) {
             return visitMovInstr(*movInstr);
+        } else if (ArgPtr<SafePointInstr> spInstr =
+                       dynamic_cast<ArgPtr<SafePointInstr>>(i)) {
+            return visitSafePointInstr(*spInstr);
+        } else if (ArgPtr<FrameEntryInstr> feInstr =
+                       dynamic_cast<ArgPtr<FrameEntryInstr>>(i)) {
+            return visitFrameEntryInstr(*feInstr);
         } else if (ArgPtr<PushInstr> pushInstr =
                        dynamic_cast<ArgPtr<PushInstr>>(i)) {
             return visitPushInstr(*pushInstr);
@@ -161,6 +167,8 @@ struct Visitor {
     MKVISITOR(AddressExpression)
 
     MKVISITOR(MovInstr)
+    MKVISITOR(SafePointInstr)
+    MKVISITOR(FrameEntryInstr)
     MKVISITOR(PushInstr)
     MKVISITOR(PopInstr)
     MKVISITOR(LeaInstr)

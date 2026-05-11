@@ -37,6 +37,8 @@ public:
 
     void visitMovInstr(const MovInstr& i) override;
     void visitCallInstr(const CallInstr& i) override;
+    void visitSafePointInstr(const SafePointInstr& i) override;
+    void visitFrameEntryInstr(const FrameEntryInstr& i) override;
     void visitPushInstr(const PushInstr& i) override;
     void visitLeaInstr(const LeaInstr& i) override;
     void visitPopInstr(const PopInstr& i) override;

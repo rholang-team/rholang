@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <format>
 #include <vector>
 
 #include "compiler/lir/bb.hpp"
@@ -37,6 +38,10 @@ public:
 
     std::string_view label() const {
         return label_;
+    }
+
+    std::string frameMapName() const {
+        return std::format("_Rframemap{}", label_);
     }
 
     bool returnsValue() const {
