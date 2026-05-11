@@ -1,5 +1,6 @@
 #include "compiler/backend/codegen.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 #include "compiler/lir/bb.hpp"
@@ -21,7 +22,10 @@ private:
     std::ostream& os_;
     lir::WordType wordType_;
 
-    size_t virtualsCount_;
+    const lir::Function* curFn_;
+    // bool returnsValue_;
+    // size_t virtualsCount_;
+    // std::string frameMapName_;
 
     size_t physRegIdx_ = 0;
     std::unordered_map<lir::VirtualRegister::Id, lir::PhysicalRegister::Name>
@@ -38,7 +42,7 @@ private:
         auto name = allocatedRegisters_[vreg->id()];
 
         size_t offset = lir::wordTypeToSize(lir::WordType::Qword) *
-                        (virtualsCount_ - vreg->id());
+                        (curFn_->frameMap().size() - vreg->id());
         os_ << "mov " << lir::wordTypeToString(wordType_) << " [rsp + "
             << offset << "], "
             << lir::PhysicalRegister::nameToString(name, wordType_) << '\n';
@@ -72,7 +76,7 @@ private:
             allocatedRegisters_[vreg->id()] = name;
 
             size_t offset = lir::wordTypeToSize(lir::WordType::Qword) *
-                            (virtualsCount_ - vreg->id());
+                            (curFn_->frameMap().size() - vreg->id());
             os_ << "mov "
                 << lir::PhysicalRegister::nameToString(name, wordType_) << ", "
                 << lir::wordTypeToString(wordType_) << " [rsp + " << offset
@@ -101,7 +105,7 @@ private:
     }
 
     void visit(const lir::Function& fn) override {
-        virtualsCount_ = fn.frameMap().size();
+        curFn_ = &fn;
 
         os_ << fn.label() << ":\n";
         Super::visit(fn);
@@ -185,7 +189,7 @@ private:
         }
 
         size_t offset = lir::wordTypeToSize(lir::WordType::Qword) *
-                        (virtualsCount_ - vreg->id());
+                        (curFn_->frameMap().size() - vreg->id());
         os_ << "mov " << lir::wordTypeToString(wordType_) << " [rsp + "
             << offset << "], "
             << lir::PhysicalRegister::nameToString(name, wordType_) << '\n';
@@ -193,6 +197,29 @@ private:
 
     void visitCallInstr(const lir::CallInstr& i) override {
         os_ << "call " << i.callee() << '\n';
+    }
+
+    void visitFrameEntryInstr(const lir::FrameEntryInstr&) override {
+        const auto& frameMap = curFn_->frameMap();
+
+        os_ << "lea rdi, [rel " << curFn_->frameMapName() << "]\n";
+
+        for (size_t i = 0; i < frameMap.size(); ++i) {
+            if (!frameMap[i]) {
+                continue;
+            }
+
+            size_t offset = lir::wordTypeToSize(lir::WordType::Qword) *
+                            (curFn_->frameMap().size() - i);
+            os_ << "lea rax, [rsp + " << offset << "]\n";
+            os_ << "mov [rdi], rax\n";
+        }
+
+        os_ << "call runtime_push_frame\n";
+    }
+
+    void visitSafePointInstr(const lir::SafePointInstr&) override {
+        os_ << "call runtime_collect\n";
     }
 
     void visitPushInstr(const lir::PushInstr& i) override {
@@ -295,10 +322,10 @@ private:
     void visitStoreInstr(const lir::StoreInstr& i) override {
         wordType_ = lir::WordType::Qword;
         if (const lir::AddressExpression* addr =
-                dynamic_cast<const lir::AddressExpression*>(i.src.get())) {
+                dynamic_cast<const lir::AddressExpression*>(i.dest.get())) {
             loadVirtualRegs({addr->base.get()});
         } else if (const lir::Register* reg =
-                       dynamic_cast<const lir::Register*>(i.src.get())) {
+                       dynamic_cast<const lir::Register*>(i.dest.get())) {
             loadVirtualRegs({reg});
         }
 
@@ -311,7 +338,7 @@ private:
         if (shouldWrap) {
             os_ << '[';
         }
-        visitAddress(i.src.get());
+        visitAddress(i.dest.get());
         if (shouldWrap) {
             os_ << ']';
         }
@@ -432,8 +459,16 @@ private:
 
     void visitRetInstr(const lir::RetInstr&) override {
         os_ << "add rsp, "
-            << lir::wordTypeToSize(lir::WordType::Qword) * virtualsCount_
+            << lir::wordTypeToSize(lir::WordType::Qword) *
+                   curFn_->frameMap().size()
             << '\n';
+        if (curFn_->returnsValue()) {
+            os_ << "push rax\n";
+        }
+        os_ << "call runtime_pop_frame\n";
+        if (curFn_->returnsValue()) {
+            os_ << "pop rax\n";
+        }
         os_ << "ret\n";
     }
 
@@ -467,7 +502,10 @@ public:
         os_ << "bits 64\n";
         os_ << "section .text\n";
         os_ << "extern runtime_alloc\n";
-        
+        os_ << "extern runtime_push_frame\n";
+        os_ << "extern runtime_pop_frame\n";
+        os_ << "extern runtime_collect\n";
+
         for (auto&& fn : mod.functions()) {
             if (!first) {
                 os_ << '\n';
@@ -476,12 +514,16 @@ public:
             visit(fn);
         }
 
-        if (!mod.globals().empty()) {
-            if (!first) {
-                os_ << '\n';
-            }
-            os_ << "section .data\n";
+        os_ << "\nsection .data\n";
+        for (auto&& fn : mod.functions()) {
+            size_t pointers = std::ranges::count(fn.frameMap(), true);
+
+            os_ << fn.frameMapName() << ":\n";
+            os_ << "dq " << pointers << '\n';
+            os_ << "times " << pointers << " dq 0\n";
+            os_ << '\n';
         }
+
         for (auto&& [name, global] : mod.globals()) {
             visitGlobalDecl(name, global);
         }

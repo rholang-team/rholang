@@ -95,11 +95,14 @@ void PrettyPrinter::visitMovInstr(const MovInstr& i) {
 
 void PrettyPrinter::visitCallInstr(const CallInstr& i) {
     os_ << "call " << i.callee();
+}
 
-    // for (auto&& arg : i.args) {
-    //     os_ << ' ';
-    //     visit(arg.get());
-    // }
+void PrettyPrinter::visitFrameEntryInstr(const FrameEntryInstr&) {
+    os_ << "push frame";
+}
+
+void PrettyPrinter::visitSafePointInstr(const SafePointInstr&) {
+    os_ << "safepoint";
 }
 
 void PrettyPrinter::visitPushInstr(const PushInstr& i) {

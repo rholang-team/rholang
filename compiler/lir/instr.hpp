@@ -19,6 +19,9 @@ struct MovInstr final : public Instr {
         : dest{dest}, src{src} {}
 };
 
+struct FrameEntryInstr final : public Instr {};
+struct SafePointInstr final : public Instr {};
+
 struct PushInstr final : public Instr {
     std::shared_ptr<Register> reg;
 

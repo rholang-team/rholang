@@ -260,7 +260,6 @@ class Lowerer final : public ir::Visitor<void, true> {
             fnArgs_.push_back(newVirtualRegister(utils::isa<ir::PointerType>(
                 fn.signature()->type()->params()[i])));
         }
-        // TODO: shadow stack update on frame entry
         fn_->addBb(std::move(prologueUnique));
 
         for (const auto& bb : fn) {
@@ -274,13 +273,30 @@ class Lowerer final : public ir::Visitor<void, true> {
             visit(*bb);
         }
 
+        auto framemapVReg = newVirtualRegister(false);
         auto vregCount = vregFactory_.created();
-        fn_->setFrameMap(frameMap_);
         prologue->addInstr(std::make_unique<lir::SubInstr>(
             lir::StackPointer::create(),
             lir::Immediate::create(vregCount *
                                    lir::wordTypeToSize(lir::WordType::Qword))));
+
+        for (size_t i = 0; i < frameMap_.size(); ++i) {
+            bool notArg = std::ranges::find_if(
+                              fnArgs_,
+                              [i](std::shared_ptr<lir::VirtualRegister> r) {
+                                  return r->id() == i;
+                              }) == fnArgs_.end();
+            if (frameMap_[i] && notArg) {
+                prologue->addInstr(std::make_unique<lir::LoadImmInstr>(
+                    lir::VirtualRegister::create(i),
+                    0));
+            }
+        }
+        fn_->setFrameMap(std::move(frameMap_));
+
         addArgLoads(*fn.signature(), *prologue, vregCount);
+        prologue->addInstr(std::make_unique<lir::FrameEntryInstr>());
+        prologue->addInstr(std::make_unique<lir::SafePointInstr>());
     }
 
     void visitAllocaInstr(const ir::AllocaInstr& i) override {
@@ -311,10 +327,10 @@ class Lowerer final : public ir::Visitor<void, true> {
             bb.addInstr(std::make_unique<lir::PushInstr>(arg));
         }
 
-        bb_->addInstr(std::make_unique<lir::CallInstr>(callee));
+        bb.addInstr(std::make_unique<lir::CallInstr>(callee));
 
         if (args.size() > argumentRegisters.size()) {
-            bb_->addInstr(std::make_unique<lir::AddInstr>(
+            bb.addInstr(std::make_unique<lir::AddInstr>(
                 lir::StackPointer::create(),
                 lir::Immediate::create(
                     lir::wordTypeToSize(lir::WordType::Qword) *
@@ -322,7 +338,7 @@ class Lowerer final : public ir::Visitor<void, true> {
         }
 
         if (ret.has_value()) {
-            bb_->addInstr(std::make_unique<lir::MovInstr>(
+            bb.addInstr(std::make_unique<lir::MovInstr>(
                 *ret,
                 lir::PhysicalRegister::create(
                     lir::PhysicalRegister::Name::Rax)));
@@ -484,6 +500,9 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void visitGotoInstr(const ir::GotoInstr& i) override {
+        if (i.containsBackedge()) {
+            bb_->addInstr(std::make_unique<lir::SafePointInstr>());
+        }
         bb_->addInstr(std::make_unique<lir::JmpInstr>(translateBb(i.dest())));
     }
 
@@ -519,7 +538,7 @@ class Lowerer final : public ir::Visitor<void, true> {
     }
 
     void visitRetInstr(const ir::RetInstr& i) override {
-        // TODO: shadow stack update on frame exit
+        bb_->addInstr(std::make_unique<lir::SafePointInstr>());
 
         if (i.value().has_value()) {
             bb_->addInstr(std::make_unique<lir::MovInstr>(
