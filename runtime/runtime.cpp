@@ -8,6 +8,23 @@
 
 #include "header.hpp"
 
+memory_manager::Runtime runtime;
+
+extern "C" {
+void runtime_alloc(size_t size, void* rmap) {
+    runtime.allocate(size, rmap);
+}
+void runtime_push_frame(void* frame) {
+    runtime.push_frame(static_cast<memory_manager::FrameMap*>(frame));
+}
+void runtime_pop_frame() {
+    runtime.pop_frame();
+}
+void runtime_collect() {
+    runtime.collect();
+}
+}
+
 namespace memory_manager {
 void* Runtime::allocate(size_t size, void* ref_map) {
     auto p = allocator.allocate(size);
