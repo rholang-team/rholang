@@ -5,8 +5,10 @@
 #include <sys/mman.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <random>
+#include <ratio>
 #include <vector>
 
 namespace memory_manager {
@@ -84,6 +86,9 @@ TEST(DELIVERABLES__GC, SweepFast) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<size_t> dist(0, allocations_threshold);
+    std::chrono::duration<double, std::milli> total_collection_duration =
+        std::chrono::milliseconds(0);
+    std::size_t collections = 0;
 
     for (size_t i = 0; i < 1000; ++i) {
         for (size_t j = 0; j < dist(gen); ++j) {
@@ -91,11 +96,18 @@ TEST(DELIVERABLES__GC, SweepFast) {
             gc.allocate(size, nullptr);
         }
 
+        auto start = std::chrono::steady_clock::now();
         gc.collect();
+        auto end = std::chrono::steady_clock::now();
+        ++collections;
+        total_collection_duration += end - start;
 
         ASSERT_TRUE(gc.empty());
     }
     ASSERT_TRUE(gc.empty());
+
+    std::cout << "average collect duration: "
+              << total_collection_duration / collections << std::endl;
 }
 
 TEST(DELIVERABLES__GC, SweepFuzz) {
@@ -109,6 +121,9 @@ TEST(DELIVERABLES__GC, SweepFuzz) {
     std::uniform_int_distribution<size_t> dist(0, allocations_threshold);
     std::uniform_int_distribution<int> bd(0, 1);
     std::vector<void*> objs;
+    std::chrono::duration<double, std::milli> total_collection_duration =
+        std::chrono::milliseconds(0);
+    std::size_t collections = 0;
 
     for (size_t i = 0; i < 1000; ++i) {
         auto num = dist(gen);
@@ -128,12 +143,19 @@ TEST(DELIVERABLES__GC, SweepFuzz) {
             }
         }
 
+        auto start = std::chrono::steady_clock::now();
         gc.collect();
+        auto end = std::chrono::steady_clock::now();
+        ++collections;
+        total_collection_duration += end - start;
         objs = std::move(survivors);
     }
     gc.collect();
 
     ASSERT_TRUE(gc.empty());
+
+    std::cout << "average collect duration: "
+              << total_collection_duration / collections << std::endl;
 }
 
 #define ASSERT_LIVE(obj) \

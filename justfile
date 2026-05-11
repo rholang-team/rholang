@@ -12,6 +12,10 @@ test-compiler:
 test-runtime:
     meson test -C {{builddir}} --suite runtime -t 0
 
+runtime-test:
+    meson compile runtimetests -C {{builddir}}
+    ./build/runtimetests
+
 [working-directory: 'compiler-fuzzing']
 fuzz: build
     sbt "run '../{{builddir}}/compiler'"
