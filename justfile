@@ -3,6 +3,9 @@ builddir := "build"
 run *ARGS: build
     {{builddir}}/compiler {{ARGS}}
 
+run-compiler *ARGS: build
+    {{builddir}}/compiler {{ARGS}}
+
 test *ARGS:
     meson test -C {{builddir}} {{ARGS}}
 
@@ -23,7 +26,8 @@ build:
     meson compile -C {{builddir}}
 
 setup-debug:
-    meson setup {{builddir}} --buildtype=debug -Db_lundef=false -Db_sanitize=thread -Db_sanitize=address,undefined --reconfigure
+    meson setup {{builddir}} --buildtype=debug --reconfigure
+    # -Db_lundef=false -Db_sanitize=thread -Db_sanitize=address,undefined --reconfigure
 
 setup-release:
     meson setup {{builddir}} --buildtype=release --reconfigure

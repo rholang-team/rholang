@@ -8,10 +8,11 @@
 #include "page_size.hpp"
 
 namespace memory_manager::alloc {
-
-size_t page_size = sysconf(_SC_PAGESIZE) * 1024;
+size_t page_size;
 
 MainAllocator::MainAllocator() {
+    page_size = sysconf(_SC_PAGESIZE) * 1024;
+
     auto cur_size = MIN_ALLOCATION_SIZE;
     for (size_t i = 0; i < BIN_LIMIT; i++) {
         bins[i] = Bin(cur_size);

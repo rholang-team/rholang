@@ -24,7 +24,7 @@ runtime_tests_src = [
     'runtime/test/runtime_test.cpp',
 ]
 
-runtime = static_library('runtime', runtime_src)
+runtime = static_library('runtime', runtime_src, cpp_args: ['-fno-exceptions'])
 test(
     'runtime tests',
     executable(

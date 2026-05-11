@@ -502,6 +502,7 @@ public:
 
         os_ << "bits 64\n";
         os_ << "section .text\n";
+        os_ << "extern runtime_init\n";
         os_ << "extern runtime_alloc\n";
         os_ << "extern runtime_push_frame\n";
         os_ << "extern runtime_pop_frame\n";
@@ -514,6 +515,20 @@ public:
             first = false;
             visit(fn);
         }
+
+        if (!first) {
+            os_ << '\n';
+        }
+        os_ << "global _start\n";
+        os_ << "_start:\n";
+        os_ << "call runtime_init\n";
+        if (!mod.globals().empty()) {
+            os_ << "call _Rglobal_init\n";
+        }
+        os_ << "call main\n";
+        os_ << "xor edi, edi\n";
+        os_ << "mov rax, 0x3c\n";
+        os_ << "syscall\n";
 
         os_ << "\nsection .data\n";
         for (auto&& fn : mod.functions()) {

@@ -8,20 +8,23 @@
 
 #include "header.hpp"
 
-memory_manager::Runtime runtime;
+std::optional<memory_manager::Runtime> runtime;
 
 extern "C" {
+void runtime_init() {
+    runtime.emplace();
+}
 void runtime_alloc(size_t size, void* rmap) {
-    runtime.allocate(size, rmap);
+    runtime->allocate(size, rmap);
 }
 void runtime_push_frame(void* frame) {
-    runtime.push_frame(static_cast<memory_manager::FrameMap*>(frame));
+    runtime->push_frame(static_cast<memory_manager::FrameMap*>(frame));
 }
 void runtime_pop_frame() {
-    runtime.pop_frame();
+    runtime->pop_frame();
 }
 void runtime_collect() {
-    runtime.collect();
+    runtime->collect();
 }
 }
 

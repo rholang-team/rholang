@@ -1,0 +1,4 @@
+just run examples/playground.rho
+nasm -felf64 playground.rho.nasm
+mold playground.rho.o build/libruntime.a -o playground -L/lib -L/usr/lib -L/usr/lib64 -lm -lstdc++ -lc -lunwind
+# ./playground
