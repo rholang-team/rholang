@@ -50,11 +50,10 @@ void Runtime::pop_frame() {
 }
 
 void Runtime::scan() {
-    { std::lock_guard<std::mutex> lock(global_queue_mutex); }
+    std::lock_guard<std::mutex> lock(global_queue_mutex);
     for (auto frame : shadow_stack) {
         auto n = frame->n_roots;
         for (size_t i = 0; i < n; ++i) {
-            std::lock_guard<std::mutex> lock(global_queue_mutex);
             global_root_queue.push_back(frame->roots[i]);
         }
     }
@@ -74,6 +73,7 @@ void Runtime::mark() {
 void Runtime::mark_worker(size_t worker_id) {
     auto& my_deque = local_deques[worker_id];
     std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<std::size_t> dist(0, NUM_WORKERS - 1);
 
     while (!marking_done.load(std::memory_order_acquire)) {
         void* obj = nullptr;
@@ -82,7 +82,7 @@ void Runtime::mark_worker(size_t worker_id) {
 
         if (!obj) {
             for (size_t attempt = 0; attempt < NUM_WORKERS; ++attempt) {
-                size_t victim = (worker_id + attempt + 1) % NUM_WORKERS;
+                size_t victim = dist(rng);
                 obj = local_deques[victim].steal();
                 if (obj)
                     break;
